@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: inventory
+  datasource:
+    url: jdbc:mysql://localhost:3306/hangfashion_inventory?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh
+    username: your_username
+    password: your_password
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+# JWT Configuration
+jwt:
+  secret: your_jwt_secret_key_here_min_32_characters
+  expiration: 86400000
