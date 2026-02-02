@@ -95,17 +95,20 @@ public interface InventoryRepository
             rs.set_id AS setId,
             rs.set_name AS setName,
             rs.status AS setStatus,
-            u.unit_name AS unitName,
+            un.unit_name AS unitName,
             r.request_type AS requestType,
             sz.size_value AS sizeValue,
             lt.code AS lengthCode,
             i.quantity AS quantity,
             r.note AS note,
-            r.created_at AS createdAt
+            r.created_at AS createdAt,
+            rs.created_by AS createdBy,
+            u.full_name AS createdByName
         FROM inventory_request_items i
         JOIN inventory_requests r ON r.request_id = i.request_id
         JOIN request_sets rs ON rs.set_id = r.set_id
-        JOIN units u ON u.unit_id = r.unit_id
+        JOIN units un ON un.unit_id = r.unit_id
+        LEFT JOIN users u ON u.user_id = rs.created_by
         JOIN product_variants pv ON pv.variant_id = i.variant_id
         JOIN styles s ON s.style_id = pv.style_id
         JOIN sizes sz ON sz.size_id = pv.size_id
@@ -133,17 +136,20 @@ public interface InventoryRepository
             rs.set_id AS setId,
             rs.set_name AS setName,
             rs.status AS setStatus,
-            u.unit_name AS unitName,
+            un.unit_name AS unitName,
             r.request_type AS requestType,
             sz.size_value AS sizeValue,
             lt.code AS lengthCode,
             i.quantity AS quantity,
             r.note AS note,
-            r.created_at AS createdAt
+            r.created_at AS createdAt,
+            rs.created_by AS createdBy,
+            u.full_name AS createdByName
         FROM inventory_request_items i
         JOIN inventory_requests r ON r.request_id = i.request_id
         JOIN request_sets rs ON rs.set_id = r.set_id
-        JOIN units u ON u.unit_id = r.unit_id
+        JOIN units un ON un.unit_id = r.unit_id
+        LEFT JOIN users u ON u.user_id = rs.created_by
         JOIN product_variants pv ON pv.variant_id = i.variant_id
         JOIN styles s ON s.style_id = pv.style_id
         JOIN sizes sz ON sz.size_id = pv.size_id

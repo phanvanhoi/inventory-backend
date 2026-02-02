@@ -19,6 +19,7 @@ public interface InventoryRequestRepository
         SELECT
           r.request_id      AS requestId,
           u.unit_name       AS unitName,
+          pos.position_code AS positionCode,
           p.product_name    AS productName,
           r.request_type    AS requestType,
           r.expected_date   AS expectedDate,
@@ -26,6 +27,7 @@ public interface InventoryRequestRepository
           r.created_at      AS createdAt
         FROM inventory_requests r
         JOIN units u ON u.unit_id = r.unit_id
+        LEFT JOIN positions pos ON pos.position_id = r.position_id
         LEFT JOIN products p ON p.product_id = r.product_id
         WHERE r.request_id = :requestId
       """,
@@ -38,15 +40,17 @@ public interface InventoryRequestRepository
     @Query(
             value = """
     SELECT
-      r.request_id   AS requestId,
-      u.unit_name    AS unitName,
-      p.product_name AS productName,
-      r.request_type AS requestType,
-      r.expected_date AS expectedDate,
-      r.note         AS note,
-      r.created_at   AS createdAt
+      r.request_id      AS requestId,
+      u.unit_name       AS unitName,
+      pos.position_code AS positionCode,
+      p.product_name    AS productName,
+      r.request_type    AS requestType,
+      r.expected_date   AS expectedDate,
+      r.note            AS note,
+      r.created_at      AS createdAt
     FROM inventory_requests r
     JOIN units u ON u.unit_id = r.unit_id
+    LEFT JOIN positions pos ON pos.position_id = r.position_id
     LEFT JOIN products p ON p.product_id = r.product_id
     ORDER BY r.created_at DESC
   """,

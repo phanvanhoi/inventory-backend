@@ -21,6 +21,8 @@ public class RequestHistoryRowDTO {
     private String lengthCode;
     private String note;
     private LocalDateTime createdAt;
+    private Long createdBy;         // ID người tạo request set
+    private String createdByName;   // Tên người tạo request set
 
     // Map<sizeValue, quantity> - VD: {35: 10, 36: 5, 37: 0, ...}
     private Map<Integer, Integer> sizes;

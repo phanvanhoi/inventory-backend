@@ -181,6 +181,8 @@ public class InventoryController {
                 row.setLengthCode(item.getLengthCode());
                 row.setNote(item.getNote());
                 row.setCreatedAt(item.getCreatedAt());
+                row.setCreatedBy(item.getCreatedBy());
+                row.setCreatedByName(item.getCreatedByName());
 
                 // Initialize sizes map with 0
                 Map<Integer, Integer> sizes = new LinkedHashMap<>();

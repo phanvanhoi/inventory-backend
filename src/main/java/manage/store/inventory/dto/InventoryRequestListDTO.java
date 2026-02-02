@@ -9,6 +9,8 @@ public interface InventoryRequestListDTO {
 
     String getUnitName();
 
+    String getPositionCode(); // Chức danh: GDV, VHX, ...
+
     String getProductName();
 
     String getRequestType();

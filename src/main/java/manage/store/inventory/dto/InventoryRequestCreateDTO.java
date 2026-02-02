@@ -6,6 +6,7 @@ import java.util.List;
 public class InventoryRequestCreateDTO {
 
     private Long unitId;
+    private String positionCode; // Chức danh: GDV, VHX, ... (optional)
     private Long productId;
     private String requestType; // IN, OUT, ADJUST_IN, ADJUST_OUT (tùy role)
     private LocalDate expectedDate; // Bắt buộc cho ADJUST_IN, ADJUST_OUT
@@ -21,6 +22,14 @@ public class InventoryRequestCreateDTO {
 
     public void setUnitId(Long unitId) {
         this.unitId = unitId;
+    }
+
+    public String getPositionCode() {
+        return positionCode;
+    }
+
+    public void setPositionCode(String positionCode) {
+        this.positionCode = positionCode;
     }
 
     public Long getProductId() {

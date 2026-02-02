@@ -17,9 +17,11 @@ import manage.store.inventory.entity.InventoryRequestItem;
 import manage.store.inventory.entity.ProductVariant;
 import manage.store.inventory.entity.RequestSet;
 import manage.store.inventory.entity.enums.RequestSetStatus;
+import manage.store.inventory.entity.Position;
 import manage.store.inventory.repository.InventoryRepository;
 import manage.store.inventory.repository.InventoryRequestItemRepository;
 import manage.store.inventory.repository.InventoryRequestRepository;
+import manage.store.inventory.repository.PositionRepository;
 import manage.store.inventory.repository.ProductVariantRepository;
 import manage.store.inventory.repository.RequestSetRepository;
 
@@ -32,19 +34,22 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
     private final ProductVariantRepository variantRepository;
     private final InventoryRepository inventoryRepository;
     private final RequestSetRepository requestSetRepository;
+    private final PositionRepository positionRepository;
 
     public InventoryRequestServiceImpl(
             InventoryRequestRepository requestRepository,
             InventoryRequestItemRepository itemRepository,
             ProductVariantRepository variantRepository,
             InventoryRepository inventoryRepository,
-            RequestSetRepository requestSetRepository
+            RequestSetRepository requestSetRepository,
+            PositionRepository positionRepository
     ) {
         this.requestRepository = requestRepository;
         this.itemRepository = itemRepository;
         this.variantRepository = variantRepository;
         this.inventoryRepository = inventoryRepository;
         this.requestSetRepository = requestSetRepository;
+        this.positionRepository = positionRepository;
     }
 
     // =====================================================
@@ -55,6 +60,11 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
 
         InventoryRequest request = new InventoryRequest();
         request.setUnitId(dto.getUnitId());
+        if (dto.getPositionCode() != null && !dto.getPositionCode().isBlank()) {
+            Position position = positionRepository.findByPositionCode(dto.getPositionCode())
+                    .orElseThrow(() -> new RuntimeException("Position not found: " + dto.getPositionCode()));
+            request.setPositionId(position.getPositionId());
+        }
         request.setProductId(dto.getProductId());
         request.setRequestType(
                 InventoryRequest.RequestType.valueOf(dto.getRequestType())

@@ -25,11 +25,14 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.submitted_at AS submittedAt,
                     COUNT(ir.request_id) AS requestCount,
                     GROUP_CONCAT(DISTINCT ir.request_type ORDER BY ir.request_id SEPARATOR ',') AS requestTypes,
-                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames
+                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames,
+                    GROUP_CONCAT(DISTINCT pos.position_code ORDER BY pos.position_code SEPARATOR ',') AS positionCodes,
+                    MIN(ir.expected_date) AS earliestExpectedDate
                 FROM request_sets rs
                 LEFT JOIN users u ON u.user_id = rs.created_by
                 LEFT JOIN inventory_requests ir ON ir.set_id = rs.set_id
                 LEFT JOIN products p ON p.product_id = ir.product_id
+                LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY rs.created_at DESC
             """,
@@ -50,11 +53,14 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.submitted_at AS submittedAt,
                     COUNT(ir.request_id) AS requestCount,
                     GROUP_CONCAT(DISTINCT ir.request_type ORDER BY ir.request_id SEPARATOR ',') AS requestTypes,
-                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames
+                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames,
+                    GROUP_CONCAT(DISTINCT pos.position_code ORDER BY pos.position_code SEPARATOR ',') AS positionCodes,
+                    MIN(ir.expected_date) AS earliestExpectedDate
                 FROM request_sets rs
                 LEFT JOIN users u ON u.user_id = rs.created_by
                 LEFT JOIN inventory_requests ir ON ir.set_id = rs.set_id
                 LEFT JOIN products p ON p.product_id = ir.product_id
+                LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 WHERE rs.status = :status
                 GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY rs.created_at DESC
@@ -94,11 +100,14 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.submitted_at AS submittedAt,
                     COUNT(ir.request_id) AS requestCount,
                     GROUP_CONCAT(DISTINCT ir.request_type ORDER BY ir.request_id SEPARATOR ',') AS requestTypes,
-                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames
+                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames,
+                    GROUP_CONCAT(DISTINCT pos.position_code ORDER BY pos.position_code SEPARATOR ',') AS positionCodes,
+                    MIN(ir.expected_date) AS earliestExpectedDate
                 FROM request_sets rs
                 LEFT JOIN users u ON u.user_id = rs.created_by
                 LEFT JOIN inventory_requests ir ON ir.set_id = rs.set_id
                 LEFT JOIN products p ON p.product_id = ir.product_id
+                LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 WHERE rs.status IN (:statuses)
                 GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY rs.created_at DESC
@@ -121,11 +130,14 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.submitted_at AS submittedAt,
                     COUNT(ir.request_id) AS requestCount,
                     GROUP_CONCAT(DISTINCT ir.request_type ORDER BY ir.request_id SEPARATOR ',') AS requestTypes,
-                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames
+                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames,
+                    GROUP_CONCAT(DISTINCT pos.position_code ORDER BY pos.position_code SEPARATOR ',') AS positionCodes,
+                    MIN(ir.expected_date) AS earliestExpectedDate
                 FROM request_sets rs
                 LEFT JOIN users u ON u.user_id = rs.created_by
                 LEFT JOIN inventory_requests ir ON ir.set_id = rs.set_id
                 LEFT JOIN products p ON p.product_id = ir.product_id
+                LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 WHERE rs.created_by = :userId
                 GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY rs.created_at DESC
@@ -148,11 +160,14 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.submitted_at AS submittedAt,
                     COUNT(ir.request_id) AS requestCount,
                     GROUP_CONCAT(DISTINCT ir.request_type ORDER BY ir.request_id SEPARATOR ',') AS requestTypes,
-                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames
+                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames,
+                    GROUP_CONCAT(DISTINCT pos.position_code ORDER BY pos.position_code SEPARATOR ',') AS positionCodes,
+                    MIN(ir.expected_date) AS earliestExpectedDate
                 FROM request_sets rs
                 LEFT JOIN users u ON u.user_id = rs.created_by
                 LEFT JOIN inventory_requests ir ON ir.set_id = rs.set_id
                 LEFT JOIN products p ON p.product_id = ir.product_id
+                LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 WHERE rs.created_by = :userId AND rs.status = :status
                 GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY rs.created_at DESC
@@ -175,11 +190,14 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.submitted_at AS submittedAt,
                     COUNT(ir.request_id) AS requestCount,
                     GROUP_CONCAT(DISTINCT ir.request_type ORDER BY ir.request_id SEPARATOR ',') AS requestTypes,
-                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames
+                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames,
+                    GROUP_CONCAT(DISTINCT pos.position_code ORDER BY pos.position_code SEPARATOR ',') AS positionCodes,
+                    MIN(ir.expected_date) AS earliestExpectedDate
                 FROM request_sets rs
                 LEFT JOIN users u ON u.user_id = rs.created_by
                 LEFT JOIN inventory_requests ir ON ir.set_id = rs.set_id
                 LEFT JOIN products p ON p.product_id = ir.product_id
+                LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 WHERE rs.created_by = :userId AND rs.status IN (:statuses)
                 GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY rs.created_at DESC
@@ -202,11 +220,14 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.submitted_at AS submittedAt,
                     COUNT(ir.request_id) AS requestCount,
                     GROUP_CONCAT(DISTINCT ir.request_type ORDER BY ir.request_id SEPARATOR ',') AS requestTypes,
-                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames
+                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames,
+                    GROUP_CONCAT(DISTINCT pos.position_code ORDER BY pos.position_code SEPARATOR ',') AS positionCodes,
+                    MIN(ir.expected_date) AS earliestExpectedDate
                 FROM request_sets rs
                 LEFT JOIN users u ON u.user_id = rs.created_by
                 LEFT JOIN inventory_requests ir ON ir.set_id = rs.set_id
                 LEFT JOIN products p ON p.product_id = ir.product_id
+                LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY u.full_name ASC, rs.created_at DESC
             """,
@@ -228,11 +249,14 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.submitted_at AS submittedAt,
                     COUNT(ir.request_id) AS requestCount,
                     GROUP_CONCAT(DISTINCT ir.request_type ORDER BY ir.request_id SEPARATOR ',') AS requestTypes,
-                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames
+                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames,
+                    GROUP_CONCAT(DISTINCT pos.position_code ORDER BY pos.position_code SEPARATOR ',') AS positionCodes,
+                    MIN(ir.expected_date) AS earliestExpectedDate
                 FROM request_sets rs
                 LEFT JOIN users u ON u.user_id = rs.created_by
                 LEFT JOIN inventory_requests ir ON ir.set_id = rs.set_id
                 LEFT JOIN products p ON p.product_id = ir.product_id
+                LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 WHERE rs.status = :status
                 GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY u.full_name ASC, rs.created_at DESC
@@ -255,11 +279,14 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.submitted_at AS submittedAt,
                     COUNT(ir.request_id) AS requestCount,
                     GROUP_CONCAT(DISTINCT ir.request_type ORDER BY ir.request_id SEPARATOR ',') AS requestTypes,
-                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames
+                    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ',') AS productNames,
+                    GROUP_CONCAT(DISTINCT pos.position_code ORDER BY pos.position_code SEPARATOR ',') AS positionCodes,
+                    MIN(ir.expected_date) AS earliestExpectedDate
                 FROM request_sets rs
                 LEFT JOIN users u ON u.user_id = rs.created_by
                 LEFT JOIN inventory_requests ir ON ir.set_id = rs.set_id
                 LEFT JOIN products p ON p.product_id = ir.product_id
+                LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 WHERE rs.status IN (:statuses)
                 GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY u.full_name ASC, rs.created_at DESC

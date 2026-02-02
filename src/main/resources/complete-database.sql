@@ -60,7 +60,15 @@ CREATE TABLE units (
     INDEX idx_unit_name (unit_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2.6 Bảng roles (Vai trò người dùng)
+-- 2.6 Bảng positions (Chức danh: GDV, VHX, ...)
+CREATE TABLE positions (
+    position_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    position_code VARCHAR(50) NOT NULL UNIQUE,
+    position_name VARCHAR(100),
+    INDEX idx_position_code (position_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.7 Bảng roles (Vai trò người dùng)
 CREATE TABLE roles (
     role_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     role_name VARCHAR(50) NOT NULL UNIQUE,
@@ -151,12 +159,14 @@ CREATE TABLE products (
     INDEX idx_product_name (product_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2.13 Bảng inventory_requests (Phiếu xuất/nhập kho)
+-- 2.14 Bảng inventory_requests (Phiếu xuất/nhập kho)
 -- expected_date: Ngày dự kiến (bắt buộc cho ADJUST_IN, ADJUST_OUT)
+-- position_id: Chức danh (GDV, VHX, ...) - optional
 CREATE TABLE inventory_requests (
     request_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     set_id BIGINT,
     unit_id BIGINT,
+    position_id BIGINT NULL,
     product_id BIGINT,
     request_type ENUM('IN', 'OUT', 'ADJUST_IN', 'ADJUST_OUT') NOT NULL,
     expected_date DATE NULL,
@@ -164,9 +174,11 @@ CREATE TABLE inventory_requests (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (set_id) REFERENCES request_sets(set_id),
     FOREIGN KEY (unit_id) REFERENCES units(unit_id),
+    FOREIGN KEY (position_id) REFERENCES positions(position_id),
     FOREIGN KEY (product_id) REFERENCES products(product_id),
     INDEX idx_request_set (set_id),
     INDEX idx_request_unit (unit_id),
+    INDEX idx_request_position (position_id),
     INDEX idx_request_product (product_id),
     INDEX idx_request_type (request_type),
     INDEX idx_request_expected_date (expected_date),
@@ -213,7 +225,13 @@ INSERT INTO length_types (code) VALUES
 ('COC'),
 ('DAI');
 
--- 3.5 Product Variants (88 biến thể = 4 styles x 11 sizes x 2 lengths)
+-- 3.5 Positions (Chức danh)
+-- Dữ liệu từ ảnh: GDV, VHX
+INSERT INTO positions (position_code, position_name) VALUES
+('GDV', 'Giao dịch viên'),
+('VHX', 'Vận hành xưởng');
+
+-- 3.6 Product Variants (88 biến thể = 4 styles x 11 sizes x 2 lengths)
 INSERT INTO product_variants (style_id, size_id, length_type_id) VALUES
 -- CỔ ĐIỂN (style_id = 1)
 (1, 1, 1), (1, 1, 2), (1, 2, 1), (1, 2, 2), (1, 3, 1), (1, 3, 2),

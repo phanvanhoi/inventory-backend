@@ -13,6 +13,10 @@ public class InventoryRequest {
     private Long requestId;
 
     private Long unitId;
+
+    @Column(name = "position_id")
+    private Long positionId;
+
     private Long productId;
 
     @Enumerated(EnumType.STRING)
@@ -39,6 +43,9 @@ public class InventoryRequest {
 
     public Long getUnitId() { return unitId; }
     public void setUnitId(Long unitId) { this.unitId = unitId; }
+
+    public Long getPositionId() { return positionId; }
+    public void setPositionId(Long positionId) { this.positionId = positionId; }
 
     public Long getProductId() { return productId; }
     public void setProductId(Long productId) { this.productId = productId; }

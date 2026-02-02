@@ -7,6 +7,7 @@ public interface InventoryRequestHeaderDTO {
 
     Long getRequestId();
     String getUnitName();
+    String getPositionCode(); // Chức danh: GDV, VHX, ...
     String getProductName();
     String getRequestType();
     LocalDate getExpectedDate();

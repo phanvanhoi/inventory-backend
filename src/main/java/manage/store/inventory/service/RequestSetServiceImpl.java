@@ -25,9 +25,11 @@ import manage.store.inventory.entity.User;
 import manage.store.inventory.entity.enums.ApprovalAction;
 import manage.store.inventory.entity.enums.RequestSetStatus;
 import manage.store.inventory.repository.ApprovalHistoryRepository;
+import manage.store.inventory.entity.Position;
 import manage.store.inventory.repository.InventoryRepository;
 import manage.store.inventory.repository.InventoryRequestItemRepository;
 import manage.store.inventory.repository.InventoryRequestRepository;
+import manage.store.inventory.repository.PositionRepository;
 import manage.store.inventory.repository.ProductVariantRepository;
 import manage.store.inventory.repository.RequestSetRepository;
 import manage.store.inventory.repository.UserRepository;
@@ -45,6 +47,7 @@ public class RequestSetServiceImpl implements RequestSetService {
     private final ApprovalHistoryRepository approvalHistoryRepository;
     private final NotificationService notificationService;
     private final InventoryRepository inventoryRepository;
+    private final PositionRepository positionRepository;
 
     public RequestSetServiceImpl(
             RequestSetRepository requestSetRepository,
@@ -55,7 +58,8 @@ public class RequestSetServiceImpl implements RequestSetService {
             InventoryRequestService inventoryRequestService,
             ApprovalHistoryRepository approvalHistoryRepository,
             NotificationService notificationService,
-            InventoryRepository inventoryRepository
+            InventoryRepository inventoryRepository,
+            PositionRepository positionRepository
     ) {
         this.requestSetRepository = requestSetRepository;
         this.requestRepository = requestRepository;
@@ -66,6 +70,7 @@ public class RequestSetServiceImpl implements RequestSetService {
         this.approvalHistoryRepository = approvalHistoryRepository;
         this.notificationService = notificationService;
         this.inventoryRepository = inventoryRepository;
+        this.positionRepository = positionRepository;
     }
 
     @Override
@@ -185,6 +190,11 @@ public class RequestSetServiceImpl implements RequestSetService {
 
         InventoryRequest request = new InventoryRequest();
         request.setUnitId(dto.getUnitId());
+        if (dto.getPositionCode() != null && !dto.getPositionCode().isBlank()) {
+            Position position = positionRepository.findByPositionCode(dto.getPositionCode())
+                    .orElseThrow(() -> new RuntimeException("Position not found: " + dto.getPositionCode()));
+            request.setPositionId(position.getPositionId());
+        }
         request.setProductId(dto.getProductId());
         request.setRequestType(
                 InventoryRequest.RequestType.valueOf(requestType)

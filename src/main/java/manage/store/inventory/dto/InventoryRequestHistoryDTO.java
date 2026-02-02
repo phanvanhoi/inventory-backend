@@ -15,4 +15,6 @@ public interface InventoryRequestHistoryDTO {
     Integer getQuantity();
     String getNote();
     LocalDateTime getCreatedAt();
+    Long getCreatedBy();         // ID người tạo request set
+    String getCreatedByName();   // Tên người tạo request set
 }
