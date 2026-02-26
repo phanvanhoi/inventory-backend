@@ -1,5 +1,6 @@
 package manage.store.inventory.repository;
 
+import manage.store.inventory.dto.ExportItemDTO;
 import manage.store.inventory.dto.InventoryRequestItemDTO;
 import manage.store.inventory.dto.ItemDetailDTO;
 import manage.store.inventory.entity.InventoryRequestItem;
@@ -78,4 +79,31 @@ public interface InventoryRequestItemRepository
             nativeQuery = true
     )
     List<ItemDetailDTO> findItemDetailsByRequestId(@Param("requestId") Long requestId);
+
+    @Query(
+            value = """
+                SELECT
+                    r.request_id AS requestId,
+                    u.unit_name AS unitName,
+                    pos.position_code AS positionCode,
+                    p.product_name AS productName,
+                    s.style_name AS styleName,
+                    sz.size_value AS sizeValue,
+                    lt.code AS lengthCode,
+                    i.quantity AS quantity
+                FROM inventory_request_items i
+                JOIN inventory_requests r ON r.request_id = i.request_id
+                JOIN product_variants pv ON pv.variant_id = i.variant_id
+                JOIN styles s ON s.style_id = pv.style_id
+                JOIN sizes sz ON sz.size_id = pv.size_id
+                JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+                JOIN units u ON u.unit_id = r.unit_id
+                LEFT JOIN positions pos ON pos.position_id = r.position_id
+                LEFT JOIN products p ON p.product_id = r.product_id
+                WHERE r.set_id = :setId
+                ORDER BY p.product_name, u.unit_name, pos.position_code, s.style_name, sz.size_value, lt.code
+            """,
+            nativeQuery = true
+    )
+    List<ExportItemDTO> findExportDataBySetId(@Param("setId") Long setId);
 }

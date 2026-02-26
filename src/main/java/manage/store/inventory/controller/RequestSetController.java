@@ -1,9 +1,12 @@
 package manage.store.inventory.controller;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,6 +29,7 @@ import manage.store.inventory.entity.User;
 import manage.store.inventory.repository.RequestSetRepository;
 import manage.store.inventory.repository.UserRepository;
 import manage.store.inventory.security.CurrentUser;
+import manage.store.inventory.service.ExcelExportService;
 import manage.store.inventory.service.RequestSetService;
 
 @RestController
@@ -36,17 +40,20 @@ public class RequestSetController {
     private final RequestSetRepository requestSetRepository;
     private final UserRepository userRepository;
     private final CurrentUser currentUser;
+    private final ExcelExportService excelExportService;
 
     public RequestSetController(
             RequestSetService requestSetService,
             RequestSetRepository requestSetRepository,
             UserRepository userRepository,
-            CurrentUser currentUser
+            CurrentUser currentUser,
+            ExcelExportService excelExportService
     ) {
         this.requestSetService = requestSetService;
         this.requestSetRepository = requestSetRepository;
         this.userRepository = userRepository;
         this.currentUser = currentUser;
+        this.excelExportService = excelExportService;
     }
 
     // Lấy tên gợi ý cho bộ phiếu mới
@@ -168,5 +175,17 @@ public class RequestSetController {
     @PreAuthorize("hasRole('STOCKKEEPER')")
     public List<RequestSetListDTO> getApprovedRequestSets() {
         return requestSetService.getApprovedRequestSets();
+    }
+
+    // Xuất Excel cho bộ phiếu
+    @GetMapping("/{setId:\\d+}/export")
+    public ResponseEntity<byte[]> exportRequestSet(@PathVariable Long setId) throws IOException {
+        byte[] excelData = excelExportService.exportRequestSet(setId);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "de-xuat-" + setId + ".xlsx");
+
+        return ResponseEntity.ok().headers(headers).body(excelData);
     }
 }

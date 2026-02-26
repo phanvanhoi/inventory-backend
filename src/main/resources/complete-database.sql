@@ -8,6 +8,9 @@
 -- =====================================================
 -- PHẦN 1: KHỞI TẠO DATABASE
 -- =====================================================
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+
 DROP DATABASE IF EXISTS hangfashion_inventory;
 CREATE DATABASE hangfashion_inventory CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE hangfashion_inventory;
