@@ -16,8 +16,9 @@ public interface InventoryRepository
 
     /**
      * Lấy tồn kho tổng hợp theo biến thể cho một product cụ thể
-     * - actualQuantity: Tồn kho thực tế = SUM(IN) - SUM(OUT) từ EXECUTED
-     * - expectedQuantity: Tồn kho dự kiến = actualQuantity + SUM(ADJUST_IN) - SUM(ADJUST_OUT) từ PENDING/APPROVED/EXECUTED
+     * - actualQuantity: Tồn kho thực tế = SUM(IN/OUT) từ EXECUTED + SUM(receipt_items) từ RECEIVING
+     * - expectedQuantity: Tồn kho dự kiến = EXECUTED(IN/OUT) + ADJUST(PENDING/APPROVED/RECEIVING)
+     *   (RECEIVING: receipts + remaining = original ADJUST, nên chỉ cần đếm ADJUST gốc)
      */
     @Query(
             value = """
@@ -37,6 +38,21 @@ public interface InventoryRepository
             WHERE i2.variant_id = pv.variant_id
               AND r2.product_id = :productId
               AND rs2.status = 'EXECUTED'
+          ), 0)
+          +
+          COALESCE((
+            SELECT SUM(CASE
+                WHEN r2.request_type IN ('IN', 'ADJUST_IN') THEN ri2.received_quantity
+                WHEN r2.request_type IN ('OUT', 'ADJUST_OUT') THEN -ri2.received_quantity
+                ELSE 0
+            END)
+            FROM receipt_items ri2
+            JOIN receipt_records rr2 ON rr2.receipt_id = ri2.receipt_id
+            JOIN inventory_requests r2 ON r2.request_id = ri2.request_id
+            JOIN request_sets rs2 ON rs2.set_id = rr2.set_id
+            WHERE ri2.variant_id = pv.variant_id
+              AND r2.product_id = :productId
+              AND rs2.status = 'RECEIVING'
           ), 0) AS actualQuantity,
           COALESCE((
             SELECT SUM(CASE
@@ -63,7 +79,7 @@ public interface InventoryRepository
             JOIN request_sets rs2 ON rs2.set_id = r2.set_id
             WHERE i2.variant_id = pv.variant_id
               AND r2.product_id = :productId
-              AND rs2.status IN ('PENDING', 'APPROVED', 'EXECUTED')
+              AND rs2.status IN ('PENDING', 'APPROVED', 'RECEIVING')
           ), 0) AS expectedQuantity
         FROM product_variants pv
         JOIN styles s                ON s.style_id = pv.style_id
@@ -86,37 +102,68 @@ public interface InventoryRepository
 
     /**
      * Lấy lịch sử các requests theo productId và styleName
-     * Dành cho ADMIN, PURCHASER: Xem cả APPROVED và EXECUTED
+     * Dành cho ADMIN, PURCHASER: Xem cả APPROVED, RECEIVING và EXECUTED
+     * Bao gồm cả các lần nhận hàng từng phần (RECEIPT_IN / RECEIPT_OUT)
      */
     @Query(
             value = """
-        SELECT
-            r.request_id AS requestId,
-            rs.set_id AS setId,
-            rs.set_name AS setName,
-            rs.status AS setStatus,
-            un.unit_name AS unitName,
-            r.request_type AS requestType,
-            sz.size_value AS sizeValue,
-            lt.code AS lengthCode,
-            i.quantity AS quantity,
-            r.note AS note,
-            r.created_at AS createdAt,
-            rs.created_by AS createdBy,
-            u.full_name AS createdByName
-        FROM inventory_request_items i
-        JOIN inventory_requests r ON r.request_id = i.request_id
-        JOIN request_sets rs ON rs.set_id = r.set_id
-        JOIN units un ON un.unit_id = r.unit_id
-        LEFT JOIN users u ON u.user_id = rs.created_by
-        JOIN product_variants pv ON pv.variant_id = i.variant_id
-        JOIN styles s ON s.style_id = pv.style_id
-        JOIN sizes sz ON sz.size_id = pv.size_id
-        JOIN length_types lt ON lt.length_type_id = pv.length_type_id
-        WHERE r.product_id = :productId
-          AND s.style_name = :styleName
-          AND rs.status IN ('APPROVED', 'EXECUTED')
-        ORDER BY r.created_at DESC, sz.size_value, lt.code
+        SELECT * FROM (
+            SELECT
+                r.request_id AS requestId,
+                rs.set_id AS setId,
+                rs.set_name AS setName,
+                rs.status AS setStatus,
+                un.unit_name AS unitName,
+                r.request_type AS requestType,
+                sz.size_value AS sizeValue,
+                lt.code AS lengthCode,
+                i.quantity AS quantity,
+                r.note AS note,
+                r.created_at AS createdAt,
+                rs.created_by AS createdBy,
+                u.full_name AS createdByName
+            FROM inventory_request_items i
+            JOIN inventory_requests r ON r.request_id = i.request_id
+            JOIN request_sets rs ON rs.set_id = r.set_id
+            JOIN units un ON un.unit_id = r.unit_id
+            LEFT JOIN users u ON u.user_id = rs.created_by
+            JOIN product_variants pv ON pv.variant_id = i.variant_id
+            JOIN styles s ON s.style_id = pv.style_id
+            JOIN sizes sz ON sz.size_id = pv.size_id
+            JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+            WHERE r.product_id = :productId
+              AND s.style_name = :styleName
+              AND rs.status IN ('APPROVED', 'RECEIVING', 'EXECUTED')
+            UNION ALL
+            SELECT
+                r.request_id AS requestId,
+                rs.set_id AS setId,
+                rs.set_name AS setName,
+                rs.status AS setStatus,
+                un.unit_name AS unitName,
+                CONCAT('RECEIPT_', IF(r.request_type IN ('IN','ADJUST_IN'), 'IN', 'OUT')) AS requestType,
+                sz.size_value AS sizeValue,
+                lt.code AS lengthCode,
+                ri.received_quantity AS quantity,
+                rr.note AS note,
+                rr.received_at AS createdAt,
+                rr.received_by AS createdBy,
+                u2.full_name AS createdByName
+            FROM receipt_items ri
+            JOIN receipt_records rr ON rr.receipt_id = ri.receipt_id
+            JOIN inventory_requests r ON r.request_id = ri.request_id
+            JOIN request_sets rs ON rs.set_id = rr.set_id
+            JOIN units un ON un.unit_id = r.unit_id
+            LEFT JOIN users u2 ON u2.user_id = rr.received_by
+            JOIN product_variants pv ON pv.variant_id = ri.variant_id
+            JOIN styles s ON s.style_id = pv.style_id
+            JOIN sizes sz ON sz.size_id = pv.size_id
+            JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+            WHERE r.product_id = :productId
+              AND s.style_name = :styleName
+              AND rs.status IN ('RECEIVING', 'EXECUTED')
+        ) combined
+        ORDER BY createdAt DESC, sizeValue, lengthCode
         """,
             nativeQuery = true
     )
@@ -127,37 +174,68 @@ public interface InventoryRepository
 
     /**
      * Lấy lịch sử các requests theo productId và styleName
-     * Dành cho USER, STOCKKEEPER: Chỉ xem EXECUTED (đã thực hiện thực tế)
+     * Dành cho USER, STOCKKEEPER: Xem EXECUTED + RECEIVING (đang nhận hàng)
+     * Bao gồm cả các lần nhận hàng từng phần (RECEIPT_IN / RECEIPT_OUT)
      */
     @Query(
             value = """
-        SELECT
-            r.request_id AS requestId,
-            rs.set_id AS setId,
-            rs.set_name AS setName,
-            rs.status AS setStatus,
-            un.unit_name AS unitName,
-            r.request_type AS requestType,
-            sz.size_value AS sizeValue,
-            lt.code AS lengthCode,
-            i.quantity AS quantity,
-            r.note AS note,
-            r.created_at AS createdAt,
-            rs.created_by AS createdBy,
-            u.full_name AS createdByName
-        FROM inventory_request_items i
-        JOIN inventory_requests r ON r.request_id = i.request_id
-        JOIN request_sets rs ON rs.set_id = r.set_id
-        JOIN units un ON un.unit_id = r.unit_id
-        LEFT JOIN users u ON u.user_id = rs.created_by
-        JOIN product_variants pv ON pv.variant_id = i.variant_id
-        JOIN styles s ON s.style_id = pv.style_id
-        JOIN sizes sz ON sz.size_id = pv.size_id
-        JOIN length_types lt ON lt.length_type_id = pv.length_type_id
-        WHERE r.product_id = :productId
-          AND s.style_name = :styleName
-          AND rs.status = 'EXECUTED'
-        ORDER BY r.created_at DESC, sz.size_value, lt.code
+        SELECT * FROM (
+            SELECT
+                r.request_id AS requestId,
+                rs.set_id AS setId,
+                rs.set_name AS setName,
+                rs.status AS setStatus,
+                un.unit_name AS unitName,
+                r.request_type AS requestType,
+                sz.size_value AS sizeValue,
+                lt.code AS lengthCode,
+                i.quantity AS quantity,
+                r.note AS note,
+                r.created_at AS createdAt,
+                rs.created_by AS createdBy,
+                u.full_name AS createdByName
+            FROM inventory_request_items i
+            JOIN inventory_requests r ON r.request_id = i.request_id
+            JOIN request_sets rs ON rs.set_id = r.set_id
+            JOIN units un ON un.unit_id = r.unit_id
+            LEFT JOIN users u ON u.user_id = rs.created_by
+            JOIN product_variants pv ON pv.variant_id = i.variant_id
+            JOIN styles s ON s.style_id = pv.style_id
+            JOIN sizes sz ON sz.size_id = pv.size_id
+            JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+            WHERE r.product_id = :productId
+              AND s.style_name = :styleName
+              AND rs.status IN ('RECEIVING', 'EXECUTED')
+            UNION ALL
+            SELECT
+                r.request_id AS requestId,
+                rs.set_id AS setId,
+                rs.set_name AS setName,
+                rs.status AS setStatus,
+                un.unit_name AS unitName,
+                CONCAT('RECEIPT_', IF(r.request_type IN ('IN','ADJUST_IN'), 'IN', 'OUT')) AS requestType,
+                sz.size_value AS sizeValue,
+                lt.code AS lengthCode,
+                ri.received_quantity AS quantity,
+                rr.note AS note,
+                rr.received_at AS createdAt,
+                rr.received_by AS createdBy,
+                u2.full_name AS createdByName
+            FROM receipt_items ri
+            JOIN receipt_records rr ON rr.receipt_id = ri.receipt_id
+            JOIN inventory_requests r ON r.request_id = ri.request_id
+            JOIN request_sets rs ON rs.set_id = rr.set_id
+            JOIN units un ON un.unit_id = r.unit_id
+            LEFT JOIN users u2 ON u2.user_id = rr.received_by
+            JOIN product_variants pv ON pv.variant_id = ri.variant_id
+            JOIN styles s ON s.style_id = pv.style_id
+            JOIN sizes sz ON sz.size_id = pv.size_id
+            JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+            WHERE r.product_id = :productId
+              AND s.style_name = :styleName
+              AND rs.status IN ('RECEIVING', 'EXECUTED')
+        ) combined
+        ORDER BY createdAt DESC, sizeValue, lengthCode
         """,
             nativeQuery = true
     )
@@ -168,21 +246,39 @@ public interface InventoryRepository
 
     /**
      * Lấy tồn kho thực tế theo variant
-     * Chỉ tính IN, OUT từ các request_sets đã được EXECUTED
+     * = SUM(IN/OUT) từ EXECUTED + SUM(receipt_items) từ RECEIVING
      */
     @Query(
             value = """
-        SELECT COALESCE(SUM(CASE
-            WHEN r.request_type = 'IN' THEN i.quantity
-            WHEN r.request_type = 'OUT' THEN -i.quantity
-            ELSE 0
-        END), 0)
-        FROM inventory_request_items i
-        JOIN inventory_requests r ON r.request_id = i.request_id
-        JOIN request_sets rs ON rs.set_id = r.set_id
-        WHERE i.variant_id = :variantId
-          AND r.product_id = :productId
-          AND rs.status = 'EXECUTED'
+        SELECT
+          COALESCE((
+            SELECT SUM(CASE
+                WHEN r.request_type = 'IN' THEN i.quantity
+                WHEN r.request_type = 'OUT' THEN -i.quantity
+                ELSE 0
+            END)
+            FROM inventory_request_items i
+            JOIN inventory_requests r ON r.request_id = i.request_id
+            JOIN request_sets rs ON rs.set_id = r.set_id
+            WHERE i.variant_id = :variantId
+              AND r.product_id = :productId
+              AND rs.status = 'EXECUTED'
+          ), 0)
+          +
+          COALESCE((
+            SELECT SUM(CASE
+                WHEN r.request_type IN ('IN', 'ADJUST_IN') THEN ri.received_quantity
+                WHEN r.request_type IN ('OUT', 'ADJUST_OUT') THEN -ri.received_quantity
+                ELSE 0
+            END)
+            FROM receipt_items ri
+            JOIN receipt_records rr ON rr.receipt_id = ri.receipt_id
+            JOIN inventory_requests r ON r.request_id = ri.request_id
+            JOIN request_sets rs ON rs.set_id = rr.set_id
+            WHERE ri.variant_id = :variantId
+              AND r.product_id = :productId
+              AND rs.status = 'RECEIVING'
+          ), 0)
         """,
             nativeQuery = true
     )
@@ -193,12 +289,13 @@ public interface InventoryRepository
 
     /**
      * Lấy tồn kho dự kiến tại một ngày cụ thể theo variant
-     * Công thức: Tồn thực tế (EXECUTED) + SUM(ADJUST_IN có expected_date <= targetDate) - SUM(ADJUST_OUT có expected_date <= targetDate)
-     * Tính cả PENDING, APPROVED và EXECUTED
+     * = EXECUTED(IN/OUT)
+     *   + SUM(ADJUST_IN/OUT có expected_date <= targetDate) từ PENDING/APPROVED/RECEIVING
      */
     @Query(
             value = """
-        SELECT COALESCE(
+        SELECT
+          COALESCE(
             (SELECT SUM(CASE
                 WHEN r.request_type = 'IN' THEN i.quantity
                 WHEN r.request_type = 'OUT' THEN -i.quantity
@@ -211,7 +308,7 @@ public interface InventoryRepository
               AND r.product_id = :productId
               AND rs.status = 'EXECUTED'), 0)
         +
-        COALESCE(
+          COALESCE(
             (SELECT SUM(CASE
                 WHEN r.request_type = 'ADJUST_IN' THEN i.quantity
                 WHEN r.request_type = 'ADJUST_OUT' THEN -i.quantity
@@ -223,7 +320,7 @@ public interface InventoryRepository
             WHERE i.variant_id = :variantId
               AND r.product_id = :productId
               AND r.expected_date <= :targetDate
-              AND rs.status IN ('PENDING', 'APPROVED', 'EXECUTED')), 0)
+              AND rs.status IN ('PENDING', 'APPROVED', 'RECEIVING')), 0)
         """,
             nativeQuery = true
     )
@@ -245,7 +342,7 @@ public interface InventoryRepository
         WHERE r.product_id = :productId
           AND r.request_type = 'ADJUST_OUT'
           AND r.expected_date >= :fromDate
-          AND rs.status IN ('PENDING', 'APPROVED', 'EXECUTED')
+          AND rs.status IN ('PENDING', 'APPROVED', 'RECEIVING', 'EXECUTED')
           AND r.request_id != :excludeRequestId
         """,
             nativeQuery = true

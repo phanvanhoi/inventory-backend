@@ -2,6 +2,7 @@ package manage.store.inventory.dto;
 
 public class InventoryRequestItemDTO {
 
+    private Long variantId;
     private String styleName;
     private Integer sizeValue;
     private String lengthCode; // COC / DAI
@@ -11,15 +12,25 @@ public class InventoryRequestItemDTO {
     }
 
     public InventoryRequestItemDTO(
+            Long variantId,
             String styleName,
             Integer sizeValue,
             String lengthCode,
             Integer quantity
     ) {
+        this.variantId = variantId;
         this.styleName = styleName;
         this.sizeValue = sizeValue;
         this.lengthCode = lengthCode;
         this.quantity = quantity;
+    }
+
+    public Long getVariantId() {
+        return variantId;
+    }
+
+    public void setVariantId(Long variantId) {
+        this.variantId = variantId;
     }
 
     public String getStyleName() {

@@ -672,10 +672,79 @@ public class RequestSetServiceImpl implements RequestSetService {
 
     // =====================================================
     // GET APPROVED REQUEST SETS - Danh sách chờ STOCKKEEPER thực hiện
+    // Bao gồm cả APPROVED và RECEIVING
     // =====================================================
     @Override
     @Transactional(readOnly = true)
     public List<RequestSetListDTO> getApprovedRequestSets() {
-        return requestSetRepository.findByStatus("APPROVED");
+        return requestSetRepository.findAllByStatuses(List.of("APPROVED", "RECEIVING"));
+    }
+
+    // =====================================================
+    // EDIT APPROVED REQUEST SET - Sửa phiếu đã duyệt (Case 2)
+    // STOCKKEEPER hoặc chủ phiếu sửa → PENDING (cần Admin duyệt lại)
+    // Chỉ khi APPROVED (chưa có receipt nào)
+    // =====================================================
+    @Override
+    public void editApprovedRequestSet(Long setId, RequestSetUpdateDTO dto, Long userId) {
+        RequestSet requestSet = requestSetRepository.findById(setId)
+                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + setId));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        // Kiểm tra quyền: STOCKKEEPER hoặc chủ phiếu
+        boolean isOwner = requestSet.getCreatedByUser() != null
+                && requestSet.getCreatedByUser().getUserId().equals(userId);
+        boolean isStockkeeper = user.isStockkeeper();
+
+        if (!isOwner && !isStockkeeper) {
+            throw new RuntimeException("Chỉ STOCKKEEPER hoặc chủ phiếu mới có quyền sửa bộ phiếu đã duyệt");
+        }
+
+        // Kiểm tra trạng thái: chỉ APPROVED
+        if (requestSet.getStatus() != RequestSetStatus.APPROVED) {
+            throw new RuntimeException(
+                    "Chỉ có thể sửa bộ phiếu đã duyệt (APPROVED). " +
+                    "Bộ phiếu đang nhận hàng (RECEIVING) không thể sửa.");
+        }
+
+        // Validate request types theo role (nếu người sửa là chủ phiếu)
+        if (isOwner && dto.getRequests() != null && !dto.getRequests().isEmpty()) {
+            validateRequestTypesForRole(dto.getRequests(), user);
+        }
+
+        // 1. Xóa tất cả requests cũ và items của chúng
+        List<InventoryRequest> oldRequests = requestRepository.findBySetId(setId);
+        for (InventoryRequest oldRequest : oldRequests) {
+            itemRepository.deleteByRequestId(oldRequest.getRequestId());
+        }
+        requestRepository.deleteAll(oldRequests);
+
+        // 2. Cập nhật thông tin bộ phiếu
+        requestSet.setSetName(dto.getSetName());
+        requestSet.setDescription(dto.getDescription());
+        requestSet.setStatus(RequestSetStatus.PENDING);
+        requestSet.setSubmittedAt(LocalDateTime.now());
+        requestSetRepository.save(requestSet);
+
+        // 3. Tạo các requests mới
+        if (dto.getRequests() != null && !dto.getRequests().isEmpty()) {
+            for (InventoryRequestCreateDTO requestDTO : dto.getRequests()) {
+                createRequestInSet(requestDTO, setId);
+            }
+        }
+
+        // 4. Lưu lịch sử (EDIT)
+        ApprovalHistory history = new ApprovalHistory();
+        history.setRequestSet(requestSet);
+        history.setAction(ApprovalAction.EDIT);
+        history.setPerformedBy(user);
+        history.setReason("Sửa bộ phiếu đã duyệt và gửi duyệt lại");
+        history.setCreatedAt(LocalDateTime.now());
+        approvalHistoryRepository.save(history);
+
+        // 5. Thông báo cho ADMIN duyệt lại
+        notificationService.notifyAdminsOfPendingApproval(requestSet, user);
     }
 }

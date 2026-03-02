@@ -14,8 +14,11 @@ import java.util.Optional;
 public interface InventoryRequestItemRepository
         extends JpaRepository<InventoryRequestItem, Long> {
 
+    List<InventoryRequestItem> findByRequestId(Long requestId);
+
     @Query("""
         SELECT new manage.store.inventory.dto.InventoryRequestItemDTO(
+            pv.variantId,
             s.styleName,
             sz.sizeValue,
             lt.code,

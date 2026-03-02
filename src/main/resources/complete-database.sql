@@ -108,7 +108,7 @@ CREATE TABLE request_sets (
     set_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     set_name VARCHAR(255) NOT NULL,
     description TEXT,
-    status ENUM('PENDING', 'APPROVED', 'REJECTED', 'EXECUTED') NOT NULL DEFAULT 'PENDING',
+    status ENUM('PENDING', 'APPROVED', 'REJECTED', 'RECEIVING', 'EXECUTED') NOT NULL DEFAULT 'PENDING',
     executed_by BIGINT NULL,
     executed_at DATETIME NULL,
     created_by BIGINT,
@@ -126,7 +126,7 @@ CREATE TABLE request_sets (
 CREATE TABLE approval_history (
     history_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     set_id BIGINT NOT NULL,
-    action ENUM('SUBMIT', 'APPROVE', 'REJECT', 'EXECUTE') NOT NULL,
+    action ENUM('SUBMIT', 'APPROVE', 'REJECT', 'EXECUTE', 'RECEIVE', 'COMPLETE', 'EDIT') NOT NULL,
     performed_by BIGINT NOT NULL,
     reason TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -198,6 +198,35 @@ CREATE TABLE inventory_request_items (
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id),
     INDEX idx_item_request (request_id),
     INDEX idx_item_variant (variant_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.15 Bảng receipt_records (Mỗi lần nhận hàng từng phần = 1 record)
+CREATE TABLE receipt_records (
+    receipt_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    set_id BIGINT NOT NULL,
+    received_by BIGINT NOT NULL,
+    received_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    note TEXT,
+    FOREIGN KEY (set_id) REFERENCES request_sets(set_id) ON DELETE CASCADE,
+    FOREIGN KEY (received_by) REFERENCES users(user_id),
+    INDEX idx_receipt_set (set_id),
+    INDEX idx_receipt_received_by (received_by),
+    INDEX idx_receipt_received_at (received_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.16 Bảng receipt_items (Chi tiết từng biến thể nhận trong mỗi lần)
+CREATE TABLE receipt_items (
+    receipt_item_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    receipt_id BIGINT NOT NULL,
+    request_id BIGINT NOT NULL,
+    variant_id BIGINT NOT NULL,
+    received_quantity INT NOT NULL,
+    FOREIGN KEY (receipt_id) REFERENCES receipt_records(receipt_id) ON DELETE CASCADE,
+    FOREIGN KEY (request_id) REFERENCES inventory_requests(request_id),
+    FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id),
+    INDEX idx_ri_receipt (receipt_id),
+    INDEX idx_ri_request (request_id),
+    INDEX idx_ri_variant (variant_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================

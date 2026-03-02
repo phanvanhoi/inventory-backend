@@ -53,5 +53,12 @@ public interface RequestSetService {
     void execute(Long setId, Long userId);
 
     // Lấy danh sách bộ phiếu đã duyệt (chờ STOCKKEEPER thực hiện)
+    // Bao gồm cả APPROVED và RECEIVING
     List<RequestSetListDTO> getApprovedRequestSets();
+
+    // Sửa bộ phiếu đã duyệt (Case 2)
+    // - STOCKKEEPER hoặc chủ phiếu
+    // - Chỉ khi APPROVED (chưa có receipt)
+    // - Status → PENDING (cần Admin duyệt lại)
+    void editApprovedRequestSet(Long setId, RequestSetUpdateDTO dto, Long userId);
 }

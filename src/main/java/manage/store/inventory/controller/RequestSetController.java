@@ -20,6 +20,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import manage.store.inventory.dto.ReceiptCreateDTO;
+import manage.store.inventory.dto.ReceiptDetailDTO;
+import manage.store.inventory.dto.SetReceiptProgressDTO;
 import manage.store.inventory.dto.RejectReasonDTO;
 import manage.store.inventory.dto.RequestSetCreateDTO;
 import manage.store.inventory.dto.RequestSetDetailDTO;
@@ -30,6 +33,7 @@ import manage.store.inventory.repository.RequestSetRepository;
 import manage.store.inventory.repository.UserRepository;
 import manage.store.inventory.security.CurrentUser;
 import manage.store.inventory.service.ExcelExportService;
+import manage.store.inventory.service.ReceiptService;
 import manage.store.inventory.service.RequestSetService;
 
 @RestController
@@ -37,6 +41,7 @@ import manage.store.inventory.service.RequestSetService;
 public class RequestSetController {
 
     private final RequestSetService requestSetService;
+    private final ReceiptService receiptService;
     private final RequestSetRepository requestSetRepository;
     private final UserRepository userRepository;
     private final CurrentUser currentUser;
@@ -44,12 +49,14 @@ public class RequestSetController {
 
     public RequestSetController(
             RequestSetService requestSetService,
+            ReceiptService receiptService,
             RequestSetRepository requestSetRepository,
             UserRepository userRepository,
             CurrentUser currentUser,
             ExcelExportService excelExportService
     ) {
         this.requestSetService = requestSetService;
+        this.receiptService = receiptService;
         this.requestSetRepository = requestSetRepository;
         this.userRepository = userRepository;
         this.currentUser = currentUser;
@@ -187,5 +194,55 @@ public class RequestSetController {
         headers.setContentDispositionFormData("attachment", "de-xuat-" + setId + ".xlsx");
 
         return ResponseEntity.ok().headers(headers).body(excelData);
+    }
+
+    // =====================================================
+    // PARTIAL RECEIPT ENDPOINTS (Case 2 + Case 3)
+    // =====================================================
+
+    // Ghi nhận nhận hàng từng phần (STOCKKEEPER)
+    // APPROVED → RECEIVING (lần đầu) hoặc giữ RECEIVING
+    @PostMapping("/{setId:\\d+}/receive")
+    @PreAuthorize("hasRole('STOCKKEEPER')")
+    public ResponseEntity<Void> recordReceipt(
+            @PathVariable Long setId,
+            @Valid @RequestBody ReceiptCreateDTO dto
+    ) {
+        receiptService.recordReceipt(setId, dto, currentUser.getUserId());
+        return ResponseEntity.ok().build();
+    }
+
+    // Hoàn tất nhận hàng (STOCKKEEPER)
+    // RECEIVING → EXECUTED
+    @PostMapping("/{setId:\\d+}/complete")
+    @PreAuthorize("hasRole('STOCKKEEPER')")
+    public ResponseEntity<Void> completeReceipt(@PathVariable Long setId) {
+        receiptService.completeReceipt(setId, currentUser.getUserId());
+        return ResponseEntity.ok().build();
+    }
+
+    // Lấy danh sách các lần nhận hàng của bộ phiếu
+    @GetMapping("/{setId:\\d+}/receipts")
+    public List<ReceiptDetailDTO> getReceipts(@PathVariable Long setId) {
+        return receiptService.getReceipts(setId);
+    }
+
+    // Lấy tiến độ nhận hàng (phân cấp: set → requests → items → history)
+    @GetMapping("/{setId:\\d+}/progress")
+    public SetReceiptProgressDTO getProgress(@PathVariable Long setId) {
+        return receiptService.getProgress(setId);
+    }
+
+    // Sửa bộ phiếu đã duyệt (STOCKKEEPER hoặc chủ phiếu)
+    // Chỉ khi APPROVED (chưa có receipt)
+    // Status → PENDING (cần Admin duyệt lại)
+    @PutMapping("/{setId:\\d+}/edit")
+    @PreAuthorize("hasAnyRole('USER', 'PURCHASER', 'STOCKKEEPER')")
+    public ResponseEntity<Void> editApprovedRequestSet(
+            @PathVariable Long setId,
+            @Valid @RequestBody RequestSetUpdateDTO dto
+    ) {
+        requestSetService.editApprovedRequestSet(setId, dto, currentUser.getUserId());
+        return ResponseEntity.ok().build();
     }
 }
