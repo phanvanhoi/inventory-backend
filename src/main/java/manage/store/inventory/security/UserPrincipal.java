@@ -31,4 +31,16 @@ public class UserPrincipal {
     public boolean isUser() {
         return hasRole("USER");
     }
+
+    public boolean isSales() {
+        return hasRole("SALES");
+    }
+
+    public boolean isMeasurement() {
+        return hasRole("MEASUREMENT");
+    }
+
+    public boolean isProduction() {
+        return hasRole("PRODUCTION");
+    }
 }

@@ -229,16 +229,74 @@ CREATE TABLE receipt_items (
     INDEX idx_ri_variant (variant_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 2.17 Bảng contract_reports (Báo cáo hợp đồng - workflow theo role)
+CREATE TABLE contract_reports (
+    report_id               BIGINT AUTO_INCREMENT PRIMARY KEY,
+    current_phase ENUM('SALES_INPUT','MEASUREMENT_INPUT','PRODUCTION_INPUT','STOCKKEEPER_INPUT','COMPLETED')
+                  NOT NULL DEFAULT 'SALES_INPUT',
+    -- SALES fields
+    unit_id                 BIGINT NOT NULL,
+    sales_person            VARCHAR(100),
+    expected_delivery_date  DATE,
+    finalized_list_sent_date     DATE,
+    finalized_list_received_date DATE,
+    delivery_method          VARCHAR(50),
+    extra_payment_date       DATE,
+    extra_payment_amount     DECIMAL(15,0) DEFAULT 0,
+    note                     TEXT,
+    -- MEASUREMENT fields
+    measurement_start         DATE,
+    measurement_end           DATE,
+    technician_name           VARCHAR(100),
+    measurement_received_date DATE,
+    measurement_handler       VARCHAR(100),
+    skip_measurement          BOOLEAN DEFAULT FALSE,
+    production_handover_date  DATE,
+    -- PRODUCTION fields
+    packing_return_date      DATE,
+    tailor_start_date        DATE,
+    tailor_expected_return    DATE,
+    tailor_actual_return      DATE,
+    -- STOCKKEEPER fields
+    actual_shipping_date     DATE,
+    -- Metadata
+    created_by  BIGINT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (unit_id) REFERENCES units(unit_id),
+    FOREIGN KEY (created_by) REFERENCES users(user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.18 Bảng contract_report_history (Lịch sử chỉnh sửa)
+CREATE TABLE contract_report_history (
+    history_id  BIGINT AUTO_INCREMENT PRIMARY KEY,
+    report_id   BIGINT NOT NULL,
+    changed_by  BIGINT NOT NULL,
+    changed_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    action      VARCHAR(30) NOT NULL,
+    field_name  VARCHAR(50),
+    old_value   TEXT,
+    new_value   TEXT,
+    reason      TEXT,
+    FOREIGN KEY (report_id) REFERENCES contract_reports(report_id) ON DELETE CASCADE,
+    FOREIGN KEY (changed_by) REFERENCES users(user_id),
+    INDEX idx_crh_report (report_id),
+    INDEX idx_crh_changed_by (changed_by)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- =====================================================
 -- PHẦN 3: MASTER DATA
 -- =====================================================
 
--- 3.1 Roles (4 vai trò)
+-- 3.1 Roles (7 vai trò)
 INSERT INTO roles (role_name, description) VALUES
-('ADMIN', 'Quản trị viên - chỉ có quyền duyệt/từ chối bộ phiếu, không được tạo'),
+('ADMIN', 'Quản trị viên - duyệt/từ chối bộ phiếu, xem/sửa tất cả báo cáo HĐ'),
 ('USER', 'Người dùng thông thường - chỉ tạo được phiếu IN/OUT (ảnh hưởng tồn kho thực tế)'),
-('STOCKKEEPER', 'Kiểm kho - chỉ xem được bộ phiếu đã duyệt'),
-('PURCHASER', 'Thu mua - tạo được cả 4 loại phiếu (ADJUST_IN/OUT ảnh hưởng dự kiến, IN/OUT ảnh hưởng thực tế)');
+('STOCKKEEPER', 'Kiểm kho - thực hiện nhập/xuất kho, nhập ngày giao hàng báo cáo HĐ'),
+('PURCHASER', 'Thu mua - tạo được cả 4 loại phiếu (ADJUST_IN/OUT ảnh hưởng dự kiến, IN/OUT ảnh hưởng thực tế)'),
+('SALES', 'Kinh doanh - tạo và quản lý hợp đồng, nhập thông tin HĐ'),
+('MEASUREMENT', 'Phụ trách số đo - nhập thông tin đo và bàn giao SX'),
+('PRODUCTION', 'Quản lý kế hoạch SX - nhập thông tin sản xuất, thợ triển khai');
 
 -- 3.2 Styles (4 kiểu dáng)
 INSERT INTO styles (style_name) VALUES
@@ -368,24 +426,34 @@ INSERT INTO units (unit_name) VALUES
 -- Password mặc định: password (BCrypt hash)
 INSERT INTO users (username, password, full_name) VALUES
 ('hoi', '$2a$10$B2kATibQPqmIYfv3KHhVzuV7E4fEOVW.0uYMSzMdf4JNzunrpFZ.O', 'Hội'),
-('thuy', '$2a$10$B2kATibQPqmIYfv3KHhVzuV7E4fEOVW.0uYMSzMdf4JNzunrpFZ.O', 'Thúy'),
+('cat', '$2a$10$B2kATibQPqmIYfv3KHhVzuV7E4fEOVW.0uYMSzMdf4JNzunrpFZ.O', 'Cát'),
 ('thanh', '$2a$10$B2kATibQPqmIYfv3KHhVzuV7E4fEOVW.0uYMSzMdf4JNzunrpFZ.O', 'Thanh'),
+('thuy', '$2a$10$B2kATibQPqmIYfv3KHhVzuV7E4fEOVW.0uYMSzMdf4JNzunrpFZ.O', 'Thúy'),
 ('huong', '$2a$10$B2kATibQPqmIYfv3KHhVzuV7E4fEOVW.0uYMSzMdf4JNzunrpFZ.O', 'Hương'),
-('thuong', '$2a$10$B2kATibQPqmIYfv3KHhVzuV7E4fEOVW.0uYMSzMdf4JNzunrpFZ.O', 'Thương'),
-('khoa', '$2a$10$B2kATibQPqmIYfv3KHhVzuV7E4fEOVW.0uYMSzMdf4JNzunrpFZ.O', 'Khoa');
+('nga', '$2a$10$B2kATibQPqmIYfv3KHhVzuV7E4fEOVW.0uYMSzMdf4JNzunrpFZ.O', 'Nga'),
+('khoa', '$2a$10$B2kATibQPqmIYfv3KHhVzuV7E4fEOVW.0uYMSzMdf4JNzunrpFZ.O', 'Khoa'),
+('tra', '$2a$10$B2kATibQPqmIYfv3KHhVzuV7E4fEOVW.0uYMSzMdf4JNzunrpFZ.O', 'Trà'),
+('tthuy', '$2a$10$B2kATibQPqmIYfv3KHhVzuV7E4fEOVW.0uYMSzMdf4JNzunrpFZ.O', 'Thùy');
 
 -- 3.9 User Roles (Gán role cho users)
--- user_id: 1=thuy, 2=nga, 3=huong, 4=thuong, 5=tung
--- role_id: 1=ADMIN, 2=USER, 3=STOCKKEEPER, 4=PURCHASER
+-- user_id: 1=hoi, 2=cat, 3=thanh, 4=thuy, 5=huong, 6=nga, 7=khoa, 8=tra
+-- role_id: 1=ADMIN, 2=USER, 3=STOCKKEEPER, 4=PURCHASER, 5=SALES, 6=MEASUREMENT, 7=PRODUCTION
 INSERT INTO user_roles (user_id, role_id) VALUES
-(1, 1), -- thuy là ADMIN
-(1, 2), -- thuy cũng có quyền USER
-(2, 2), -- nga là USER
-(2, 4), -- nga cũng có quyền PURCHASER
-(3, 4), -- thanh cũng có quyền PURCHASER
-(3, 2), -- huong là USER
-(4, 2), -- thuong là USER
-(5, 3); -- tung là STOCKKEEPER
+(1, 1), -- hoi: ADMIN
+(1, 2), -- hoi: USER
+(2, 1), -- cat: ADMIN
+(2, 2), -- cat: USER
+(3, 1), -- thanh: ADMIN
+(3, 2), -- thanh: USER
+(3, 3), -- thanh: STOCKKEEPER
+(4, 4), -- thuy: PURCHASER
+(4, 7), -- thuy: PRODUCTION
+(4, 2), -- thuy: USER
+(5, 2), -- huong: USER
+(6, 2), -- nga: USER
+(7, 3), -- khoa: STOCKKEEPER
+(8, 6); -- tra: MEASUREMENT
+(9, 5); -- tthuy: SALES
 
 -- =====================================================
 -- PHẦN 4: REQUEST SETS (52 bộ phiếu - gộp theo tên)
@@ -517,7 +585,27 @@ CALL insert_item_by_variant(1, 'SLIM Ngắn', 43, 'COC', 10);
 CALL insert_item_by_variant(1, 'SLIM Ngắn', 43, 'DAI', 10);
 
 -- =====================================================
--- PHẦN 8: CLEANUP - XÓA PROCEDURE SAU KHI IMPORT
+-- PHẦN 8: CONTRACT REPORTS (Dữ liệu mẫu báo cáo hợp đồng)
+-- =====================================================
+-- created_by = 4 (Thúy - PURCHASER, PRODUCTION)
+INSERT INTO contract_reports (current_phase, unit_id, sales_person, expected_delivery_date, finalized_list_sent_date, finalized_list_received_date, delivery_method, extra_payment_date, extra_payment_amount, note, measurement_start, measurement_end, technician_name, measurement_received_date, measurement_handler, skip_measurement, production_handover_date, packing_return_date, tailor_start_date, tailor_expected_return, tailor_actual_return, actual_shipping_date, created_by, created_at) VALUES
+-- 1. COMPLETED - Đã giao hàng hoàn tất
+('COMPLETED', 1, 'Thúy', '2026-01-15', '2025-10-10', '2025-10-12', 'POST_OFFICE', '2026-01-12', 500000, 'Đã hoàn tất', '2025-10-01', '2025-10-03', 'Trần Thị B', '2025-10-08', 'Hương', FALSE, '2025-10-15', '2025-10-20', '2025-10-25', '2025-12-15', '2025-12-20', '2026-01-10', 4, '2025-09-20 08:00:00'),
+-- 2. PRODUCTION_INPUT - Đang sản xuất, sắp đến hạn
+('PRODUCTION_INPUT', 2, 'Thúy', '2026-03-15', '2025-12-20', '2025-12-22', NULL, NULL, 0, 'Đang chờ thợ triển khai', '2025-12-10', '2025-12-12', 'Nguyễn Văn D', '2025-12-18', 'Hương', FALSE, '2025-12-28', NULL, NULL, NULL, NULL, NULL, 4, '2025-12-01 09:00:00'),
+-- 3. STOCKKEEPER_INPUT - Chờ giao hàng, trễ hạn
+('STOCKKEEPER_INPUT', 3, 'Thúy', '2026-02-20', '2025-11-15', '2025-11-17', 'DIRECT', NULL, 0, 'Chờ giao hàng - đã trễ hạn', '2025-11-05', '2025-11-07', 'Trần Thị B', '2025-11-12', 'Hương', FALSE, '2025-11-20', '2025-11-25', '2025-12-01', '2026-01-30', '2026-02-10', NULL, 4, '2025-10-25 10:00:00'),
+-- 4. PRODUCTION_INPUT - Bỏ qua số đo, chờ sản xuất
+('PRODUCTION_INPUT', 4, 'Thúy', '2026-04-30', '2026-01-10', '2026-01-12', NULL, NULL, 0, 'Bỏ qua đo, dùng số đo cũ', NULL, NULL, NULL, NULL, NULL, TRUE, '2026-01-15', NULL, NULL, NULL, NULL, NULL, 4, '2026-01-05 14:00:00'),
+-- 5. SALES_INPUT - Mới tạo
+('SALES_INPUT', 5, 'Thúy', '2026-06-30', NULL, NULL, NULL, NULL, 0, 'Hợp đồng mới', NULL, NULL, NULL, NULL, NULL, FALSE, NULL, NULL, NULL, NULL, NULL, NULL, 4, '2026-03-01 08:30:00'),
+-- 6. MEASUREMENT_INPUT - Đang đo khách
+('MEASUREMENT_INPUT', 6, 'Thúy', '2026-05-15', NULL, NULL, NULL, NULL, 0, NULL, '2026-03-01', '2026-03-05', 'Nguyễn Văn D', NULL, NULL, FALSE, NULL, NULL, NULL, NULL, NULL, NULL, 4, '2026-02-20 11:00:00'),
+-- 7. PRODUCTION_INPUT - Thợ trả trễ (đã nhập SX nhưng chưa xong)
+('PRODUCTION_INPUT', 7, 'Thúy', '2026-04-10', '2025-12-25', '2025-12-27', NULL, NULL, 0, 'Thợ đang trễ hạn trả', '2025-12-15', '2025-12-17', 'Trần Thị B', '2025-12-22', 'Hương', FALSE, '2026-01-02', '2026-01-08', '2026-01-15', '2026-02-28', NULL, NULL, 4, '2025-12-10 09:00:00');
+
+-- =====================================================
+-- PHẦN 9: CLEANUP - XÓA PROCEDURE SAU KHI IMPORT
 -- =====================================================
 DROP PROCEDURE IF EXISTS insert_item_by_variant;
 
@@ -534,5 +622,6 @@ SELECT COUNT(*) AS total_users FROM users;
 SELECT COUNT(*) AS total_request_sets FROM request_sets;
 SELECT COUNT(*) AS total_requests FROM inventory_requests;
 SELECT COUNT(*) AS total_items FROM inventory_request_items;
+SELECT COUNT(*) AS total_contract_reports FROM contract_reports;
 
 -- END OF FILE
