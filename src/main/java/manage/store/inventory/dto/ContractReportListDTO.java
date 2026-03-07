@@ -19,6 +19,8 @@ public class ContractReportListDTO {
     // SALES fields
     private Long unitId;
     private String unitName;
+    private String unitType;
+    private Integer contractYear;
     private String salesPerson;
     private LocalDate expectedDeliveryDate;
     private LocalDate finalizedListSentDate;

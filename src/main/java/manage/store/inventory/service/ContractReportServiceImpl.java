@@ -274,6 +274,10 @@ public class ContractReportServiceImpl implements ContractReportService {
                     .orElseThrow(() -> new RuntimeException("Đơn vị không tồn tại"));
             report.setUnit(unit);
         }
+        logAndSet(report, user, "unitType", report.getUnitType(), dto.getUnitType(),
+                () -> report.setUnitType(dto.getUnitType()));
+        logAndSet(report, user, "contractYear", str(report.getContractYear()), str(dto.getContractYear()),
+                () -> report.setContractYear(dto.getContractYear()));
         logAndSet(report, user, "salesPerson", report.getSalesPerson(), dto.getSalesPerson(),
                 () -> report.setSalesPerson(dto.getSalesPerson()));
         logAndSet(report, user, "expectedDeliveryDate", str(report.getExpectedDeliveryDate()), str(dto.getExpectedDeliveryDate()),
@@ -366,6 +370,8 @@ public class ContractReportServiceImpl implements ContractReportService {
     // ========== Create helper ==========
 
     private void applySalesFields(ContractReportCreateDTO dto, ContractReport entity) {
+        entity.setUnitType(dto.getUnitType());
+        entity.setContractYear(dto.getContractYear());
         entity.setSalesPerson(dto.getSalesPerson());
         entity.setExpectedDeliveryDate(dto.getExpectedDeliveryDate());
         entity.setFinalizedListSentDate(dto.getFinalizedListSentDate());
@@ -384,6 +390,8 @@ public class ContractReportServiceImpl implements ContractReportService {
         dto.setCurrentPhase(cr.getCurrentPhase().name());
         dto.setUnitId(cr.getUnit().getUnitId());
         dto.setUnitName(cr.getUnit().getUnitName());
+        dto.setUnitType(cr.getUnitType());
+        dto.setContractYear(cr.getContractYear());
         dto.setSalesPerson(cr.getSalesPerson());
         dto.setExpectedDeliveryDate(cr.getExpectedDeliveryDate());
         dto.setFinalizedListSentDate(cr.getFinalizedListSentDate());

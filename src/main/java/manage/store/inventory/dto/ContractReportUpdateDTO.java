@@ -12,6 +12,8 @@ public class ContractReportUpdateDTO {
     @NotNull(message = "Đơn vị không được để trống")
     private Long unitId;
 
+    private String unitType;
+    private Integer contractYear;
     private String salesPerson;
     private LocalDate expectedDeliveryDate;
 

@@ -36,6 +36,12 @@ public class ContractReport {
     @JoinColumn(name = "unit_id", nullable = false)
     private Unit unit;
 
+    @Column(name = "unit_type")
+    private String unitType;
+
+    @Column(name = "contract_year")
+    private Integer contractYear;
+
     @Column(name = "sales_person")
     private String salesPerson;
 

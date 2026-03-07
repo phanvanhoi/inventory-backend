@@ -12,6 +12,8 @@ CREATE TABLE contract_reports (
 
     -- === SALES fields ===
     unit_id                 BIGINT NOT NULL,
+    unit_type               VARCHAR(30),         -- BUU_DIEN, VIEN_THONG, KHAC
+    contract_year           INT,                 -- Nam hop dong
     sales_person            VARCHAR(100),
     expected_delivery_date  DATE,
     finalized_list_sent_date     DATE,

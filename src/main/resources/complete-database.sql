@@ -236,6 +236,8 @@ CREATE TABLE contract_reports (
                   NOT NULL DEFAULT 'SALES_INPUT',
     -- SALES fields
     unit_id                 BIGINT NOT NULL,
+    unit_type               VARCHAR(30),
+    contract_year           INT,
     sales_person            VARCHAR(100),
     expected_delivery_date  DATE,
     finalized_list_sent_date     DATE,
@@ -452,7 +454,7 @@ INSERT INTO user_roles (user_id, role_id) VALUES
 (5, 2), -- huong: USER
 (6, 2), -- nga: USER
 (7, 3), -- khoa: STOCKKEEPER
-(8, 6); -- tra: MEASUREMENT
+(8, 6), -- tra: MEASUREMENT
 (9, 5); -- tthuy: SALES
 
 -- =====================================================
@@ -588,21 +590,21 @@ CALL insert_item_by_variant(1, 'SLIM Ngắn', 43, 'DAI', 10);
 -- PHẦN 8: CONTRACT REPORTS (Dữ liệu mẫu báo cáo hợp đồng)
 -- =====================================================
 -- created_by = 4 (Thúy - PURCHASER, PRODUCTION)
-INSERT INTO contract_reports (current_phase, unit_id, sales_person, expected_delivery_date, finalized_list_sent_date, finalized_list_received_date, delivery_method, extra_payment_date, extra_payment_amount, note, measurement_start, measurement_end, technician_name, measurement_received_date, measurement_handler, skip_measurement, production_handover_date, packing_return_date, tailor_start_date, tailor_expected_return, tailor_actual_return, actual_shipping_date, created_by, created_at) VALUES
+INSERT INTO contract_reports (current_phase, unit_id, unit_type, contract_year, sales_person, expected_delivery_date, finalized_list_sent_date, finalized_list_received_date, delivery_method, extra_payment_date, extra_payment_amount, note, measurement_start, measurement_end, technician_name, measurement_received_date, measurement_handler, skip_measurement, production_handover_date, packing_return_date, tailor_start_date, tailor_expected_return, tailor_actual_return, actual_shipping_date, created_by, created_at) VALUES
 -- 1. COMPLETED - Đã giao hàng hoàn tất
-('COMPLETED', 1, 'Thúy', '2026-01-15', '2025-10-10', '2025-10-12', 'POST_OFFICE', '2026-01-12', 500000, 'Đã hoàn tất', '2025-10-01', '2025-10-03', 'Trần Thị B', '2025-10-08', 'Hương', FALSE, '2025-10-15', '2025-10-20', '2025-10-25', '2025-12-15', '2025-12-20', '2026-01-10', 4, '2025-09-20 08:00:00'),
+('COMPLETED', 1, 'BUU_DIEN', 2025, 'Thúy', '2026-01-15', '2025-10-10', '2025-10-12', 'POST_OFFICE', '2026-01-12', 500000, 'Đã hoàn tất', '2025-10-01', '2025-10-03', 'Trần Thị B', '2025-10-08', 'Hương', FALSE, '2025-10-15', '2025-10-20', '2025-10-25', '2025-12-15', '2025-12-20', '2026-01-10', 4, '2025-09-20 08:00:00'),
 -- 2. PRODUCTION_INPUT - Đang sản xuất, sắp đến hạn
-('PRODUCTION_INPUT', 2, 'Thúy', '2026-03-15', '2025-12-20', '2025-12-22', NULL, NULL, 0, 'Đang chờ thợ triển khai', '2025-12-10', '2025-12-12', 'Nguyễn Văn D', '2025-12-18', 'Hương', FALSE, '2025-12-28', NULL, NULL, NULL, NULL, NULL, 4, '2025-12-01 09:00:00'),
+('PRODUCTION_INPUT', 2, 'VIEN_THONG', 2026, 'Thúy', '2026-03-15', '2025-12-20', '2025-12-22', NULL, NULL, 0, 'Đang chờ thợ triển khai', '2025-12-10', '2025-12-12', 'Nguyễn Văn D', '2025-12-18', 'Hương', FALSE, '2025-12-28', NULL, NULL, NULL, NULL, NULL, 4, '2025-12-01 09:00:00'),
 -- 3. STOCKKEEPER_INPUT - Chờ giao hàng, trễ hạn
-('STOCKKEEPER_INPUT', 3, 'Thúy', '2026-02-20', '2025-11-15', '2025-11-17', 'DIRECT', NULL, 0, 'Chờ giao hàng - đã trễ hạn', '2025-11-05', '2025-11-07', 'Trần Thị B', '2025-11-12', 'Hương', FALSE, '2025-11-20', '2025-11-25', '2025-12-01', '2026-01-30', '2026-02-10', NULL, 4, '2025-10-25 10:00:00'),
+('STOCKKEEPER_INPUT', 3, 'BUU_DIEN', 2025, 'Thúy', '2026-02-20', '2025-11-15', '2025-11-17', 'DIRECT', NULL, 0, 'Chờ giao hàng - đã trễ hạn', '2025-11-05', '2025-11-07', 'Trần Thị B', '2025-11-12', 'Hương', FALSE, '2025-11-20', '2025-11-25', '2025-12-01', '2026-01-30', '2026-02-10', NULL, 4, '2025-10-25 10:00:00'),
 -- 4. PRODUCTION_INPUT - Bỏ qua số đo, chờ sản xuất
-('PRODUCTION_INPUT', 4, 'Thúy', '2026-04-30', '2026-01-10', '2026-01-12', NULL, NULL, 0, 'Bỏ qua đo, dùng số đo cũ', NULL, NULL, NULL, NULL, NULL, TRUE, '2026-01-15', NULL, NULL, NULL, NULL, NULL, 4, '2026-01-05 14:00:00'),
+('PRODUCTION_INPUT', 4, 'KHAC', 2026, 'Thúy', '2026-04-30', '2026-01-10', '2026-01-12', NULL, NULL, 0, 'Bỏ qua đo, dùng số đo cũ', NULL, NULL, NULL, NULL, NULL, TRUE, '2026-01-15', NULL, NULL, NULL, NULL, NULL, 4, '2026-01-05 14:00:00'),
 -- 5. SALES_INPUT - Mới tạo
-('SALES_INPUT', 5, 'Thúy', '2026-06-30', NULL, NULL, NULL, NULL, 0, 'Hợp đồng mới', NULL, NULL, NULL, NULL, NULL, FALSE, NULL, NULL, NULL, NULL, NULL, NULL, 4, '2026-03-01 08:30:00'),
+('SALES_INPUT', 5, 'BUU_DIEN', 2026, 'Thúy', '2026-06-30', NULL, NULL, NULL, NULL, 0, 'Hợp đồng mới', NULL, NULL, NULL, NULL, NULL, FALSE, NULL, NULL, NULL, NULL, NULL, NULL, 4, '2026-03-01 08:30:00'),
 -- 6. MEASUREMENT_INPUT - Đang đo khách
-('MEASUREMENT_INPUT', 6, 'Thúy', '2026-05-15', NULL, NULL, NULL, NULL, 0, NULL, '2026-03-01', '2026-03-05', 'Nguyễn Văn D', NULL, NULL, FALSE, NULL, NULL, NULL, NULL, NULL, NULL, 4, '2026-02-20 11:00:00'),
+('MEASUREMENT_INPUT', 6, 'VIEN_THONG', 2026, 'Thúy', '2026-05-15', NULL, NULL, NULL, NULL, 0, NULL, '2026-03-01', '2026-03-05', 'Nguyễn Văn D', NULL, NULL, FALSE, NULL, NULL, NULL, NULL, NULL, NULL, 4, '2026-02-20 11:00:00'),
 -- 7. PRODUCTION_INPUT - Thợ trả trễ (đã nhập SX nhưng chưa xong)
-('PRODUCTION_INPUT', 7, 'Thúy', '2026-04-10', '2025-12-25', '2025-12-27', NULL, NULL, 0, 'Thợ đang trễ hạn trả', '2025-12-15', '2025-12-17', 'Trần Thị B', '2025-12-22', 'Hương', FALSE, '2026-01-02', '2026-01-08', '2026-01-15', '2026-02-28', NULL, NULL, 4, '2025-12-10 09:00:00');
+('PRODUCTION_INPUT', 7, 'BUU_DIEN', 2025, 'Thúy', '2026-04-10', '2025-12-25', '2025-12-27', NULL, NULL, 0, 'Thợ đang trễ hạn trả', '2025-12-15', '2025-12-17', 'Trần Thị B', '2025-12-22', 'Hương', FALSE, '2026-01-02', '2026-01-08', '2026-01-15', '2026-02-28', NULL, NULL, 4, '2025-12-10 09:00:00');
 
 -- =====================================================
 -- PHẦN 9: CLEANUP - XÓA PROCEDURE SAU KHI IMPORT

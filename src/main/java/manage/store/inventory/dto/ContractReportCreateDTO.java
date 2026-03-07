@@ -13,6 +13,8 @@ public class ContractReportCreateDTO {
     private Long unitId;
 
     // SALES fields only
+    private String unitType;       // BUU_DIEN, VIEN_THONG, KHAC
+    private Integer contractYear;  // Nam hop dong
     private String salesPerson;
     private LocalDate expectedDeliveryDate;
     private LocalDate finalizedListSentDate;
