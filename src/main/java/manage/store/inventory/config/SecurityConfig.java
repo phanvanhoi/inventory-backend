@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -41,6 +42,26 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         // Protected endpoints
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(ex -> ex
+                        // 401: Token không hợp lệ hoặc thiếu
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(401);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.setCharacterEncoding("UTF-8");
+                            response.getWriter().write(
+                                    "{\"status\":401,\"error\":\"Unauthorized\","
+                                    + "\"message\":\"Token không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.\"}");
+                        })
+                        // 403: Không có quyền truy cập
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(403);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.setCharacterEncoding("UTF-8");
+                            response.getWriter().write(
+                                    "{\"status\":403,\"error\":\"Forbidden\","
+                                    + "\"message\":\"Bạn không có quyền thực hiện thao tác này.\"}");
+                        })
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
