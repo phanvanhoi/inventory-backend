@@ -12,37 +12,68 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import manage.store.inventory.dto.ChildProductCreateDTO;
 import manage.store.inventory.entity.Product;
 import manage.store.inventory.repository.ProductRepository;
+import manage.store.inventory.service.ProductService;
 
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
 
+    private final ProductService productService;
     private final ProductRepository productRepository;
 
-    public ProductController(ProductRepository productRepository) {
+    public ProductController(ProductService productService,
+                             ProductRepository productRepository) {
+        this.productService = productService;
         this.productRepository = productRepository;
     }
 
     // Lấy tất cả sản phẩm
     @GetMapping
     public List<Product> getAllProducts() {
-        return productRepository.findAll();
+        return productService.getAllProducts();
     }
 
     // Lấy sản phẩm theo ID
     @GetMapping("/{id}")
     public ResponseEntity<Product> getProductById(@PathVariable Long id) {
-        return productRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            return ResponseEntity.ok(productService.getProductById(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    // Tạo sản phẩm mới
-    @PostMapping
-    public Product createProduct(@RequestBody Product product) {
-        return productRepository.save(product);
+    // Lấy danh sách child products của parent
+    @GetMapping("/{id}/children")
+    public ResponseEntity<List<Product>> getChildProducts(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(productService.getChildProducts(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // Kiểm tra product có phải parent không
+    @GetMapping("/{id}/is-parent")
+    public ResponseEntity<Boolean> isParentProduct(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.isParentProduct(id));
+    }
+
+    // Tạo child product (clone variants từ sibling)
+    @PostMapping("/{parentId}/children")
+    public ResponseEntity<Product> createChildProduct(
+            @PathVariable Long parentId,
+            @RequestBody ChildProductCreateDTO dto) {
+        try {
+            Product child = productService.createChildProduct(
+                    parentId, dto.getProductName(), dto.getNote());
+            return ResponseEntity.ok(child);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     // Cập nhật sản phẩm
@@ -51,18 +82,8 @@ public class ProductController {
         return productRepository.findById(id)
                 .map(product -> {
                     product.setProductName(productDetails.getProductName());
+                    product.setNote(productDetails.getNote());
                     return ResponseEntity.ok(productRepository.save(product));
-                })
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    // Xóa sản phẩm
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        return productRepository.findById(id)
-                .map(product -> {
-                    productRepository.delete(product);
-                    return ResponseEntity.noContent().<Void>build();
                 })
                 .orElse(ResponseEntity.notFound().build());
     }

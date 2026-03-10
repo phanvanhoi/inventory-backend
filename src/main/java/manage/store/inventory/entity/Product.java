@@ -30,6 +30,9 @@ public class Product {
     @Column(name = "variant_type", nullable = false)
     private VariantType variantType;
 
+    @Column(name = "parent_product_id")
+    private Long parentProductId;
+
     @Column(name = "note")
     private String note;
 

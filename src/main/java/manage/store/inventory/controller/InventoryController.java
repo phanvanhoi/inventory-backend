@@ -102,7 +102,8 @@ public class InventoryController {
      */
     @GetMapping
     public List<ProductInventoryViewDTO> getAllInventory() {
-        List<Product> products = productRepository.findAll();
+        // Bỏ parent products (chỉ lấy products không có children = leaf products)
+        List<Product> products = productRepository.findLeafProducts();
         boolean canViewExpected = canViewExpectedQuantity();
 
         return products.stream()

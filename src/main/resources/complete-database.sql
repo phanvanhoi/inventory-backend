@@ -40,10 +40,16 @@ CREATE TABLE products (
     product_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     product_name VARCHAR(255) NOT NULL,
     variant_type ENUM('STRUCTURED', 'ITEM_BASED') NOT NULL DEFAULT 'STRUCTURED',
+    parent_product_id BIGINT NULL,
     note TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_product_name (product_name)
+    INDEX idx_product_name (product_name),
+    INDEX idx_parent_product (parent_product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Self-referencing FK for parent-child products
+ALTER TABLE products ADD CONSTRAINT fk_product_parent
+    FOREIGN KEY (parent_product_id) REFERENCES products(product_id);
 
 -- 2.4 Bảng length_types (Loại độ dài: Cộc/Dài)
 CREATE TABLE length_types (
@@ -354,6 +360,9 @@ INSERT INTO products (product_name, variant_type, note, created_at) VALUES
 ('NHẬP XUẤT VẢI 2026', 'ITEM_BASED', '31 mã vải', '2026-01-01 00:00:00'),
 ('PHỤ KIỆN 2026', 'ITEM_BASED', '49 mã phụ kiện', '2026-01-01 00:00:00'),
 ('PHỤ LIỆU 2026', 'ITEM_BASED', '~250 mã phụ liệu', '2026-01-01 00:00:00');
+
+-- SP1 là child của SP2 (SƠ MI NAM 2026)
+UPDATE products SET parent_product_id = 2 WHERE product_id = 1;
 
 -- 3.7 Product Variants
 -- ====== Product 1: SƠ MI NAM 2025 (88 biến thể = 4 styles x 11 sizes x 2 lengths) ======
@@ -1624,12 +1633,57 @@ INSERT INTO contract_reports (current_phase, unit_id, unit_type, contract_year, 
 ('PRODUCTION_INPUT', 7, 'BUU_DIEN', 2025, 'Thúy', '2026-04-10', '2025-12-25', '2025-12-27', NULL, NULL, 0, 'Thợ đang trễ hạn trả', '2025-12-15', '2025-12-17', 'Trần Thị B', '2025-12-22', 'Hương', FALSE, '2026-01-02', '2026-01-08', '2026-01-15', '2026-02-28', NULL, NULL, 4, '2025-12-10 09:00:00');
 
 -- =====================================================
--- PHẦN 9: CLEANUP - XÓA PROCEDURE SAU KHI IMPORT
+-- PHẦN 9: STORED PROCEDURE - TẠO CHILD PRODUCT
+-- =====================================================
+DELIMITER //
+
+DROP PROCEDURE IF EXISTS create_child_product//
+CREATE PROCEDURE create_child_product(
+    IN p_parent_id BIGINT,
+    IN p_product_name VARCHAR(255),
+    IN p_note TEXT
+)
+BEGIN
+    DECLARE v_new_product_id BIGINT;
+    DECLARE v_sibling_id BIGINT;
+
+    -- Tìm sibling đầu tiên (child cùng parent đã có variants)
+    SELECT p.product_id INTO v_sibling_id
+    FROM products p
+    WHERE p.parent_product_id = p_parent_id
+      AND EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = p.product_id)
+    LIMIT 1;
+
+    IF v_sibling_id IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'No sibling with variants found for cloning';
+    END IF;
+
+    -- Tạo product mới
+    INSERT INTO products (product_name, variant_type, note, parent_product_id, created_at)
+    VALUES (p_product_name, 'STRUCTURED', p_note, p_parent_id, NOW());
+
+    SET v_new_product_id = LAST_INSERT_ID();
+
+    -- Clone variants từ sibling (thay product_id, giữ nguyên style/size/length/gender)
+    INSERT INTO product_variants (product_id, style_id, size_id, length_type_id, gender)
+    SELECT v_new_product_id, pv.style_id, pv.size_id, pv.length_type_id, pv.gender
+    FROM product_variants pv
+    WHERE pv.product_id = v_sibling_id;
+
+    SELECT v_new_product_id AS new_product_id;
+END//
+
+DELIMITER ;
+
+-- =====================================================
+-- PHẦN 10: CLEANUP - XÓA PROCEDURE SAU KHI IMPORT
 -- =====================================================
 DROP PROCEDURE IF EXISTS insert_item_by_variant;
 DROP PROCEDURE IF EXISTS insert_item_by_gender;
 DROP PROCEDURE IF EXISTS insert_item_by_gender_length;
 DROP PROCEDURE IF EXISTS insert_item_by_code;
+-- Lưu ý: KHÔNG xóa create_child_product vì cần dùng runtime
 
 -- =====================================================
 -- HOÀN TẤT IMPORT DATABASE
