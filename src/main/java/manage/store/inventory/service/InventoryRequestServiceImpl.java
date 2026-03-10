@@ -60,10 +60,8 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
 
         InventoryRequest request = new InventoryRequest();
         request.setUnitId(dto.getUnitId());
-        if (dto.getPositionCode() != null && !dto.getPositionCode().isBlank()) {
-            Position position = positionRepository.findByPositionCode(dto.getPositionCode())
-                    .orElseThrow(() -> new RuntimeException("Position not found: " + dto.getPositionCode()));
-            request.setPositionId(position.getPositionId());
+        if (dto.getPositionId() != null) {
+            request.setPositionId(dto.getPositionId());
         }
         request.setProductId(dto.getProductId());
         request.setRequestType(

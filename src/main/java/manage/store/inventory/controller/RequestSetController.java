@@ -23,6 +23,7 @@ import jakarta.validation.Valid;
 import manage.store.inventory.dto.ReceiptCreateDTO;
 import manage.store.inventory.dto.ReceiptDetailDTO;
 import manage.store.inventory.dto.SetReceiptProgressDTO;
+import manage.store.inventory.dto.EditAndReceiveDTO;
 import manage.store.inventory.dto.RejectReasonDTO;
 import manage.store.inventory.dto.RequestSetCreateDTO;
 import manage.store.inventory.dto.RequestSetDetailDTO;
@@ -243,6 +244,20 @@ public class RequestSetController {
             @Valid @RequestBody RequestSetUpdateDTO dto
     ) {
         requestSetService.editApprovedRequestSet(setId, dto, currentUser.getUserId());
+        return ResponseEntity.ok().build();
+    }
+
+    // Sửa số lượng items và chuyển RECEIVING luôn (STOCKKEEPER only)
+    // Dùng khi hàng thực tế khác phiếu (nhiều hơn/ít hơn)
+    // APPROVED → RECEIVING (không quay về PENDING)
+    // Bắt buộc nêu lý do, thông báo Creator + ADMIN
+    @PutMapping("/{setId:\\d+}/edit-and-receive")
+    @PreAuthorize("hasRole('STOCKKEEPER')")
+    public ResponseEntity<Void> editAndReceiveRequestSet(
+            @PathVariable Long setId,
+            @Valid @RequestBody EditAndReceiveDTO dto
+    ) {
+        requestSetService.editAndReceiveRequestSet(setId, dto, currentUser.getUserId());
         return ResponseEntity.ok().build();
     }
 }

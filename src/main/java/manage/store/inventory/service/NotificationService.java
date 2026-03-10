@@ -139,6 +139,44 @@ public class NotificationService {
         }
     }
 
+    @Transactional
+    public void notifyOfEditAndReceive(RequestSet requestSet, User stockkeeper, String reason) {
+        String message = String.format(
+                "Bộ phiếu '%s' đã được sửa số lượng bởi %s và chuyển sang nhận hàng. Lý do: %s",
+                requestSet.getSetName(),
+                stockkeeper.getFullName(),
+                reason
+        );
+
+        // Thông báo cho Creator
+        User creator = requestSet.getCreatedByUser();
+        if (creator != null && !creator.getUserId().equals(stockkeeper.getUserId())) {
+            Notification notiCreator = new Notification();
+            notiCreator.setUser(creator);
+            notiCreator.setTitle("Bộ phiếu đã bị sửa số lượng");
+            notiCreator.setMessage(message);
+            notiCreator.setRelatedSet(requestSet);
+            notiCreator.setCreatedAt(LocalDateTime.now());
+            notiCreator.setIsRead(false);
+            notificationRepository.save(notiCreator);
+        }
+
+        // Thông báo cho tất cả ADMIN
+        List<User> admins = userRepository.findByRoleName("ADMIN");
+        for (User admin : admins) {
+            if (!admin.getUserId().equals(stockkeeper.getUserId())) {
+                Notification notiAdmin = new Notification();
+                notiAdmin.setUser(admin);
+                notiAdmin.setTitle("Bộ phiếu đã bị sửa số lượng");
+                notiAdmin.setMessage(message);
+                notiAdmin.setRelatedSet(requestSet);
+                notiAdmin.setCreatedAt(LocalDateTime.now());
+                notiAdmin.setIsRead(false);
+                notificationRepository.save(notiAdmin);
+            }
+        }
+    }
+
     public List<NotificationDTO> getNotifications(Long userId) {
         return notificationRepository.findByUserUserIdOrderByCreatedAtDesc(userId)
                 .stream()

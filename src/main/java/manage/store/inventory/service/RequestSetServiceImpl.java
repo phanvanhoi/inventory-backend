@@ -15,6 +15,7 @@ import manage.store.inventory.dto.InventoryRequestDetailDTO;
 import manage.store.inventory.dto.RequestSetCreateDTO;
 import manage.store.inventory.dto.RequestSetDetailDTO;
 import manage.store.inventory.dto.RequestSetListDTO;
+import manage.store.inventory.dto.EditAndReceiveDTO;
 import manage.store.inventory.dto.RequestSetUpdateDTO;
 import manage.store.inventory.entity.ApprovalHistory;
 import manage.store.inventory.entity.InventoryRequest;
@@ -190,10 +191,8 @@ public class RequestSetServiceImpl implements RequestSetService {
 
         InventoryRequest request = new InventoryRequest();
         request.setUnitId(dto.getUnitId());
-        if (dto.getPositionCode() != null && !dto.getPositionCode().isBlank()) {
-            Position position = positionRepository.findByPositionCode(dto.getPositionCode())
-                    .orElseThrow(() -> new RuntimeException("Position not found: " + dto.getPositionCode()));
-            request.setPositionId(position.getPositionId());
+        if (dto.getPositionId() != null) {
+            request.setPositionId(dto.getPositionId());
         }
         request.setProductId(dto.getProductId());
         request.setRequestType(
@@ -746,5 +745,70 @@ public class RequestSetServiceImpl implements RequestSetService {
 
         // 5. Thông báo cho ADMIN duyệt lại
         notificationService.notifyAdminsOfPendingApproval(requestSet, user);
+    }
+
+    // =====================================================
+    // EDIT AND RECEIVE - Sửa số lượng và chuyển RECEIVING (Case 4)
+    // STOCKKEEPER sửa quantity items → APPROVED → RECEIVING
+    // Không quay về PENDING, thông báo Creator + ADMIN
+    // =====================================================
+    @Override
+    public void editAndReceiveRequestSet(Long setId, EditAndReceiveDTO dto, Long userId) {
+        RequestSet requestSet = requestSetRepository.findById(setId)
+                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + setId));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        // 1. Chỉ STOCKKEEPER
+        if (!user.isStockkeeper()) {
+            throw new RuntimeException("Chỉ STOCKKEEPER mới có quyền sửa số lượng và nhận hàng");
+        }
+
+        // 2. Chỉ khi APPROVED
+        if (requestSet.getStatus() != RequestSetStatus.APPROVED) {
+            throw new RuntimeException(
+                    "Chỉ có thể sửa số lượng khi bộ phiếu đã duyệt (APPROVED). " +
+                    "Trạng thái hiện tại: " + requestSet.getStatus());
+        }
+
+        // 3. Cập nhật quantity cho từng item
+        for (EditAndReceiveDTO.ItemQuantityUpdate itemUpdate : dto.getItems()) {
+            InventoryRequestItem item = itemRepository.findById(itemUpdate.getItemId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Item not found: " + itemUpdate.getItemId()));
+
+            // Kiểm tra item thuộc request set này
+            InventoryRequest request = requestRepository.findById(item.getRequestId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Request not found: " + item.getRequestId()));
+            if (!request.getSetId().equals(setId)) {
+                throw new RuntimeException(
+                        "Item " + itemUpdate.getItemId() + " không thuộc bộ phiếu này");
+            }
+
+            if (itemUpdate.getQuantity() == null || itemUpdate.getQuantity() < 0) {
+                throw new RuntimeException("Số lượng không hợp lệ cho item " + itemUpdate.getItemId());
+            }
+
+            item.setQuantity(itemUpdate.getQuantity());
+            itemRepository.save(item);
+        }
+
+        // 4. Chuyển status → RECEIVING
+        requestSet.setStatus(RequestSetStatus.RECEIVING);
+        requestSetRepository.save(requestSet);
+
+        // 5. Lưu lịch sử (EDIT_AND_RECEIVE)
+        ApprovalHistory history = new ApprovalHistory();
+        history.setRequestSet(requestSet);
+        history.setAction(ApprovalAction.EDIT_AND_RECEIVE);
+        history.setPerformedBy(user);
+        history.setReason(dto.getReason());
+        history.setCreatedAt(LocalDateTime.now());
+        approvalHistoryRepository.save(history);
+
+        // 6. Thông báo cho Creator + tất cả ADMIN
+        notificationService.notifyOfEditAndReceive(requestSet, user, dto.getReason());
     }
 }

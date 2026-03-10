@@ -5,6 +5,7 @@ import java.util.List;
 import manage.store.inventory.dto.RequestSetCreateDTO;
 import manage.store.inventory.dto.RequestSetDetailDTO;
 import manage.store.inventory.dto.RequestSetListDTO;
+import manage.store.inventory.dto.EditAndReceiveDTO;
 import manage.store.inventory.dto.RequestSetUpdateDTO;
 
 public interface RequestSetService {
@@ -61,4 +62,13 @@ public interface RequestSetService {
     // - Chỉ khi APPROVED (chưa có receipt)
     // - Status → PENDING (cần Admin duyệt lại)
     void editApprovedRequestSet(Long setId, RequestSetUpdateDTO dto, Long userId);
+
+    // Sửa số lượng items và chuyển RECEIVING luôn (Case 4)
+    // - Chỉ STOCKKEEPER
+    // - Chỉ khi APPROVED (chưa có receipt)
+    // - Chỉ sửa quantity của items đã có
+    // - Bắt buộc nêu lý do
+    // - Status → RECEIVING (không quay về PENDING)
+    // - Thông báo Creator + tất cả ADMIN
+    void editAndReceiveRequestSet(Long setId, EditAndReceiveDTO dto, Long userId);
 }
