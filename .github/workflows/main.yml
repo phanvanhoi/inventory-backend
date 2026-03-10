@@ -9,15 +9,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          script: |
-            cd /opt/hangfashion/inventory-backend
-            git pull origin main
-            cd /opt/hangfashion
-            docker compose build --no-cache backend
-            docker compose up -d backend
+      - name: Trigger deploy webhook
+        run: |
+          curl -s -X POST \
+            -H "X-Deploy-Token: ${{ secrets.DEPLOY_TOKEN }}" \
+            "${{ secrets.VPS_HOST }}/hooks/deploy-backend"
