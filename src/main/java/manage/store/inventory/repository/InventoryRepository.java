@@ -16,16 +16,21 @@ public interface InventoryRepository
 
     /**
      * Lấy tồn kho tổng hợp theo biến thể cho một product cụ thể
-     * - actualQuantity: Tồn kho thực tế = SUM(IN/OUT) từ EXECUTED + SUM(receipt_items) từ RECEIVING
-     * - expectedQuantity: Tồn kho dự kiến = EXECUTED(IN/OUT) + ADJUST(PENDING/APPROVED/RECEIVING)
-     *   (RECEIVING: receipts + remaining = original ADJUST, nên chỉ cần đếm ADJUST gốc)
+     * Hỗ trợ cả STRUCTURED (style/size/length/gender) và ITEM_BASED (item_code/item_name/unit)
+     * - actualQuantity: SUM(IN/OUT) từ EXECUTED + SUM(receipt_items) từ RECEIVING
+     * - expectedQuantity: EXECUTED(IN/OUT) + ADJUST(PENDING/APPROVED/RECEIVING)
      */
     @Query(
             value = """
         SELECT
+          pv.variant_id     AS variantId,
           s.style_name      AS styleName,
           sz.size_value     AS sizeValue,
           lt.code           AS lengthCode,
+          pv.gender         AS gender,
+          pv.item_code      AS itemCode,
+          pv.item_name      AS itemName,
+          pv.unit           AS unit,
           COALESCE((
             SELECT SUM(CASE
                 WHEN r2.request_type = 'IN' THEN i2.quantity
@@ -82,28 +87,36 @@ public interface InventoryRepository
               AND rs2.status IN ('PENDING', 'APPROVED', 'RECEIVING')
           ), 0) AS expectedQuantity
         FROM product_variants pv
-        JOIN styles s                ON s.style_id = pv.style_id
-        JOIN sizes sz                ON sz.size_id = pv.size_id
-        JOIN length_types lt         ON lt.length_type_id = pv.length_type_id
+        LEFT JOIN styles s          ON s.style_id = pv.style_id
+        LEFT JOIN sizes sz          ON sz.size_id = pv.size_id
+        LEFT JOIN length_types lt   ON lt.length_type_id = pv.length_type_id
+        WHERE pv.product_id = :productId
         GROUP BY
           pv.variant_id,
           s.style_name,
           sz.size_value,
-          lt.code
+          lt.code,
+          pv.gender,
+          pv.item_code,
+          pv.item_name,
+          pv.unit
         HAVING actualQuantity <> 0 OR expectedQuantity <> 0
         ORDER BY
           s.style_name,
+          COALESCE(sz.size_order, 0),
           sz.size_value,
-          lt.code
+          lt.code,
+          pv.gender,
+          pv.item_code
       """,
             nativeQuery = true
     )
     List<InventoryBalanceDTO> getInventoryByProductId(@Param("productId") Long productId);
 
     /**
-     * Lấy lịch sử các requests theo productId và styleName
+     * Lấy lịch sử các requests theo productId và filter value
      * Dành cho ADMIN, PURCHASER: Xem cả APPROVED, RECEIVING và EXECUTED
-     * Bao gồm cả các lần nhận hàng từng phần (RECEIPT_IN / RECEIPT_OUT)
+     * filterValue = styleName (STRUCTURED with style) hoặc gender (STRUCTURED with gender)
      */
     @Query(
             value = """
@@ -115,8 +128,14 @@ public interface InventoryRepository
                 rs.status AS setStatus,
                 un.unit_name AS unitName,
                 r.request_type AS requestType,
+                pv.variant_id AS variantId,
+                s.style_name AS styleName,
                 sz.size_value AS sizeValue,
                 lt.code AS lengthCode,
+                pv.gender AS gender,
+                pv.item_code AS itemCode,
+                pv.item_name AS itemName,
+                pv.unit AS unit,
                 i.quantity AS quantity,
                 r.note AS note,
                 r.created_at AS createdAt,
@@ -128,11 +147,11 @@ public interface InventoryRepository
             JOIN units un ON un.unit_id = r.unit_id
             LEFT JOIN users u ON u.user_id = rs.created_by
             JOIN product_variants pv ON pv.variant_id = i.variant_id
-            JOIN styles s ON s.style_id = pv.style_id
-            JOIN sizes sz ON sz.size_id = pv.size_id
-            JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+            LEFT JOIN styles s ON s.style_id = pv.style_id
+            LEFT JOIN sizes sz ON sz.size_id = pv.size_id
+            LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
-              AND s.style_name = :styleName
+              AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
               AND rs.status IN ('APPROVED', 'RECEIVING', 'EXECUTED')
             UNION ALL
             SELECT
@@ -142,8 +161,14 @@ public interface InventoryRepository
                 rs.status AS setStatus,
                 un.unit_name AS unitName,
                 CONCAT('RECEIPT_', IF(r.request_type IN ('IN','ADJUST_IN'), 'IN', 'OUT')) AS requestType,
+                pv.variant_id AS variantId,
+                s.style_name AS styleName,
                 sz.size_value AS sizeValue,
                 lt.code AS lengthCode,
+                pv.gender AS gender,
+                pv.item_code AS itemCode,
+                pv.item_name AS itemName,
+                pv.unit AS unit,
                 ri.received_quantity AS quantity,
                 rr.note AS note,
                 rr.received_at AS createdAt,
@@ -156,11 +181,11 @@ public interface InventoryRepository
             JOIN units un ON un.unit_id = r.unit_id
             LEFT JOIN users u2 ON u2.user_id = rr.received_by
             JOIN product_variants pv ON pv.variant_id = ri.variant_id
-            JOIN styles s ON s.style_id = pv.style_id
-            JOIN sizes sz ON sz.size_id = pv.size_id
-            JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+            LEFT JOIN styles s ON s.style_id = pv.style_id
+            LEFT JOIN sizes sz ON sz.size_id = pv.size_id
+            LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
-              AND s.style_name = :styleName
+              AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
               AND rs.status IN ('RECEIVING', 'EXECUTED')
         ) combined
         ORDER BY createdAt DESC, sizeValue, lengthCode
@@ -169,13 +194,12 @@ public interface InventoryRepository
     )
     List<InventoryRequestHistoryDTO> getRequestHistoryByProductAndStyle(
             @Param("productId") Long productId,
-            @Param("styleName") String styleName
+            @Param("filterValue") String filterValue
     );
 
     /**
-     * Lấy lịch sử các requests theo productId và styleName
-     * Dành cho USER, STOCKKEEPER: Xem EXECUTED + RECEIVING (đang nhận hàng)
-     * Bao gồm cả các lần nhận hàng từng phần (RECEIPT_IN / RECEIPT_OUT)
+     * Lấy lịch sử các requests theo productId và filter value
+     * Dành cho USER, STOCKKEEPER: Xem EXECUTED + RECEIVING
      */
     @Query(
             value = """
@@ -187,8 +211,14 @@ public interface InventoryRepository
                 rs.status AS setStatus,
                 un.unit_name AS unitName,
                 r.request_type AS requestType,
+                pv.variant_id AS variantId,
+                s.style_name AS styleName,
                 sz.size_value AS sizeValue,
                 lt.code AS lengthCode,
+                pv.gender AS gender,
+                pv.item_code AS itemCode,
+                pv.item_name AS itemName,
+                pv.unit AS unit,
                 i.quantity AS quantity,
                 r.note AS note,
                 r.created_at AS createdAt,
@@ -200,11 +230,11 @@ public interface InventoryRepository
             JOIN units un ON un.unit_id = r.unit_id
             LEFT JOIN users u ON u.user_id = rs.created_by
             JOIN product_variants pv ON pv.variant_id = i.variant_id
-            JOIN styles s ON s.style_id = pv.style_id
-            JOIN sizes sz ON sz.size_id = pv.size_id
-            JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+            LEFT JOIN styles s ON s.style_id = pv.style_id
+            LEFT JOIN sizes sz ON sz.size_id = pv.size_id
+            LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
-              AND s.style_name = :styleName
+              AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
               AND rs.status IN ('RECEIVING', 'EXECUTED')
             UNION ALL
             SELECT
@@ -214,8 +244,14 @@ public interface InventoryRepository
                 rs.status AS setStatus,
                 un.unit_name AS unitName,
                 CONCAT('RECEIPT_', IF(r.request_type IN ('IN','ADJUST_IN'), 'IN', 'OUT')) AS requestType,
+                pv.variant_id AS variantId,
+                s.style_name AS styleName,
                 sz.size_value AS sizeValue,
                 lt.code AS lengthCode,
+                pv.gender AS gender,
+                pv.item_code AS itemCode,
+                pv.item_name AS itemName,
+                pv.unit AS unit,
                 ri.received_quantity AS quantity,
                 rr.note AS note,
                 rr.received_at AS createdAt,
@@ -228,11 +264,11 @@ public interface InventoryRepository
             JOIN units un ON un.unit_id = r.unit_id
             LEFT JOIN users u2 ON u2.user_id = rr.received_by
             JOIN product_variants pv ON pv.variant_id = ri.variant_id
-            JOIN styles s ON s.style_id = pv.style_id
-            JOIN sizes sz ON sz.size_id = pv.size_id
-            JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+            LEFT JOIN styles s ON s.style_id = pv.style_id
+            LEFT JOIN sizes sz ON sz.size_id = pv.size_id
+            LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
-              AND s.style_name = :styleName
+              AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
               AND rs.status IN ('RECEIVING', 'EXECUTED')
         ) combined
         ORDER BY createdAt DESC, sizeValue, lengthCode
@@ -241,7 +277,7 @@ public interface InventoryRepository
     )
     List<InventoryRequestHistoryDTO> getRequestHistoryByProductAndStyleExecutedOnly(
             @Param("productId") Long productId,
-            @Param("styleName") String styleName
+            @Param("filterValue") String filterValue
     );
 
     /**
@@ -289,8 +325,7 @@ public interface InventoryRepository
 
     /**
      * Lấy tồn kho dự kiến tại một ngày cụ thể theo variant
-     * = EXECUTED(IN/OUT)
-     *   + SUM(ADJUST_IN/OUT có expected_date <= targetDate) từ PENDING/APPROVED/RECEIVING
+     * = EXECUTED(IN/OUT) + SUM(ADJUST có expected_date <= targetDate) từ PENDING/APPROVED/RECEIVING
      */
     @Query(
             value = """
@@ -332,7 +367,6 @@ public interface InventoryRepository
 
     /**
      * Kiểm tra có ADJUST_OUT nào phụ thuộc vào ADJUST_IN không
-     * (ADJUST_OUT có expected_date >= ngày của ADJUST_IN)
      */
     @Query(
             value = """

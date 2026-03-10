@@ -6,8 +6,13 @@ import lombok.Data;
 public class ItemCreateDTO {
 
     private Long requestId;
+    // STRUCTURED variant lookup
     private Long styleId;
-    private Integer sizeValue;
+    private String sizeValue;
     private String lengthCode;
+    private String gender;
+    // ITEM_BASED variant lookup
+    private Long variantId;
+
     private Integer quantity;
 }

@@ -6,7 +6,11 @@ public interface ItemDetailDTO {
     Long getRequestId();
     Long getVariantId();
     String getStyleName();
-    Integer getSizeValue();
+    String getSizeValue();
     String getLengthCode();
+    String getGender();
+    String getItemCode();
+    String getItemName();
+    String getUnit();
     Integer getQuantity();
 }

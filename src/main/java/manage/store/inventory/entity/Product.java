@@ -4,11 +4,14 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
+import manage.store.inventory.entity.enums.VariantType;
 
 @Entity
 @Table(name = "products")
@@ -22,6 +25,10 @@ public class Product {
 
     @Column(name = "product_name", nullable = false)
     private String productName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "variant_type", nullable = false)
+    private VariantType variantType;
 
     @Column(name = "note")
     private String note;

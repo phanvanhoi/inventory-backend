@@ -2,9 +2,14 @@ package manage.store.inventory.dto;
 
 public interface InventoryBalanceDTO {
 
+    Long getVariantId();
     String getStyleName();
-    Integer getSizeValue();
+    String getSizeValue();
     String getLengthCode();
-    Integer getActualQuantity();    // Tồn kho thực tế = IN - OUT
-    Integer getExpectedQuantity();  // Tồn kho dự kiến = IN - OUT + ADJUST_IN - ADJUST_OUT
+    String getGender();
+    String getItemCode();
+    String getItemName();
+    String getUnit();
+    Integer getActualQuantity();
+    Integer getExpectedQuantity();
 }

@@ -20,17 +20,21 @@ import manage.store.inventory.dto.RequestSetUpdateDTO;
 import manage.store.inventory.entity.ApprovalHistory;
 import manage.store.inventory.entity.InventoryRequest;
 import manage.store.inventory.entity.InventoryRequestItem;
+import manage.store.inventory.entity.Product;
 import manage.store.inventory.entity.ProductVariant;
 import manage.store.inventory.entity.RequestSet;
 import manage.store.inventory.entity.User;
 import manage.store.inventory.entity.enums.ApprovalAction;
+import manage.store.inventory.entity.enums.Gender;
 import manage.store.inventory.entity.enums.RequestSetStatus;
+import manage.store.inventory.entity.enums.VariantType;
 import manage.store.inventory.repository.ApprovalHistoryRepository;
 import manage.store.inventory.entity.Position;
 import manage.store.inventory.repository.InventoryRepository;
 import manage.store.inventory.repository.InventoryRequestItemRepository;
 import manage.store.inventory.repository.InventoryRequestRepository;
 import manage.store.inventory.repository.PositionRepository;
+import manage.store.inventory.repository.ProductRepository;
 import manage.store.inventory.repository.ProductVariantRepository;
 import manage.store.inventory.repository.RequestSetRepository;
 import manage.store.inventory.repository.UserRepository;
@@ -49,6 +53,7 @@ public class RequestSetServiceImpl implements RequestSetService {
     private final NotificationService notificationService;
     private final InventoryRepository inventoryRepository;
     private final PositionRepository positionRepository;
+    private final ProductRepository productRepository;
 
     public RequestSetServiceImpl(
             RequestSetRepository requestSetRepository,
@@ -60,7 +65,8 @@ public class RequestSetServiceImpl implements RequestSetService {
             ApprovalHistoryRepository approvalHistoryRepository,
             NotificationService notificationService,
             InventoryRepository inventoryRepository,
-            PositionRepository positionRepository
+            PositionRepository positionRepository,
+            ProductRepository productRepository
     ) {
         this.requestSetRepository = requestSetRepository;
         this.requestRepository = requestRepository;
@@ -72,6 +78,7 @@ public class RequestSetServiceImpl implements RequestSetService {
         this.notificationService = notificationService;
         this.inventoryRepository = inventoryRepository;
         this.positionRepository = positionRepository;
+        this.productRepository = productRepository;
     }
 
     @Override
@@ -209,22 +216,15 @@ public class RequestSetServiceImpl implements RequestSetService {
             return;
         }
 
+        Product product = productRepository.findById(dto.getProductId())
+                .orElseThrow(() -> new RuntimeException("Product not found: " + dto.getProductId()));
+
         for (InventoryRequestCreateDTO.ItemDTO item : dto.getItems()) {
             if (item.getQuantity() == null || item.getQuantity() <= 0) {
                 continue;
             }
 
-            ProductVariant variant = variantRepository
-                    .findVariant(
-                            item.getStyleId(),
-                            item.getSizeValue(),
-                            item.getLengthCode()
-                    )
-                    .orElseThrow(() -> new RuntimeException(
-                            "Variant not found: styleId=" + item.getStyleId()
-                                    + ", size=" + item.getSizeValue()
-                                    + ", length=" + item.getLengthCode()
-                    ));
+            ProductVariant variant = resolveVariant(product, item);
 
             InventoryRequestItem requestItem = new InventoryRequestItem();
             requestItem.setRequestId(request.getRequestId());
@@ -236,6 +236,40 @@ public class RequestSetServiceImpl implements RequestSetService {
     }
 
     /**
+     * Resolve variant dựa trên variant_type của product
+     */
+    private ProductVariant resolveVariant(Product product, InventoryRequestCreateDTO.ItemDTO item) {
+        if (product.getVariantType() == VariantType.ITEM_BASED || item.getVariantId() != null) {
+            Long variantId = item.getVariantId();
+            if (variantId == null) {
+                throw new RuntimeException("ITEM_BASED product yêu cầu variantId");
+            }
+            return variantRepository.findById(variantId)
+                    .orElseThrow(() -> new RuntimeException("Variant not found: id=" + variantId));
+        }
+        if (item.getStyleId() != null) {
+            return variantRepository
+                    .findStructuredVariantWithStyle(product.getProductId(), item.getStyleId(), item.getSizeValue(), item.getLengthCode())
+                    .orElseThrow(() -> new RuntimeException("Variant not found: productId=" + product.getProductId()
+                            + ", styleId=" + item.getStyleId() + ", size=" + item.getSizeValue() + ", length=" + item.getLengthCode()));
+        }
+        Gender gender = item.getGender() != null ? Gender.valueOf(item.getGender()) : null;
+        if (item.getLengthCode() != null && gender != null) {
+            return variantRepository
+                    .findStructuredVariantWithGenderAndLength(product.getProductId(), item.getSizeValue(), item.getLengthCode(), gender)
+                    .orElseThrow(() -> new RuntimeException("Variant not found: productId=" + product.getProductId()
+                            + ", size=" + item.getSizeValue() + ", length=" + item.getLengthCode() + ", gender=" + item.getGender()));
+        }
+        if (gender != null) {
+            return variantRepository
+                    .findStructuredVariantWithGender(product.getProductId(), item.getSizeValue(), gender)
+                    .orElseThrow(() -> new RuntimeException("Variant not found: productId=" + product.getProductId()
+                            + ", size=" + item.getSizeValue() + ", gender=" + item.getGender()));
+        }
+        throw new RuntimeException("Không thể xác định variant cho product: " + product.getProductId());
+    }
+
+    /**
      * Validate số lượng cho từng item trong request
      * - OUT: Số lượng <= Tồn thực tế
      * - ADJUST_OUT: Số lượng <= Tồn dự kiến tại expected_date
@@ -244,22 +278,15 @@ public class RequestSetServiceImpl implements RequestSetService {
         String requestType = dto.getRequestType();
         Long productId = dto.getProductId();
 
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
+
         for (InventoryRequestCreateDTO.ItemDTO item : dto.getItems()) {
             if (item.getQuantity() == null || item.getQuantity() <= 0) {
                 continue;
             }
 
-            ProductVariant variant = variantRepository
-                    .findVariant(
-                            item.getStyleId(),
-                            item.getSizeValue(),
-                            item.getLengthCode()
-                    )
-                    .orElseThrow(() -> new RuntimeException(
-                            "Variant not found: styleId=" + item.getStyleId()
-                                    + ", size=" + item.getSizeValue()
-                                    + ", length=" + item.getLengthCode()
-                    ));
+            ProductVariant variant = resolveVariant(product, item);
 
             if ("OUT".equals(requestType)) {
                 // OUT: Validate với tồn thực tế

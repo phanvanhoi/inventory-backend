@@ -14,6 +14,7 @@ public class ProductInventoryViewDTO {
 
     private Long productId;
     private String productName;
+    private String variantType;
     private String note;
     private LocalDateTime createdAt;
     private List<InventoryBalanceViewDTO> data;

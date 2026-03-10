@@ -13,10 +13,11 @@ public class RequestHistoryMatrixDTO {
 
     private Long productId;
     private String productName;
-    private String styleName;
+    private String variantType;
+    private String filterValue; // styleName for STRUCTURED, or null for ITEM_BASED
 
-    // Danh sách các size columns: [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45]
-    private List<Integer> sizeColumns;
+    // Danh sách các size columns: ["35", "36", ...] hoặc ["XS", "S", "M", ...]
+    private List<String> sizeColumns;
 
     // Danh sách các rows, mỗi row là 1 request với quantity theo từng size
     private List<RequestHistoryRowDTO> rows;

@@ -77,44 +77,36 @@ public class InventoryRequestCreateDTO {
        ===================================================== */
     public static class ItemDTO {
 
+        // STRUCTURED variant lookup
         private Long styleId;
-        private Integer sizeValue;
+        private String sizeValue;
         private String lengthCode; // COC / DAI
+        private String gender;     // NAM / NU
+
+        // ITEM_BASED variant lookup
+        private Long variantId;    // direct variant ID
+
         private Integer quantity;
 
         public ItemDTO() {
         }
 
-        public Long getStyleId() {
-            return styleId;
-        }
+        public Long getStyleId() { return styleId; }
+        public void setStyleId(Long styleId) { this.styleId = styleId; }
 
-        public void setStyleId(Long styleId) {
-            this.styleId = styleId;
-        }
+        public String getSizeValue() { return sizeValue; }
+        public void setSizeValue(String sizeValue) { this.sizeValue = sizeValue; }
 
-        public Integer getSizeValue() {
-            return sizeValue;
-        }
+        public String getLengthCode() { return lengthCode; }
+        public void setLengthCode(String lengthCode) { this.lengthCode = lengthCode; }
 
-        public void setSizeValue(Integer sizeValue) {
-            this.sizeValue = sizeValue;
-        }
+        public String getGender() { return gender; }
+        public void setGender(String gender) { this.gender = gender; }
 
-        public String getLengthCode() {
-            return lengthCode;
-        }
+        public Long getVariantId() { return variantId; }
+        public void setVariantId(Long variantId) { this.variantId = variantId; }
 
-        public void setLengthCode(String lengthCode) {
-            this.lengthCode = lengthCode;
-        }
-
-        public Integer getQuantity() {
-            return quantity;
-        }
-
-        public void setQuantity(Integer quantity) {
-            this.quantity = quantity;
-        }
+        public Integer getQuantity() { return quantity; }
+        public void setQuantity(Integer quantity) { this.quantity = quantity; }
     }
 }
