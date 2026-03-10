@@ -10,11 +10,16 @@ public class Size {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long sizeId;
 
-    private Integer sizeValue;
+    private String sizeValue;
+
+    private Integer sizeOrder;
 
     public Long getSizeId() { return sizeId; }
     public void setSizeId(Long sizeId) { this.sizeId = sizeId; }
 
-    public Integer getSizeValue() { return sizeValue; }
-    public void setSizeValue(Integer sizeValue) { this.sizeValue = sizeValue; }
+    public String getSizeValue() { return sizeValue; }
+    public void setSizeValue(String sizeValue) { this.sizeValue = sizeValue; }
+
+    public Integer getSizeOrder() { return sizeOrder; }
+    public void setSizeOrder(Integer sizeOrder) { this.sizeOrder = sizeOrder; }
 }

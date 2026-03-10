@@ -21,9 +21,16 @@ public class RequestHistoryRowDTO {
     private String lengthCode;
     private String note;
     private LocalDateTime createdAt;
-    private Long createdBy;         // ID người tạo request set
-    private String createdByName;   // Tên người tạo request set
+    private Long createdBy;
+    private String createdByName;
 
-    // Map<sizeValue, quantity> - VD: {35: 10, 36: 5, 37: 0, ...}
-    private Map<Integer, Integer> sizes;
+    // For STRUCTURED: Map<sizeValue, quantity> - VD: {"35": 10, "36": 5, ...}
+    private Map<String, Integer> sizes;
+
+    // For ITEM_BASED: single variant info per row
+    private Long variantId;
+    private String itemCode;
+    private String itemName;
+    private String unit;
+    private Integer quantity;
 }

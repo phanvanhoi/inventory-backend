@@ -10,11 +10,17 @@ public interface InventoryRequestHistoryDTO {
     String getSetStatus();
     String getUnitName();
     String getRequestType();
-    Integer getSizeValue();
+    Long getVariantId();
+    String getStyleName();
+    String getSizeValue();
     String getLengthCode();
+    String getGender();
+    String getItemCode();
+    String getItemName();
+    String getUnit();
     Integer getQuantity();
     String getNote();
     LocalDateTime getCreatedAt();
-    Long getCreatedBy();         // ID người tạo request set
-    String getCreatedByName();   // Tên người tạo request set
+    Long getCreatedBy();
+    String getCreatedByName();
 }

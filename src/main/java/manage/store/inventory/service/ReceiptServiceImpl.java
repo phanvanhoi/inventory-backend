@@ -347,6 +347,10 @@ public class ReceiptServiceImpl implements ReceiptService {
                 ip.setStyleName(itemDetail.getStyleName());
                 ip.setSizeValue(itemDetail.getSizeValue());
                 ip.setLengthCode(itemDetail.getLengthCode());
+                ip.setGender(itemDetail.getGender());
+                ip.setItemCode(itemDetail.getItemCode());
+                ip.setItemName(itemDetail.getItemName());
+                ip.setUnit(itemDetail.getUnit());
                 ip.setProposedQuantity(proposed);
                 ip.setTotalReceived(totalReceived);
                 ip.setRemainingQuantity(remaining);

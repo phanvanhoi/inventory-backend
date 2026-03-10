@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +19,7 @@ import manage.store.inventory.dto.ProductInventoryViewDTO;
 import manage.store.inventory.dto.RequestHistoryMatrixDTO;
 import manage.store.inventory.dto.RequestHistoryRowDTO;
 import manage.store.inventory.entity.Product;
+import manage.store.inventory.entity.enums.VariantType;
 import manage.store.inventory.repository.InventoryRepository;
 import manage.store.inventory.repository.ProductRepository;
 import manage.store.inventory.security.CurrentUser;
@@ -25,8 +27,6 @@ import manage.store.inventory.security.CurrentUser;
 @RestController
 @RequestMapping("/api/inventory")
 public class InventoryController {
-
-    private static final List<Integer> SIZE_COLUMNS = List.of(35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45);
 
     private final InventoryRepository inventoryRepository;
     private final ProductRepository productRepository;
@@ -58,9 +58,14 @@ public class InventoryController {
     private List<InventoryBalanceViewDTO> convertToViewDTO(List<InventoryBalanceDTO> data, boolean canViewExpected) {
         return data.stream()
                 .map(item -> new InventoryBalanceViewDTO(
+                        item.getVariantId(),
                         item.getStyleName(),
                         item.getSizeValue(),
                         item.getLengthCode(),
+                        item.getGender(),
+                        item.getItemCode(),
+                        item.getItemName(),
+                        item.getUnit(),
                         item.getActualQuantity(),
                         canViewExpected ? item.getExpectedQuantity() : null
                 ))
@@ -70,10 +75,6 @@ public class InventoryController {
     /**
      * Lấy tồn kho theo product ID
      * GET /api/inventory/{productId}
-     *
-     * Quyền xem dựa vào JWT token:
-     * - ADMIN, PURCHASER: Xem cả actualQuantity và expectedQuantity
-     * - USER, STOCKKEEPER: Chỉ xem actualQuantity
      */
     @GetMapping("/{productId}")
     public ProductInventoryViewDTO getInventoryByProduct(@PathVariable Long productId) {
@@ -87,6 +88,7 @@ public class InventoryController {
         return new ProductInventoryViewDTO(
                 product.getProductId(),
                 product.getProductName(),
+                product.getVariantType().name(),
                 product.getNote(),
                 product.getCreatedAt(),
                 data,
@@ -97,8 +99,6 @@ public class InventoryController {
     /**
      * Lấy danh sách tất cả products với tồn kho
      * GET /api/inventory
-     *
-     * Quyền xem dựa vào JWT token
      */
     @GetMapping
     public List<ProductInventoryViewDTO> getAllInventory() {
@@ -113,6 +113,7 @@ public class InventoryController {
                     return new ProductInventoryViewDTO(
                             product.getProductId(),
                             product.getProductName(),
+                            product.getVariantType().name(),
                             product.getNote(),
                             product.getCreatedAt(),
                             data,
@@ -123,17 +124,14 @@ public class InventoryController {
     }
 
     /**
-     * Lấy lịch sử các requests theo product ID và style name (dạng matrix)
-     * GET /api/inventory/{productId}/history?style=CỔ ĐIỂN
-     *
-     * Quyền xem dựa vào JWT token:
-     * - ADMIN, PURCHASER: Xem cả APPROVED và EXECUTED
-     * - USER, STOCKKEEPER: Chỉ xem EXECUTED
+     * Lấy lịch sử các requests theo product ID và filter
+     * GET /api/inventory/{productId}/history?filter=CỔ ĐIỂN
+     * filter = styleName (STRUCTURED with style) hoặc gender (STRUCTURED with gender) hoặc null (ITEM_BASED)
      */
     @GetMapping("/{productId}/history")
     public RequestHistoryMatrixDTO getRequestHistory(
             @PathVariable Long productId,
-            @RequestParam("style") String styleName
+            @RequestParam(value = "filter", required = false) String filterValue
     ) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
@@ -142,28 +140,59 @@ public class InventoryController {
 
         List<InventoryRequestHistoryDTO> rawData;
         if (canViewApproved) {
-            rawData = inventoryRepository.getRequestHistoryByProductAndStyle(productId, styleName);
+            rawData = inventoryRepository.getRequestHistoryByProductAndStyle(productId, filterValue);
         } else {
-            rawData = inventoryRepository.getRequestHistoryByProductAndStyleExecutedOnly(productId, styleName);
+            rawData = inventoryRepository.getRequestHistoryByProductAndStyleExecutedOnly(productId, filterValue);
         }
 
-        List<RequestHistoryRowDTO> rows = transformToMatrixRows(rawData);
+        String variantType = product.getVariantType().name();
+
+        if (product.getVariantType() == VariantType.ITEM_BASED) {
+            // ITEM_BASED: mỗi row là 1 record riêng lẻ, không group theo size
+            List<RequestHistoryRowDTO> rows = transformToItemBasedRows(rawData);
+            return new RequestHistoryMatrixDTO(
+                    product.getProductId(),
+                    product.getProductName(),
+                    variantType,
+                    filterValue,
+                    List.of(),
+                    rows
+            );
+        }
+
+        // STRUCTURED: group by requestId + lengthCode, pivot sizes
+        List<String> sizeColumns = extractSizeColumns(rawData);
+        List<RequestHistoryRowDTO> rows = transformToMatrixRows(rawData, sizeColumns);
 
         return new RequestHistoryMatrixDTO(
                 product.getProductId(),
                 product.getProductName(),
-                styleName,
-                SIZE_COLUMNS,
+                variantType,
+                filterValue,
+                sizeColumns,
                 rows
         );
     }
 
     /**
-     * Transform raw data thành matrix rows
+     * Extract unique size values from history data (sorted by appearance)
+     */
+    private List<String> extractSizeColumns(List<InventoryRequestHistoryDTO> rawData) {
+        return rawData.stream()
+                .map(InventoryRequestHistoryDTO::getSizeValue)
+                .filter(sv -> sv != null)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Transform raw data thành matrix rows (STRUCTURED products)
      * Group by: requestId + lengthCode
      */
-    private List<RequestHistoryRowDTO> transformToMatrixRows(List<InventoryRequestHistoryDTO> rawData) {
-        // Key: "requestId-lengthCode" -> Row data
+    private List<RequestHistoryRowDTO> transformToMatrixRows(
+            List<InventoryRequestHistoryDTO> rawData,
+            List<String> sizeColumns
+    ) {
         Map<String, RequestHistoryRowDTO> rowMap = new LinkedHashMap<>();
 
         for (InventoryRequestHistoryDTO item : rawData) {
@@ -185,8 +214,8 @@ public class InventoryController {
                 row.setCreatedByName(item.getCreatedByName());
 
                 // Initialize sizes map with 0
-                Map<Integer, Integer> sizes = new LinkedHashMap<>();
-                for (Integer size : SIZE_COLUMNS) {
+                Map<String, Integer> sizes = new LinkedHashMap<>();
+                for (String size : sizeColumns) {
                     sizes.put(size, 0);
                 }
                 row.setSizes(sizes);
@@ -201,5 +230,35 @@ public class InventoryController {
         }
 
         return new ArrayList<>(rowMap.values());
+    }
+
+    /**
+     * Transform raw data thành flat rows (ITEM_BASED products)
+     * Mỗi record = 1 row
+     */
+    private List<RequestHistoryRowDTO> transformToItemBasedRows(List<InventoryRequestHistoryDTO> rawData) {
+        List<RequestHistoryRowDTO> rows = new ArrayList<>();
+
+        for (InventoryRequestHistoryDTO item : rawData) {
+            RequestHistoryRowDTO row = new RequestHistoryRowDTO();
+            row.setRequestId(item.getRequestId());
+            row.setSetId(item.getSetId());
+            row.setSetName(item.getSetName());
+            row.setSetStatus(item.getSetStatus());
+            row.setUnitName(item.getUnitName());
+            row.setRequestType(item.getRequestType());
+            row.setNote(item.getNote());
+            row.setCreatedAt(item.getCreatedAt());
+            row.setCreatedBy(item.getCreatedBy());
+            row.setCreatedByName(item.getCreatedByName());
+            row.setVariantId(item.getVariantId());
+            row.setItemCode(item.getItemCode());
+            row.setItemName(item.getItemName());
+            row.setUnit(item.getUnit());
+            row.setQuantity(item.getQuantity());
+            rows.add(row);
+        }
+
+        return rows;
     }
 }

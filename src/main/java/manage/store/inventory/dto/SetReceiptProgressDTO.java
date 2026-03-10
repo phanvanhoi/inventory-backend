@@ -78,8 +78,12 @@ public class SetReceiptProgressDTO {
     public static class ItemProgress {
         private Long variantId;
         private String styleName;
-        private Integer sizeValue;
+        private String sizeValue;
         private String lengthCode;
+        private String gender;
+        private String itemCode;
+        private String itemName;
+        private String unit;
 
         private int proposedQuantity;
         private int totalReceived;

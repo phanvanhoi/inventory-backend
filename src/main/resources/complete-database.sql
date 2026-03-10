@@ -27,33 +27,56 @@ CREATE TABLE styles (
     INDEX idx_style_name (style_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2.2 Bảng sizes (Kích cỡ)
+-- 2.2 Bảng sizes (Kích cỡ - hỗ trợ cả số '35' và chữ 'XS')
 CREATE TABLE sizes (
     size_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    size_value INT NOT NULL UNIQUE,
+    size_value VARCHAR(10) NOT NULL UNIQUE,
+    size_order INT NOT NULL DEFAULT 0,
     INDEX idx_size_value (size_value)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2.3 Bảng length_types (Loại độ dài: Cộc/Dài)
+-- 2.3 Bảng products (Sản phẩm) — phải tạo trước product_variants vì FK
+CREATE TABLE products (
+    product_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    product_name VARCHAR(255) NOT NULL,
+    variant_type ENUM('STRUCTURED', 'ITEM_BASED') NOT NULL DEFAULT 'STRUCTURED',
+    note TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_product_name (product_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.4 Bảng length_types (Loại độ dài: Cộc/Dài)
 CREATE TABLE length_types (
     length_type_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(10) NOT NULL UNIQUE,
     INDEX idx_length_code (code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2.4 Bảng product_variants (Biến thể sản phẩm: style + size + length)
+-- 2.4 Bảng product_variants (Biến thể sản phẩm)
+-- STRUCTURED: product_id + style/size/length/gender (nullable dimensions)
+-- ITEM_BASED: product_id + item_code/item_name/unit
 CREATE TABLE product_variants (
     variant_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    style_id BIGINT NOT NULL,
-    size_id BIGINT NOT NULL,
-    length_type_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL,
+    style_id BIGINT NULL,
+    size_id BIGINT NULL,
+    length_type_id BIGINT NULL,
+    gender ENUM('NAM', 'NU') NULL,
+    item_code VARCHAR(50) NULL,
+    item_name VARCHAR(255) NULL,
+    unit VARCHAR(50) NULL,
+    FOREIGN KEY (product_id) REFERENCES products(product_id),
     FOREIGN KEY (style_id) REFERENCES styles(style_id),
     FOREIGN KEY (size_id) REFERENCES sizes(size_id),
     FOREIGN KEY (length_type_id) REFERENCES length_types(length_type_id),
-    UNIQUE KEY uk_variant (style_id, size_id, length_type_id),
+    UNIQUE KEY uk_variant_structured (product_id, style_id, size_id, length_type_id, gender),
+    UNIQUE KEY uk_variant_item (product_id, item_code),
+    INDEX idx_variant_product (product_id),
     INDEX idx_variant_style (style_id),
     INDEX idx_variant_size (size_id),
-    INDEX idx_variant_length (length_type_id)
+    INDEX idx_variant_length (length_type_id),
+    INDEX idx_variant_gender (gender),
+    INDEX idx_variant_item_code (item_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 2.5 Bảng units (Đơn vị/Khách hàng)
@@ -153,14 +176,7 @@ CREATE TABLE notifications (
     INDEX idx_notification_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2.12 Bảng products (Sản phẩm)
-CREATE TABLE products (
-    product_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    product_name VARCHAR(255) NOT NULL,
-    note TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_product_name (product_name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- 2.12 (products đã tạo ở trên trước product_variants)
 
 -- 2.14 Bảng inventory_requests (Phiếu xuất/nhập kho)
 -- expected_date: Ngày dự kiến (bắt buộc cho ADJUST_IN, ADJUST_OUT)
@@ -307,9 +323,12 @@ INSERT INTO styles (style_name) VALUES
 ('SLIM'),
 ('SLIM Ngắn');
 
--- 3.3 Sizes (11 kích cỡ: 35-45)
-INSERT INTO sizes (size_value) VALUES
-(35), (36), (37), (38), (39), (40), (41), (42), (43), (44), (45);
+-- 3.3 Sizes (số: 35-45 cho sơ mi, chữ: XS-6XL cho áo khoác/phông/len...)
+INSERT INTO sizes (size_value, size_order) VALUES
+('35', 35), ('36', 36), ('37', 37), ('38', 38), ('39', 39),
+('40', 40), ('41', 41), ('42', 42), ('43', 43), ('44', 44), ('45', 45),
+('XS', 1), ('S', 2), ('M', 3), ('L', 4), ('XL', 5),
+('2XL', 6), ('3XL', 7), ('4XL', 8), ('5XL', 9), ('6XL', 10);
 
 -- 3.4 Length Types (2 loại độ dài)
 -- Mapping: Cộc = COC (length_type_id = 1), Dài = DAI (length_type_id = 2)
@@ -323,32 +342,464 @@ INSERT INTO positions (position_code, position_name) VALUES
 ('GDV', 'Giao dịch viên'),
 ('VHX', 'Vận hành xưởng');
 
--- 3.6 Product Variants (88 biến thể = 4 styles x 11 sizes x 2 lengths)
-INSERT INTO product_variants (style_id, size_id, length_type_id) VALUES
--- CỔ ĐIỂN (style_id = 1)
-(1, 1, 1), (1, 1, 2), (1, 2, 1), (1, 2, 2), (1, 3, 1), (1, 3, 2),
-(1, 4, 1), (1, 4, 2), (1, 5, 1), (1, 5, 2), (1, 6, 1), (1, 6, 2),
-(1, 7, 1), (1, 7, 2), (1, 8, 1), (1, 8, 2), (1, 9, 1), (1, 9, 2),
-(1, 10, 1), (1, 10, 2), (1, 11, 1), (1, 11, 2),
--- CỔ ĐIỂN NGẮN (style_id = 2)
-(2, 1, 1), (2, 1, 2), (2, 2, 1), (2, 2, 2), (2, 3, 1), (2, 3, 2),
-(2, 4, 1), (2, 4, 2), (2, 5, 1), (2, 5, 2), (2, 6, 1), (2, 6, 2),
-(2, 7, 1), (2, 7, 2), (2, 8, 1), (2, 8, 2), (2, 9, 1), (2, 9, 2),
-(2, 10, 1), (2, 10, 2), (2, 11, 1), (2, 11, 2),
--- SLIM (style_id = 3)
-(3, 1, 1), (3, 1, 2), (3, 2, 1), (3, 2, 2), (3, 3, 1), (3, 3, 2),
-(3, 4, 1), (3, 4, 2), (3, 5, 1), (3, 5, 2), (3, 6, 1), (3, 6, 2),
-(3, 7, 1), (3, 7, 2), (3, 8, 1), (3, 8, 2), (3, 9, 1), (3, 9, 2),
-(3, 10, 1), (3, 10, 2), (3, 11, 1), (3, 11, 2),
--- SLIM Ngắn (style_id = 4)
-(4, 1, 1), (4, 1, 2), (4, 2, 1), (4, 2, 2), (4, 3, 1), (4, 3, 2),
-(4, 4, 1), (4, 4, 2), (4, 5, 1), (4, 5, 2), (4, 6, 1), (4, 6, 2),
-(4, 7, 1), (4, 7, 2), (4, 8, 1), (4, 8, 2), (4, 9, 1), (4, 9, 2),
-(4, 10, 1), (4, 10, 2), (4, 11, 1), (4, 11, 2);
+-- 3.6 Products (10 sản phẩm)
+INSERT INTO products (product_name, variant_type, note, created_at) VALUES
+('HDH22 - TRẮNG KEM NAM BƯU ĐIỆN (KHÔNG LÉ, KHÔNG THÊU)', 'STRUCTURED', 'Sơ mi nam 2025 - SM1', '2025-06-20 00:00:00'),
+('SƠ MI NAM 2026', 'STRUCTURED', 'Style + Size(35-45) + Length(Cộc/Dài)', '2026-01-01 00:00:00'),
+('ÁO KHOÁC 2026', 'STRUCTURED', 'Size(XS-6XL) + Gender(NAM/NỮ)', '2026-01-01 00:00:00'),
+('ÁO PHÔNG 2026', 'STRUCTURED', 'Size(XS-6XL) + Gender(NAM/NỮ) + Length(Cộc/Dài)', '2026-01-01 00:00:00'),
+('ÁO LEN + GILE LEN 2026', 'STRUCTURED', 'Size(XS-6XL) + Gender(NAM/NỮ)', '2026-01-01 00:00:00'),
+('GILE BẢO HỘ 2026', 'STRUCTURED', 'Size(XS-6XL) + Gender(NAM/NỮ)', '2026-01-01 00:00:00'),
+('BẢO HỘ LAO ĐỘNG 2026', 'ITEM_BASED', '15 items hỗn hợp (giày, áo mưa, mũ...)', '2026-01-01 00:00:00'),
+('NHẬP XUẤT VẢI 2026', 'ITEM_BASED', '31 mã vải', '2026-01-01 00:00:00'),
+('PHỤ KIỆN 2026', 'ITEM_BASED', '49 mã phụ kiện', '2026-01-01 00:00:00'),
+('PHỤ LIỆU 2026', 'ITEM_BASED', '~250 mã phụ liệu', '2026-01-01 00:00:00');
 
--- 3.6 Products (Sản phẩm)
-INSERT INTO products (product_name, note, created_at) VALUES
-('HDH22 - TRẮNG KEM NAM BƯU ĐIỆN (KHÔNG LÉ, KHÔNG THÊU)', 'Sơ mi nam 2025 - SM1', '2025-06-20 00:00:00');
+-- 3.7 Product Variants
+-- ====== Product 1: SƠ MI NAM 2025 (88 biến thể = 4 styles x 11 sizes x 2 lengths) ======
+-- size_id: 1=35, 2=36, 3=37, 4=38, 5=39, 6=40, 7=41, 8=42, 9=43, 10=44, 11=45
+-- length_type_id: 1=COC, 2=DAI
+INSERT INTO product_variants (product_id, style_id, size_id, length_type_id) VALUES
+-- CỔ ĐIỂN (style_id = 1)
+(1, 1, 1, 1), (1, 1, 1, 2), (1, 1, 2, 1), (1, 1, 2, 2), (1, 1, 3, 1), (1, 1, 3, 2),
+(1, 1, 4, 1), (1, 1, 4, 2), (1, 1, 5, 1), (1, 1, 5, 2), (1, 1, 6, 1), (1, 1, 6, 2),
+(1, 1, 7, 1), (1, 1, 7, 2), (1, 1, 8, 1), (1, 1, 8, 2), (1, 1, 9, 1), (1, 1, 9, 2),
+(1, 1, 10, 1), (1, 1, 10, 2), (1, 1, 11, 1), (1, 1, 11, 2),
+-- CỔ ĐIỂN NGẮN (style_id = 2)
+(1, 2, 1, 1), (1, 2, 1, 2), (1, 2, 2, 1), (1, 2, 2, 2), (1, 2, 3, 1), (1, 2, 3, 2),
+(1, 2, 4, 1), (1, 2, 4, 2), (1, 2, 5, 1), (1, 2, 5, 2), (1, 2, 6, 1), (1, 2, 6, 2),
+(1, 2, 7, 1), (1, 2, 7, 2), (1, 2, 8, 1), (1, 2, 8, 2), (1, 2, 9, 1), (1, 2, 9, 2),
+(1, 2, 10, 1), (1, 2, 10, 2), (1, 2, 11, 1), (1, 2, 11, 2),
+-- SLIM (style_id = 3)
+(1, 3, 1, 1), (1, 3, 1, 2), (1, 3, 2, 1), (1, 3, 2, 2), (1, 3, 3, 1), (1, 3, 3, 2),
+(1, 3, 4, 1), (1, 3, 4, 2), (1, 3, 5, 1), (1, 3, 5, 2), (1, 3, 6, 1), (1, 3, 6, 2),
+(1, 3, 7, 1), (1, 3, 7, 2), (1, 3, 8, 1), (1, 3, 8, 2), (1, 3, 9, 1), (1, 3, 9, 2),
+(1, 3, 10, 1), (1, 3, 10, 2), (1, 3, 11, 1), (1, 3, 11, 2),
+-- SLIM Ngắn (style_id = 4)
+(1, 4, 1, 1), (1, 4, 1, 2), (1, 4, 2, 1), (1, 4, 2, 2), (1, 4, 3, 1), (1, 4, 3, 2),
+(1, 4, 4, 1), (1, 4, 4, 2), (1, 4, 5, 1), (1, 4, 5, 2), (1, 4, 6, 1), (1, 4, 6, 2),
+(1, 4, 7, 1), (1, 4, 7, 2), (1, 4, 8, 1), (1, 4, 8, 2), (1, 4, 9, 1), (1, 4, 9, 2),
+(1, 4, 10, 1), (1, 4, 10, 2), (1, 4, 11, 1), (1, 4, 11, 2);
+
+-- ====== Product 3: ÁO KHOÁC 2026 (size XS-6XL x gender NAM/NỮ = 20 biến thể) ======
+-- size_id: 12=XS, 13=S, 14=M, 15=L, 16=XL, 17=2XL, 18=3XL, 19=4XL, 20=5XL, 21=6XL
+INSERT INTO product_variants (product_id, size_id, gender) VALUES
+(3, 12, 'NAM'), (3, 13, 'NAM'), (3, 14, 'NAM'), (3, 15, 'NAM'), (3, 16, 'NAM'),
+(3, 17, 'NAM'), (3, 18, 'NAM'), (3, 19, 'NAM'), (3, 20, 'NAM'), (3, 21, 'NAM'),
+(3, 12, 'NU'), (3, 13, 'NU'), (3, 14, 'NU'), (3, 15, 'NU'), (3, 16, 'NU'),
+(3, 17, 'NU'), (3, 18, 'NU'), (3, 19, 'NU'), (3, 20, 'NU'), (3, 21, 'NU');
+
+-- ====== Product 4: ÁO PHÔNG 2026 (size XS-6XL x gender x length = 40 biến thể) ======
+INSERT INTO product_variants (product_id, size_id, length_type_id, gender) VALUES
+(4, 12, 1, 'NAM'), (4, 12, 2, 'NAM'), (4, 13, 1, 'NAM'), (4, 13, 2, 'NAM'),
+(4, 14, 1, 'NAM'), (4, 14, 2, 'NAM'), (4, 15, 1, 'NAM'), (4, 15, 2, 'NAM'),
+(4, 16, 1, 'NAM'), (4, 16, 2, 'NAM'), (4, 17, 1, 'NAM'), (4, 17, 2, 'NAM'),
+(4, 18, 1, 'NAM'), (4, 18, 2, 'NAM'), (4, 19, 1, 'NAM'), (4, 19, 2, 'NAM'),
+(4, 20, 1, 'NAM'), (4, 20, 2, 'NAM'), (4, 21, 1, 'NAM'), (4, 21, 2, 'NAM'),
+(4, 12, 1, 'NU'), (4, 12, 2, 'NU'), (4, 13, 1, 'NU'), (4, 13, 2, 'NU'),
+(4, 14, 1, 'NU'), (4, 14, 2, 'NU'), (4, 15, 1, 'NU'), (4, 15, 2, 'NU'),
+(4, 16, 1, 'NU'), (4, 16, 2, 'NU'), (4, 17, 1, 'NU'), (4, 17, 2, 'NU'),
+(4, 18, 1, 'NU'), (4, 18, 2, 'NU'), (4, 19, 1, 'NU'), (4, 19, 2, 'NU'),
+(4, 20, 1, 'NU'), (4, 20, 2, 'NU'), (4, 21, 1, 'NU'), (4, 21, 2, 'NU');
+
+-- ====== Product 5: ÁO LEN + GILE LEN 2026 (size XS-6XL x gender = 20 biến thể) ======
+INSERT INTO product_variants (product_id, size_id, gender) VALUES
+(5, 12, 'NAM'), (5, 13, 'NAM'), (5, 14, 'NAM'), (5, 15, 'NAM'), (5, 16, 'NAM'),
+(5, 17, 'NAM'), (5, 18, 'NAM'), (5, 19, 'NAM'), (5, 20, 'NAM'), (5, 21, 'NAM'),
+(5, 12, 'NU'), (5, 13, 'NU'), (5, 14, 'NU'), (5, 15, 'NU'), (5, 16, 'NU'),
+(5, 17, 'NU'), (5, 18, 'NU'), (5, 19, 'NU'), (5, 20, 'NU'), (5, 21, 'NU');
+
+-- ====== Product 6: GILE BẢO HỘ 2026 (size XS-6XL x gender = 20 biến thể) ======
+INSERT INTO product_variants (product_id, size_id, gender) VALUES
+(6, 12, 'NAM'), (6, 13, 'NAM'), (6, 14, 'NAM'), (6, 15, 'NAM'), (6, 16, 'NAM'),
+(6, 17, 'NAM'), (6, 18, 'NAM'), (6, 19, 'NAM'), (6, 20, 'NAM'), (6, 21, 'NAM'),
+(6, 12, 'NU'), (6, 13, 'NU'), (6, 14, 'NU'), (6, 15, 'NU'), (6, 16, 'NU'),
+(6, 17, 'NU'), (6, 18, 'NU'), (6, 19, 'NU'), (6, 20, 'NU'), (6, 21, 'NU');
+
+-- ====== Product 7: BẢO HỘ LAO ĐỘNG 2026 (ITEM_BASED — 15 items) ======
+INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
+(7, 'GIAY-38', 'Giày BH size 38', 'đôi'),
+(7, 'GIAY-39', 'Giày BH size 39', 'đôi'),
+(7, 'GIAY-40', 'Giày BH size 40', 'đôi'),
+(7, 'GIAY-41', 'Giày BH size 41', 'đôi'),
+(7, 'GIAY-42', 'Giày BH size 42', 'đôi'),
+(7, 'GIAY-43', 'Giày BH size 43', 'đôi'),
+(7, 'GIAY-44', 'Giày BH size 44', 'đôi'),
+(7, 'GIAY-45', 'Giày BH size 45', 'đôi'),
+(7, 'AM-S', 'Bộ áo mưa size S', 'bộ'),
+(7, 'AM-M', 'Bộ áo mưa size M', 'bộ'),
+(7, 'AM-L', 'Bộ áo mưa size L', 'bộ'),
+(7, 'AM-XL', 'Bộ áo mưa size XL', 'bộ'),
+(7, 'AM-2XL', 'Bộ áo mưa size 2XL', 'bộ'),
+(7, 'AM-3XL', 'Bộ áo mưa size 3XL', 'bộ'),
+(7, 'AM-4XL', 'Bộ áo mưa size 4XL', 'bộ'),
+(7, 'M1', 'Mũ BHLĐ', 'chiếc'),
+(7, 'TUI1', 'Túi đựng dụng cụ', 'chiếc'),
+(7, 'BL1', 'Balo VNPT', 'chiếc');
+
+-- Product 8: NHẬP XUẤT VẢI 2026 (31 mã — ITEM_BASED)
+INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
+(8, 'B1', 'Trắng kem nam', 'mét'),
+(8, 'B2', 'Trắng kem nữ', 'mét'),
+(8, 'B4', 'Trắng kem nam TCT BĐ (2020)', 'mét'),
+(8, 'B7', 'Ghi nam', 'mét'),
+(8, 'B9', 'Ghi nam LĐ tổng Vnpost', 'mét'),
+(8, 'B11', 'Kaky ghi nam (2021 Grey)', 'mét'),
+(8, 'B12', 'Ghi nữ', 'mét'),
+(8, 'B13', 'Kaky ghi nữ', 'mét'),
+(8, 'B15', 'Xanh biển nam', 'mét'),
+(8, 'B16', 'Xanh biển nữ', 'mét'),
+(8, 'B17', 'Xanh biển dài nam', 'mét'),
+(8, 'B18', 'Xanh biển LĐ tổng Vnpost', 'mét'),
+(8, 'B19', 'Cam nam', 'mét'),
+(8, 'B20', 'Cam nữ', 'mét'),
+(8, 'B21', 'Cam LĐ tổng Vnpost', 'mét'),
+(8, 'B22', 'Ghi áo khoác', 'mét'),
+(8, 'B23', 'Ghi áo len', 'mét'),
+(8, 'B24', 'Vải HQ 01', 'mét'),
+(8, 'B25', 'Vải HQ 02', 'mét'),
+(8, 'B26', 'Lót trắng', 'mét'),
+(8, 'B27', 'Lót ghi', 'mét'),
+(8, 'B28', 'Lót xanh', 'mét'),
+(8, 'B29', 'Lót cam', 'mét'),
+(8, 'B30', 'Mex 4090', 'mét'),
+(8, 'B31', 'Mex 3040', 'mét'),
+(8, 'B32', 'Mex 6090', 'mét'),
+(8, 'B33', 'Dựng cứng', 'mét'),
+(8, 'B34', 'Dựng mềm', 'mét'),
+(8, 'B35', 'Bông', 'kilogam'),
+(8, 'B37', 'Vải TC 01', 'mét'),
+(8, 'B39', 'Vải TC 02', 'mét');
+
+-- Product 9: PHỤ KIỆN (47 mã — ITEM_BASED)
+INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
+(9, 'PK1', 'Cavat văn phòng bưu điện', 'chiếc'),
+(9, 'PK2', 'Cavat giao dịch bưu điện', 'chiếc'),
+(9, 'PK3', 'Cavat giao dịch bưu điện (loại cũ)', 'chiếc'),
+(9, 'PK4', 'Nơ kẻ vàng văn phòng bưu điện', 'chiếc'),
+(9, 'PK5', 'Nơ sao văn phòng bưu điện', 'chiếc'),
+(9, 'PK6', 'Nơ giao dịch viên bưu điện', 'chiếc'),
+(9, 'PK8', 'Bộ vải áo dài bưu điện', 'bộ'),
+(9, 'PK9', 'Cavat chấm VNPT', 'chiếc'),
+(9, 'PK10', 'Nơ tím than dài văn phòng VNPT', 'chiếc'),
+(9, 'PK11', 'Nơ giao dịch viên in logo VNPT', 'chiếc'),
+(9, 'PK13', 'Khăn dài VNPT', 'chiếc'),
+(9, 'PK14', 'Khăn vuông VNPT', 'chiếc'),
+(9, 'PK15', 'Bộ vải áo dài VNPT loại thường', 'bộ'),
+(9, 'PK16', 'Bộ vải áo dài VNPT loại xịn', 'bộ'),
+(9, 'PK17', 'Cavat EMS', 'chiếc'),
+(9, 'PK18', 'Nơ EMS', 'chiếc'),
+(9, 'PK19', 'Cavat EMS (loại cũ)', 'chiếc'),
+(9, 'PK20', 'Nơ EMS (loại cũ)', 'chiếc'),
+(9, 'PK21', 'Cavat Bưu điện Trung Ương', 'chiếc'),
+(9, 'PK22', 'Thắt lưng nam Bưu điện Trung Ương (CPT)', 'chiếc'),
+(9, 'PK23', 'Khăn vuông lãnh đạo Bưu điện Trung Ương (CPT)', 'chiếc'),
+(9, 'PK24', 'Khăn vuông nhân viên Bưu điện Trung Ương (CPT)', 'chiếc'),
+(9, 'PK25', 'Thắt lưng nữ Bưu điện Trung Ương (CPT)', 'chiếc'),
+(9, 'PK26', 'Cavat Habeco', 'chiếc'),
+(9, 'PK27', 'Khăn Habeco', 'chiếc'),
+(9, 'PK28', 'Cavat Oceanbank', 'chiếc'),
+(9, 'PK29', 'Cavat Indovina (145cm)', 'chiếc'),
+(9, 'PK30', 'Cavat Indovina (150cm)', 'chiếc'),
+(9, 'PK31', 'Cavat Indovina (155cm)', 'chiếc'),
+(9, 'PK32', 'Cavat Indovina (160cm)', 'chiếc'),
+(9, 'PK33', 'Khăn Indovina', 'chiếc'),
+(9, 'PK34', 'Cavat ngân hàng BIDV', 'chiếc'),
+(9, 'PK35', 'Cavat Mobiphone toàn cầu', 'chiếc'),
+(9, 'PK36', 'Cavat HUD', 'chiếc'),
+(9, 'PK37', 'Cavat Vietin bank tím than', 'chiếc'),
+(9, 'PK38', 'Cavat Vietin bank rêu', 'chiếc'),
+(9, 'PK39', 'Khăn Vietin bank nền đỏ', 'chiếc'),
+(9, 'PK40', 'Khăn Vietin bank nền trắng', 'chiếc'),
+(9, 'PK41', 'Cavat ngân hàng nông nghiệp xanh', 'chiếc'),
+(9, 'PK42', 'Cavat ngân hàng nông nghiệp đỏ', 'chiếc'),
+(9, 'PK43', 'Nơ ngân hàng nông nghiệp xanh', 'chiếc'),
+(9, 'PK44', 'Nơ ngân hàng nông nghiệp đỏ', 'chiếc'),
+(9, 'PK45', 'Cavat đỏ EVN', 'chiếc'),
+(9, 'PK46', 'Cavat Học viện bưu chính viễn thông', 'chiếc'),
+(9, 'PK47', 'Khăn Học viện bưu chính viễn thông', 'chiếc'),
+(9, 'PK48', 'Cavat Học viện bưu chính viễn thông 2025 - Xanh', 'chiếc'),
+(9, 'PK49', 'Nơ Học viện bưu chính viễn thông (Mẫu mới 2025)', 'chiếc');
+
+-- Product 10: PHỤ LIỆU (258 mã — ITEM_BASED)
+-- Nhóm KHOA (77 mã)
+INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
+(10, 'KHOA1', 'Khóa quần tím than', 'chiếc'),
+(10, 'KHOA2', 'Khóa quần tím than nhạt (EMS)', 'chiếc'),
+(10, 'KHOA3', 'Khóa quần xanh tươi', 'chiếc'),
+(10, 'KHOA4', 'Khóa quần ghi', 'chiếc'),
+(10, 'KHOA5', 'Khóa quần đen', 'chiếc'),
+(10, 'KHOA6', 'Khóa váy tím than', 'chiếc'),
+(10, 'KHOA7', 'Khóa váy xanh tươi', 'chiếc'),
+(10, 'KHOA8', 'Khóa váy ghi', 'chiếc'),
+(10, 'KHOA9', 'Khóa váy đen', 'chiếc'),
+(10, 'KHOA30', 'Khóa áo khoác bưu điện (vàng) - Khóa 18cm (Cước R3) (Khóa túi hông)', 'chiếc'),
+(10, 'KHOA31', 'Khóa áo khoác bưu điện (vàng) - Khóa 15cm (Cước R3) (Khóa túi ngực)', 'chiếc'),
+(10, 'KHOA32', 'Khóa áo chống nắng bưu điện - Khóa 70cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA33', 'Khóa áo chống nắng bưu điện - Khóa 80cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA34', 'Khóa áo chống nắng bưu điện - Khóa 18cm (Cước R3) (Khóa túi hông)', 'chiếc'),
+(10, 'KHOA35', 'Khóa áo gile kaky vàng bảo hộ (ghi nhạt) - Khóa 75cm (Cá sấu R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA36', 'Khóa áo gile lưới bảo hộ (ghi nhạt) - Khóa 50cm (Cá sấu R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA37', 'Khóa áo khoác ngoài trời - Khóa 70cm (Cá sấu R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA38', 'Khóa áo khoác ngoài trời - Khóa 75cm (Cá sấu R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA39', 'Khóa áo khoác ngoài trời - Khóa 80cm (Cá sấu R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA40', 'Khóa áo khoác ngoài trời - Khóa 85cm (Cá sấu R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA47', 'Khóa áo khoác ngoài trời - Khóa 16cm (Cá sấu R5) (Khóa túi)', 'chiếc'),
+(10, 'KHOA48', 'Khóa áo gile bảo hộ ngoài trời - Khóa 42cm (Cá sấu R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA49', 'Khóa áo gile bảo hộ ngoài trời - Khóa 16cm (Cá sấu R5) (Khóa túi)', 'chiếc'),
+(10, 'KHOA50', 'Khóa áo khoác EMS - Khóa 70cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA51', 'Khóa áo khoác EMS - Khóa 75cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA52', 'Khóa áo khoác EMS - Khóa 80cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA53', 'Khóa áo khoác EMS - Khóa 85cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA54', 'Khóa áo khoác EMS - Khóa 70cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA55', 'Khóa áo khoác EMS - Khóa 75cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA56', 'Khóa áo khoác EMS - Khóa 80cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA57', 'Khóa áo khoác EMS - Khóa 18cm (Cước R3) (Khóa túi)', 'chiếc'),
+(10, 'KHOA58', 'Khóa áo khoác IT - Khóa 70cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA59', 'Khóa áo khoác IT - Khóa 75cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA60', 'Khóa áo khoác IT - Khóa 80cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA61', 'Khóa áo khoác IT - Khóa 85cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA62', 'Khóa áo khoác IT - Khóa 70cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA63', 'Khóa áo khoác IT - Khóa 75cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA64', 'Khóa áo khoác IT - Khóa 40cm (Cước R3) (Khóa cổ)', 'chiếc'),
+(10, 'KHOA65', 'Khóa áo khoác IT - Khóa 18cm (Cước R3) (Khóa túi)', 'chiếc'),
+(10, 'KHOA66', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 69cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA67', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 71cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA68', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 73cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA69', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 79cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA70', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 62cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA71', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 64cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA72', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 68cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA73', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 72cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA74', 'Khóa áo gió màu tím than - Khóa 70cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA75', 'Khóa áo gió màu tím than - Khóa 75cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA76', 'Khóa áo gió màu tím than - Khóa 80cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA77', 'Khóa áo gió màu tím than - Khóa 85cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA78', 'Khóa áo gió màu tím than - Khóa 70cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA79', 'Khóa áo gió màu tím than - Khóa 75cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA80', 'Khóa áo gió màu tím than - Khóa 80cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA81', 'Khóa áo gió màu tím than - Khóa 18cm (Cước R3) (Khóa túi hông)', 'chiếc'),
+(10, 'KHOA82', 'Khóa áo gió màu tím than - Khóa 40cm (Cước R3) (Khóa cổ)', 'chiếc'),
+(10, 'KHOA83', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 67cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA84', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 75cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA85', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 77cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA86', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 60cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA87', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 66cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA88', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 70cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA89', 'Khóa áo chống nắng xanh VNPT - Khóa 70cm (Cước R5 ngược) (Khóa chính)', 'chiếc'),
+(10, 'KHOA90', 'Khóa áo chống nắng xanh VNPT - Khóa 75cm (Cước R5 ngược) (Khóa chính)', 'chiếc'),
+(10, 'KHOA91', 'Khóa áo chống nắng xanh VNPT - Khóa 80cm (Cước R5 ngược) (Khóa chính)', 'chiếc'),
+(10, 'KHOA92', 'Khóa áo chống nắng xanh VNPT - Khóa 85cm (Cước R5 ngược) (Khóa chính)', 'chiếc'),
+(10, 'KHOA93', 'Khóa áo chống nắng xanh VNPT - Khóa 70cm (Cước R3 ngược) (Khóa chính)', 'chiếc'),
+(10, 'KHOA94', 'Khóa áo chống nắng xanh VNPT - Khóa 75cm (Cước R3 ngược) (Khóa chính)', 'chiếc'),
+(10, 'KHOA95', 'Khóa áo chống nắng xanh VNPT - Khóa 80cm (Cước R3 ngược) (Khóa chính)', 'chiếc'),
+(10, 'KHOA96', 'Khóa áo chống nắng xanh VNPT - Khóa 18cm (Cước R3) (Khóa túi nam)', 'chiếc'),
+(10, 'KHOA97', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 81cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA98', 'Khóa áo khoác bưu điện (ghi đậm) - Khóa 85cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA99', 'Khóa áo chống nắng xanh VNPT - Khóa 25cm (Cước giọt lệ R3) (Khóa túi nữ)', 'chiếc'),
+(10, 'KHOA100', 'Khóa áo khoác EMS - Khóa 90cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA101', 'Khóa áo khoác EMS - Khóa 85cm (Cước R3) (Khóa chính)', 'chiếc'),
+(10, 'KHOA102', 'Khóa áo gió màu tím than - Khóa 90cm (Cước R5) (Khóa chính)', 'chiếc'),
+(10, 'KHOA103', 'Khóa áo gió màu tím than - Khóa 85cm (Cước R3) (Khóa chính)', 'chiếc');
+
+-- Nhóm MAC (67 mã)
+INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
+(10, 'MAC1', 'Mác sơ mi nam Hằng', 'chiếc'),
+(10, 'MAC2', 'Mác sơ mi nữ Hằng', 'chiếc'),
+(10, 'MAC3', 'Mác to Hằng màu đen', 'chiếc'),
+(10, 'MAC4', 'Mác bé Hằng màu đen', 'chiếc'),
+(10, 'MAC5', 'Mác to Hằng màu tím than', 'chiếc'),
+(10, 'MAC6', 'Mác bé Hằng màu tím than', 'chiếc'),
+(10, 'MAC7', 'Mác sơ mi nam Vnpost', 'chiếc'),
+(10, 'MAC8', 'Mác bé Vnpost', 'chiếc'),
+(10, 'MAC9', 'Mác sơ mi nam Greensea', 'chiếc'),
+(10, 'MAC10', 'Mác bé Greensea', 'chiếc'),
+(10, 'MAC11', 'Mác to Greensea', 'chiếc'),
+(10, 'MAC12', 'Dây treo Hằng', 'chiếc'),
+(10, 'MAC13', 'Mác cỡ nam - 35 (xám)', 'chiếc'),
+(10, 'MAC14', 'Mác cỡ nam - 36 (xám)', 'chiếc'),
+(10, 'MAC15', 'Mác cỡ nam - 37 (xám)', 'chiếc'),
+(10, 'MAC16', 'Mác cỡ nam - 38 (xám)', 'chiếc'),
+(10, 'MAC17', 'Mác cỡ nam - 39 (xám)', 'chiếc'),
+(10, 'MAC18', 'Mác cỡ nam - 40 (xám)', 'chiếc'),
+(10, 'MAC19', 'Mác cỡ nam - 41 (xám)', 'chiếc'),
+(10, 'MAC20', 'Mác cỡ nam - 42 (xám)', 'chiếc'),
+(10, 'MAC21', 'Mác cỡ nam - 43 (xám)', 'chiếc'),
+(10, 'MAC22', 'Mác cỡ nam - 44 (xám)', 'chiếc'),
+(10, 'MAC23', 'Mác cỡ nam - 45 (xám)', 'chiếc'),
+(10, 'MAC24', 'Mác cỡ nam - XS', 'chiếc'),
+(10, 'MAC25', 'Mác cỡ nam - S', 'chiếc'),
+(10, 'MAC26', 'Mác cỡ nam - M', 'chiếc'),
+(10, 'MAC27', 'Mác cỡ nam - L', 'chiếc'),
+(10, 'MAC28', 'Mác cỡ nam - XL', 'chiếc'),
+(10, 'MAC29', 'Mác cỡ nam - 2XL', 'chiếc'),
+(10, 'MAC30', 'Mác cỡ nam - 3XL', 'chiếc'),
+(10, 'MAC31', 'Mác cỡ nữ - S', 'chiếc'),
+(10, 'MAC32', 'Mác cỡ nữ - M', 'chiếc'),
+(10, 'MAC33', 'Mác cỡ nữ - L', 'chiếc'),
+(10, 'MAC34', 'Mác cỡ nữ - XL', 'chiếc'),
+(10, 'MAC35', 'Mác cỡ nữ - 2XL', 'chiếc'),
+(10, 'MAC36', 'Mác cỡ tím than - S', 'chiếc'),
+(10, 'MAC37', 'Mác cỡ tím than - M', 'chiếc'),
+(10, 'MAC38', 'Mác cỡ tím than - L', 'chiếc'),
+(10, 'MAC40', 'Mác Hằng Slim Fit', 'chiếc'),
+(10, 'MAC41', 'Mác cỡ nam - 37 (đen)', 'chiếc'),
+(10, 'MAC42', 'Mác cỡ nam - 38 (đen)', 'chiếc'),
+(10, 'MAC43', 'Mác cỡ nam - 39 (đen)', 'chiếc'),
+(10, 'MAC44', 'Mác cỡ nam - 40 (đen)', 'chiếc'),
+(10, 'MAC45', 'Mác cỡ nam - 41 (đen)', 'chiếc'),
+(10, 'MAC46', 'Mác cỡ nam - 42 (đen)', 'chiếc'),
+(10, 'MAC47', 'Mác bảo vệ VNPT', 'chiếc'),
+(10, 'MAC48', 'Mác logo VNPT', 'chiếc'),
+(10, 'MAC49', 'Mác cỡ nam - 36 (đen)', 'chiếc'),
+(10, 'MAC50', 'Mác cỡ nữ - 3XL', 'chiếc'),
+(10, 'MAC51', 'Mác cỡ nam - 43 (đen)', 'chiếc'),
+(10, 'MAC52', 'Mác VNPT tím than gập chéo 2 đầu', 'chiếc'),
+(10, 'MAC53', 'Mác Made in Hằng Fashion', 'chiếc'),
+(10, 'MAC54', 'Mác IDC nam', 'bộ'),
+(10, 'MAC55', 'Mác IDC nữ', 'bộ'),
+(10, 'MAC56', 'Mác nhựa VNPT tròn', 'chiếc'),
+(10, 'MAC57', 'Mác nhựa VNPT chữ nhật', 'chiếc'),
+(10, 'MAC58', 'Mác nhựa Vnpost tròn', 'chiếc'),
+(10, 'MAC59', 'Mác nhựa Vnpost chữ nhật', 'chiếc'),
+(10, 'MAC60', 'Mác cỡ nam - 4XL', 'chiếc'),
+(10, 'MAC61', 'Mác cỡ nữ - 4XL', 'chiếc'),
+(10, 'MAC62', 'Mác Lộ Trí (than Thống Nhất)', 'chiếc'),
+(10, 'MAC63', 'Mác bảo vệ vàng BĐ', 'chiếc'),
+(10, 'MAC64', 'Mác cỡ nam - 44 (đen)', 'chiếc'),
+(10, 'MAC65', 'Mác cỡ nam - 45 (đen)', 'chiếc'),
+(10, 'MAC66', 'Mác Logo EVN ngực áo', 'chiếc'),
+(10, 'MAC67', 'Mác Logo EVN tay áo', 'chiếc'),
+(10, 'MAC68', 'Mác Logo EVN sau lưng áo', 'chiếc');
+
+-- Nhóm KHUY (21 mã)
+INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
+(10, 'KHUY1', 'Khuy áo budong ngoài trời', 'gói'),
+(10, 'KHUY2', 'Khuy quần ngoài trời', 'gói'),
+(10, 'KHUY3', 'Khuy áo khai thác bưu điện', 'gói'),
+(10, 'KHUY4', 'Khuy quần bảo hộ bưu điện', 'gói'),
+(10, 'KHUY5', 'Khuy áo phông vàng bưu điện', 'gói'),
+(10, 'KHUY6', 'Khuy sơ mi nam Hằng', 'gói'),
+(10, 'KHUY7', 'Khuy ve sơ mi nam Hằng', 'gói'),
+(10, 'KHUY8', 'Khuy sơ mi nữ Hằng', 'gói'),
+(10, 'KHUY9', 'Khuy quần Hằng màu đen', 'gói'),
+(10, 'KHUY10', 'Khuy vest Hằng màu đen', 'gói'),
+(10, 'KHUY11', 'Khuy sơ mi nam Vnpost', 'gói'),
+(10, 'KHUY12', 'Khuy ve sơ mi nam Vnpost', 'gói'),
+(10, 'KHUY13', 'Khuy sơ mi nữ Vnpost', 'gói'),
+(10, 'KHUY14', 'Khuy quần văn phòng bưu điện', 'gói'),
+(10, 'KHUY15', 'Khuy vest Vnpost', 'gói'),
+(10, 'KHUY16', 'Khuy quần văn phòng bưu điện - Mới', 'gói'),
+(10, 'KHUY17', 'Khuy vest Vnpost (1 khuy) - Mới', 'gói'),
+(10, 'KHUY18', 'Khuy vest Vnpost (2 khuy) - Mới', 'gói'),
+(10, 'KHUY19', 'Khuy quần Hằng màu xanh tươi', 'gói'),
+(10, 'KHUY20', 'Khuy vest Hằng màu xanh tươi', 'gói'),
+(10, 'KHUY21', 'Khuy trắng trong (dùng cho quần nữ)', 'gói');
+
+-- Nhóm MEX (9 mã)
+INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
+(10, 'MEX1', 'Keo mùng trắng', 'mét'),
+(10, 'MEX2', 'Keo mùng đen', 'mét'),
+(10, 'MEX3', 'Keo mè sơ mi (Khổ 1m)', 'cây'),
+(10, 'MEX4', 'Keo cổ + măng séc', 'cây'),
+(10, 'MEX5', 'Mex mè đen', 'mét'),
+(10, 'MEX6', 'Mex cạp quần nam', 'mét'),
+(10, 'MEX7', 'Mex cạp quần nam (cắt sẵn)', 'bộ'),
+(10, 'MEX8', 'Mex cạp quần nữ', 'mét'),
+(10, 'MEX9', 'Mex ô', 'cây');
+
+-- Nhóm ĐV, NI, LQ (11 mã)
+INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
+(10, 'ĐV1', 'Đệm vai nam', 'đôi'),
+(10, 'ĐV2', 'Đệm vai nữ', 'đôi'),
+(10, 'NI1', 'Nỉ cổ ghi', 'mét'),
+(10, 'NI2', 'Nỉ cổ đen', 'mét'),
+(10, 'NI3', 'Nỉ cổ tím than', 'mét'),
+(10, 'NI4', 'Nỉ bông đệm ngực', 'mét'),
+(10, 'NI5', 'Nỉ bông đệm ngực (Cắt sẵn) - Vest nam', 'bộ'),
+(10, 'LQ1', 'Lưng quần Hằng đen trơn', 'mét'),
+(10, 'LQ3', 'Lưng quần Hằng đen xương cá', 'mét'),
+(10, 'LQ4', 'Lưng quần Hằng tím than xương cá', 'mét'),
+(10, 'LQ5', 'Lưng quần Hằng màu trắng', 'mét');
+
+-- Nhóm LOT (39 mã)
+INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
+(10, 'LOT1', 'Lót habutai đen nữ', 'mét'),
+(10, 'LOT2', 'Lót habutai tím than nữ', 'mét'),
+(10, 'LOT3', 'Lót đen nam', 'mét'),
+(10, 'LOT4', 'Lót tím than nam', 'mét'),
+(10, 'LOT5', 'Lót xanh tươi áo khoác ngoài trời', 'mét'),
+(10, 'LOT6', 'Lót túi kate đen trơn (Dùng làm Tsy)', 'mét'),
+(10, 'LOT7', 'Lót túi kate đen trơn (cắt sẵn) - Tsy nam', 'bộ'),
+(10, 'LOT8', 'Lót túi kate đen trơn (cắt sẵn) - Quần váy nữ', 'bộ'),
+(10, 'LOT9', 'Lót túi kate đen trơn (cắt sẵn) - Vest nam', 'bộ'),
+(10, 'LOT10', 'Lót túi kate đen trơn (Dùng làm BH)', 'mét'),
+(10, 'LOT11', 'Lót túi kate trắng (Dùng làm Tsy)', 'mét'),
+(10, 'LOT12', 'Lót túi kate trắng (Dùng làm BH)', 'mét'),
+(10, 'LOT13', 'Lót túi kate trắng (cắt sẵn) - NT nam', 'bộ'),
+(10, 'LOT14', 'Lót túi kate trắng (cắt sẵn) - Quần váy nữ', 'bộ'),
+(10, 'LOT15', 'Lót túi kate đen xương cá', 'mét'),
+(10, 'LOT16', 'Lót túi kate đen xương cá (cắt sẵn) - Tsy nam', 'bộ'),
+(10, 'LOT17', 'Lót túi kate đen xương cá (cắt sẵn) - Quần váy nữ', 'bộ'),
+(10, 'LOT18', 'Lót túi kate đen xương cá (cắt sẵn) - Vest nam', 'bộ'),
+(10, 'LOT19', 'Lót túi kate tím than xương cá', 'mét'),
+(10, 'LOT20', 'Lót túi kate tím than xương cá (cắt sẵn) - Tsy nam', 'bộ'),
+(10, 'LOT21', 'Lót túi kate tím than xương cá (cắt sẵn) - Quần váy nữ', 'bộ'),
+(10, 'LOT22', 'Lót túi kate tím than xương cá (cắt sẵn) - Vest nam', 'bộ'),
+(10, 'LOT23', 'Lót viền túi đen (Khổ 1.5m)', 'mét'),
+(10, 'LOT24', 'Lót viền túi tím than (Khổ 1.5m)', 'mét'),
+(10, 'LOT25', 'Lót tím than nam Thủy điện Hòa Bình (Lót vest nam xịn có co giãn)', 'mét'),
+(10, 'LOT26', 'Lót cam áo khoác Thủy điện Hòa Bình', 'mét'),
+(10, 'LOT27', 'Lót kẻ caro áo khoác Ban KTM 2023', 'mét'),
+(10, 'LOT28', 'Lót tím than áo khoác Ban KTM 2023', 'mét'),
+(10, 'LOT29', 'Lót lưới tím than (ô nhỏ)', 'mét'),
+(10, 'LOT30', 'Lót lưới tím than (ô to)', 'kilogam'),
+(10, 'LOT31', 'Lót lưới xanh tươi (ô nhỏ)', 'kilogam'),
+(10, 'LOT32', 'Vải làm khăn/nơ', 'mét'),
+(10, 'LOT33', 'Lót kate tím than (Dùng làm BH)', 'mét'),
+(10, 'LOT34', 'Lót habutai xanh tươi nữ', 'mét'),
+(10, 'LOT35', 'Lót gối tím than', 'mét'),
+(10, 'LOT36', 'Lót túi kate tím than (cắt sẵn) - Quần váy nữ GDV', 'bộ'),
+(10, 'LOT37', 'Lót gối đen', 'mét'),
+(10, 'LOT38', 'Lót túi kate đen quần BH nữ (cắt sẵn)', 'chiếc'),
+(10, 'LOT39', 'Lót túi kate đen trơn quần BH nam (cắt sẵn)', 'bộ');
+
+-- Nhóm NHAM, TB, K (34 mã)
+INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
+(10, 'NHAM1', 'Nhám dính ghi', 'cặp'),
+(10, 'NHAM2', 'Nhám dính tím than', 'cặp'),
+(10, 'NHAM3', 'Nhám dính xanh tươi', 'mét'),
+(10, 'TB1', 'Thẻ bài to', 'chiếc'),
+(10, 'TB2', 'Thẻ bài bé', 'chiếc'),
+(10, 'TB3', 'Dây treo thẻ bài', 'chiếc'),
+(10, 'K1', 'Móc quần', 'bộ'),
+(10, 'K2', 'Canh tóc', 'mét'),
+(10, 'K3', 'Dây phản quang 2cm không in', 'cuộn'),
+(10, 'K4', 'Dây phản quang 2cm in VNPT', 'cuộn'),
+(10, 'K5', 'Chun 3F', 'cuộn'),
+(10, 'K6', 'Chun 2F', 'cuộn'),
+(10, 'K7', 'Chun 5F', 'cuộn'),
+(10, 'K8', 'Bút gile', 'chiếc'),
+(10, 'K9', 'Cầu vai bảo vệ VNPT', 'đôi'),
+(10, 'K10', 'Ve áo bảo vệ VNPT', 'đôi'),
+(10, 'K11', 'Canh tóc (cắt sẵn) - Vest nam', 'bộ'),
+(10, 'K12', 'Chốt gấu bé (nhựa)', 'chiếc'),
+(10, 'K13', 'Chốt gấu to (nhựa)', 'chiếc'),
+(10, 'K14', 'Chốt gấu bé (kim loại)', 'chiếc'),
+(10, 'K15', 'Chốt gấu to (kim loại)', 'chiếc'),
+(10, 'K16', 'Mác trắng số 3', 'chiếc'),
+(10, 'K17', 'Mác trắng số 4', 'chiếc'),
+(10, 'K18', 'Mác trắng số 5', 'chiếc'),
+(10, 'K19', 'Mác trắng số 6', 'chiếc'),
+(10, 'K20', 'Mác trắng số 7', 'chiếc'),
+(10, 'K21', 'Mác trắng số 8', 'chiếc'),
+(10, 'K22', 'Chốt gấu bé (màu đen - nhựa dẹt)', 'chiếc'),
+(10, 'K23', 'Chốt gấu to (màu đen - nhựa dẹt)', 'chiếc'),
+(10, 'K24', 'Chốt gấu bé (màu đen - nhựa tròn)', 'chiếc'),
+(10, 'K25', 'Chốt gấu to (màu đen - nhựa tròn)', 'chiếc'),
+(10, 'K26', 'Dựng', 'cây'),
+(10, 'K27', 'Dựng vải', 'mét'),
+(10, 'K28', 'Dựng giấy (đen)', 'mét');
 
 -- 3.7 Units (72 đơn vị/khách hàng)
 INSERT INTO units (unit_name) VALUES
@@ -483,7 +934,7 @@ DROP PROCEDURE IF EXISTS insert_item_by_variant//
 CREATE PROCEDURE insert_item_by_variant(
     IN p_request_id BIGINT,
     IN p_style_name VARCHAR(50),
-    IN p_size_value INT,
+    IN p_size_value VARCHAR(10),
     IN p_length_code VARCHAR(10),
     IN p_quantity INT
 )
@@ -515,76 +966,78 @@ DELIMITER ;
 
 -- REQUEST 1: Nhập kho ban đầu (20/06/2025) - Kho
 -- Dữ liệu từ CSV: SƠ MI NAM 2025 - SM1 - HDH22 - không lé không thêu.csv (line 5)
--- CỔ ĐIỂN (Size 35-45, Cộc/Dài)
+-- CỔ ĐIỂN (Tổng: Cộc=110, Dài=91)
 CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 35, 'COC', 10);
 CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 35, 'DAI', 10);
 CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 36, 'COC', 7);
 CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 36, 'DAI', 6);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 37, 'COC', 13);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 37, 'DAI', 7);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 38, 'COC', 14);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 40, 'COC', 1);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 40, 'DAI', 1);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 41, 'COC', 10);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 42, 'COC', 6);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 42, 'DAI', 6);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 37, 'COC', 11);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 37, 'DAI', 20);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 38, 'COC', 21);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 38, 'DAI', 4);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 39, 'COC', 6);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 39, 'DAI', 7);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 40, 'COC', 7);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 40, 'DAI', 10);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 41, 'COC', 21);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 41, 'DAI', 7);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 42, 'COC', 15);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 42, 'DAI', 12);
 CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 43, 'COC', 7);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 43, 'DAI', 3);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 43, 'DAI', 4);
 CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 44, 'COC', 5);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 44, 'DAI', 14);
--- CỔ ĐIỂN NGẮN (Size 35-45, Cộc/Dài)
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 44, 'DAI', 11);
+-- CỔ ĐIỂN NGẮN (Tổng: Cộc=149, Dài=143)
 CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 35, 'COC', 5);
 CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 35, 'DAI', 5);
 CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 36, 'COC', 5);
 CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 36, 'DAI', 4);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 37, 'COC', 16);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 37, 'DAI', 13);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 38, 'COC', 17);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 38, 'DAI', 14);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 39, 'COC', 15);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 39, 'DAI', 8);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 40, 'COC', 6);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 40, 'DAI', 13);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 41, 'COC', 12);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 41, 'DAI', 21);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 42, 'COC', 15);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 42, 'DAI', 13);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 37, 'COC', 24);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 37, 'DAI', 21);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 38, 'COC', 25);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 38, 'DAI', 20);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 39, 'COC', 24);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 39, 'DAI', 16);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 40, 'COC', 11);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 40, 'DAI', 22);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 41, 'COC', 22);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 41, 'DAI', 27);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 42, 'COC', 25);
+CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 42, 'DAI', 21);
 CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 43, 'COC', 8);
 CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 43, 'DAI', 7);
--- SLIM (Size 35-45, Cộc/Dài)
-CALL insert_item_by_variant(1, 'SLIM', 36, 'COC', 15);
-CALL insert_item_by_variant(1, 'SLIM', 36, 'DAI', 15);
-CALL insert_item_by_variant(1, 'SLIM', 37, 'COC', 17);
-CALL insert_item_by_variant(1, 'SLIM', 37, 'DAI', 18);
-CALL insert_item_by_variant(1, 'SLIM', 38, 'COC', 14);
-CALL insert_item_by_variant(1, 'SLIM', 38, 'DAI', 7);
-CALL insert_item_by_variant(1, 'SLIM', 39, 'COC', 11);
-CALL insert_item_by_variant(1, 'SLIM', 39, 'DAI', 1);
-CALL insert_item_by_variant(1, 'SLIM', 40, 'COC', 10);
-CALL insert_item_by_variant(1, 'SLIM', 40, 'DAI', 11);
-CALL insert_item_by_variant(1, 'SLIM', 41, 'COC', 11);
-CALL insert_item_by_variant(1, 'SLIM', 41, 'DAI', 14);
-CALL insert_item_by_variant(1, 'SLIM', 42, 'COC', 10);
-CALL insert_item_by_variant(1, 'SLIM', 42, 'DAI', 10);
-CALL insert_item_by_variant(1, 'SLIM', 43, 'COC', 9);
-CALL insert_item_by_variant(1, 'SLIM', 43, 'DAI', 7);
--- SLIM Ngắn (Size 35-45, Cộc/Dài)
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 36, 'COC', 14);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 36, 'DAI', 16);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 37, 'COC', 15);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 37, 'DAI', 17);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 38, 'COC', 14);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 38, 'DAI', 7);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 39, 'COC', 11);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 39, 'DAI', 5);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 40, 'COC', 12);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 40, 'DAI', 10);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 41, 'COC', 11);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 41, 'DAI', 9);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 42, 'COC', 11);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 42, 'DAI', 7);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 43, 'COC', 10);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 43, 'DAI', 10);
+-- SLIM (Tổng: Cộc=141, Dài=114)
+CALL insert_item_by_variant(1, 'SLIM', 37, 'COC', 14);
+CALL insert_item_by_variant(1, 'SLIM', 37, 'DAI', 10);
+CALL insert_item_by_variant(1, 'SLIM', 38, 'COC', 25);
+CALL insert_item_by_variant(1, 'SLIM', 38, 'DAI', 22);
+CALL insert_item_by_variant(1, 'SLIM', 39, 'COC', 24);
+CALL insert_item_by_variant(1, 'SLIM', 39, 'DAI', 17);
+CALL insert_item_by_variant(1, 'SLIM', 40, 'COC', 17);
+CALL insert_item_by_variant(1, 'SLIM', 40, 'DAI', 7);
+CALL insert_item_by_variant(1, 'SLIM', 41, 'COC', 19);
+CALL insert_item_by_variant(1, 'SLIM', 41, 'DAI', 21);
+CALL insert_item_by_variant(1, 'SLIM', 42, 'COC', 12);
+CALL insert_item_by_variant(1, 'SLIM', 42, 'DAI', 14);
+CALL insert_item_by_variant(1, 'SLIM', 43, 'COC', 20);
+CALL insert_item_by_variant(1, 'SLIM', 43, 'DAI', 16);
+CALL insert_item_by_variant(1, 'SLIM', 44, 'COC', 10);
+CALL insert_item_by_variant(1, 'SLIM', 44, 'DAI', 7);
+-- SLIM Ngắn (Tổng: Cộc=123, Dài=115)
+CALL insert_item_by_variant(1, 'SLIM Ngắn', 37, 'COC', 13);
+CALL insert_item_by_variant(1, 'SLIM Ngắn', 37, 'DAI', 15);
+CALL insert_item_by_variant(1, 'SLIM Ngắn', 38, 'COC', 15);
+CALL insert_item_by_variant(1, 'SLIM Ngắn', 38, 'DAI', 17);
+CALL insert_item_by_variant(1, 'SLIM Ngắn', 39, 'COC', 26);
+CALL insert_item_by_variant(1, 'SLIM Ngắn', 39, 'DAI', 19);
+CALL insert_item_by_variant(1, 'SLIM Ngắn', 40, 'COC', 21);
+CALL insert_item_by_variant(1, 'SLIM Ngắn', 40, 'DAI', 16);
+CALL insert_item_by_variant(1, 'SLIM Ngắn', 41, 'COC', 20);
+CALL insert_item_by_variant(1, 'SLIM Ngắn', 41, 'DAI', 20);
+CALL insert_item_by_variant(1, 'SLIM Ngắn', 42, 'COC', 18);
+CALL insert_item_by_variant(1, 'SLIM Ngắn', 42, 'DAI', 18);
+CALL insert_item_by_variant(1, 'SLIM Ngắn', 44, 'COC', 10);
+CALL insert_item_by_variant(1, 'SLIM Ngắn', 44, 'DAI', 10);
 
 -- =====================================================
 -- PHẦN 8: CONTRACT REPORTS (Dữ liệu mẫu báo cáo hợp đồng)

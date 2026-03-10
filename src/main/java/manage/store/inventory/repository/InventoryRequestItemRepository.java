@@ -22,15 +22,19 @@ public interface InventoryRequestItemRepository
             s.styleName,
             sz.sizeValue,
             lt.code,
+            CAST(pv.gender AS String),
+            pv.itemCode,
+            pv.itemName,
+            pv.unit,
             i.quantity
         )
         FROM InventoryRequestItem i
         JOIN ProductVariant pv ON pv.variantId = i.variantId
-        JOIN Style s           ON s.styleId = pv.styleId
-        JOIN Size sz           ON sz.sizeId = pv.sizeId
-        JOIN LengthType lt     ON lt.lengthTypeId = pv.lengthTypeId
+        LEFT JOIN Style s      ON s.styleId = pv.styleId
+        LEFT JOIN Size sz      ON sz.sizeId = pv.sizeId
+        LEFT JOIN LengthType lt ON lt.lengthTypeId = pv.lengthTypeId
         WHERE i.requestId = :requestId
-        ORDER BY s.styleName, sz.sizeValue, lt.code
+        ORDER BY s.styleName, sz.sizeValue, lt.code, pv.itemCode
     """)
     List<InventoryRequestItemDTO> findItemsByRequestId(
             @Param("requestId") Long requestId
@@ -49,12 +53,16 @@ public interface InventoryRequestItemRepository
                     s.style_name AS styleName,
                     sz.size_value AS sizeValue,
                     lt.code AS lengthCode,
+                    pv.gender AS gender,
+                    pv.item_code AS itemCode,
+                    pv.item_name AS itemName,
+                    pv.unit AS unit,
                     i.quantity AS quantity
                 FROM inventory_request_items i
                 JOIN product_variants pv ON pv.variant_id = i.variant_id
-                JOIN styles s ON s.style_id = pv.style_id
-                JOIN sizes sz ON sz.size_id = pv.size_id
-                JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+                LEFT JOIN styles s ON s.style_id = pv.style_id
+                LEFT JOIN sizes sz ON sz.size_id = pv.size_id
+                LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
                 WHERE i.item_id = :itemId
             """,
             nativeQuery = true
@@ -70,14 +78,18 @@ public interface InventoryRequestItemRepository
                     s.style_name AS styleName,
                     sz.size_value AS sizeValue,
                     lt.code AS lengthCode,
+                    pv.gender AS gender,
+                    pv.item_code AS itemCode,
+                    pv.item_name AS itemName,
+                    pv.unit AS unit,
                     i.quantity AS quantity
                 FROM inventory_request_items i
                 JOIN product_variants pv ON pv.variant_id = i.variant_id
-                JOIN styles s ON s.style_id = pv.style_id
-                JOIN sizes sz ON sz.size_id = pv.size_id
-                JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+                LEFT JOIN styles s ON s.style_id = pv.style_id
+                LEFT JOIN sizes sz ON sz.size_id = pv.size_id
+                LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
                 WHERE i.request_id = :requestId
-                ORDER BY s.style_name, sz.size_value, lt.code
+                ORDER BY s.style_name, sz.size_value, lt.code, pv.item_code
             """,
             nativeQuery = true
     )
@@ -93,18 +105,22 @@ public interface InventoryRequestItemRepository
                     s.style_name AS styleName,
                     sz.size_value AS sizeValue,
                     lt.code AS lengthCode,
+                    pv.gender AS gender,
+                    pv.item_code AS itemCode,
+                    pv.item_name AS itemName,
+                    pv.unit AS unit,
                     i.quantity AS quantity
                 FROM inventory_request_items i
                 JOIN inventory_requests r ON r.request_id = i.request_id
                 JOIN product_variants pv ON pv.variant_id = i.variant_id
-                JOIN styles s ON s.style_id = pv.style_id
-                JOIN sizes sz ON sz.size_id = pv.size_id
-                JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+                LEFT JOIN styles s ON s.style_id = pv.style_id
+                LEFT JOIN sizes sz ON sz.size_id = pv.size_id
+                LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
                 JOIN units u ON u.unit_id = r.unit_id
                 LEFT JOIN positions pos ON pos.position_id = r.position_id
                 LEFT JOIN products p ON p.product_id = r.product_id
                 WHERE r.set_id = :setId
-                ORDER BY p.product_name, u.unit_name, pos.position_code, s.style_name, sz.size_value, lt.code
+                ORDER BY p.product_name, u.unit_name, pos.position_code, s.style_name, sz.size_value, lt.code, pv.item_code
             """,
             nativeQuery = true
     )
