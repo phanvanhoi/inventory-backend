@@ -638,8 +638,26 @@ public class RequestSetServiceImpl implements RequestSetService {
             throw new RuntimeException("Chỉ có thể xác nhận thực hiện bộ phiếu đã được duyệt (APPROVED)");
         }
 
-        // Chuyển đổi ADJUST_IN → IN, ADJUST_OUT → OUT cho tất cả requests trong set
+        // Validate tồn kho thực tế trước khi chuyển ADJUST_OUT → OUT
         List<InventoryRequest> requests = requestRepository.findBySetId(setId);
+        for (InventoryRequest request : requests) {
+            if (request.getRequestType() == InventoryRequest.RequestType.ADJUST_OUT) {
+                List<InventoryRequestItem> items = itemRepository.findByRequestId(request.getRequestId());
+                for (InventoryRequestItem item : items) {
+                    Integer actualQty = inventoryRepository.getActualQuantityByVariant(
+                            request.getProductId(), item.getVariantId());
+                    if (actualQty == null) actualQty = 0;
+                    if (item.getQuantity() > actualQty) {
+                        throw new RuntimeException(
+                                "Không thể xuất kho: số lượng xuất (" + item.getQuantity() +
+                                ") vượt quá tồn kho thực tế (" + actualQty + "). " +
+                                "Hãy chờ hàng nhập kho thực tế trước khi xuất.");
+                    }
+                }
+            }
+        }
+
+        // Chuyển đổi ADJUST_IN → IN, ADJUST_OUT → OUT
         for (InventoryRequest request : requests) {
             InventoryRequest.RequestType currentType = request.getRequestType();
             if (currentType == InventoryRequest.RequestType.ADJUST_IN) {

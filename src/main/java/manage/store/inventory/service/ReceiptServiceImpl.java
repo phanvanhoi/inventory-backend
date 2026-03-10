@@ -26,6 +26,7 @@ import manage.store.inventory.entity.enums.RequestSetStatus;
 import manage.store.inventory.repository.ApprovalHistoryRepository;
 import manage.store.inventory.repository.InventoryRequestItemRepository;
 import manage.store.inventory.repository.InventoryRequestRepository;
+import manage.store.inventory.repository.InventoryRepository;
 import manage.store.inventory.repository.ReceiptItemRepository;
 import manage.store.inventory.repository.ReceiptRecordRepository;
 import manage.store.inventory.repository.RequestSetRepository;
@@ -43,6 +44,7 @@ public class ReceiptServiceImpl implements ReceiptService {
     private final UserRepository userRepository;
     private final ApprovalHistoryRepository approvalHistoryRepository;
     private final NotificationService notificationService;
+    private final InventoryRepository inventoryRepository;
 
     public ReceiptServiceImpl(
             RequestSetRepository requestSetRepository,
@@ -52,7 +54,8 @@ public class ReceiptServiceImpl implements ReceiptService {
             ReceiptItemRepository receiptItemRepository,
             UserRepository userRepository,
             ApprovalHistoryRepository approvalHistoryRepository,
-            NotificationService notificationService
+            NotificationService notificationService,
+            InventoryRepository inventoryRepository
     ) {
         this.requestSetRepository = requestSetRepository;
         this.requestRepository = requestRepository;
@@ -62,6 +65,7 @@ public class ReceiptServiceImpl implements ReceiptService {
         this.userRepository = userRepository;
         this.approvalHistoryRepository = approvalHistoryRepository;
         this.notificationService = notificationService;
+        this.inventoryRepository = inventoryRepository;
     }
 
     // =====================================================
@@ -191,6 +195,21 @@ public class ReceiptServiceImpl implements ReceiptService {
                 request.setRequestType(InventoryRequest.RequestType.IN);
                 requestRepository.save(request);
             } else if (currentType == InventoryRequest.RequestType.ADJUST_OUT) {
+                // Validate tồn kho thực tế trước khi chuyển ADJUST_OUT → OUT
+                List<InventoryRequestItem> outItems = itemRepository.findByRequestId(request.getRequestId());
+                for (InventoryRequestItem outItem : outItems) {
+                    if (outItem.getQuantity() > 0) {
+                        Integer actualQty = inventoryRepository.getActualQuantityByVariant(
+                                request.getProductId(), outItem.getVariantId());
+                        if (actualQty == null) actualQty = 0;
+                        if (outItem.getQuantity() > actualQty) {
+                            throw new RuntimeException(
+                                    "Không thể hoàn tất: số lượng xuất (" + outItem.getQuantity() +
+                                    ") vượt quá tồn kho thực tế (" + actualQty + "). " +
+                                    "Hãy chờ hàng nhập kho thực tế trước khi hoàn tất.");
+                        }
+                    }
+                }
                 request.setRequestType(InventoryRequest.RequestType.OUT);
                 requestRepository.save(request);
             }
