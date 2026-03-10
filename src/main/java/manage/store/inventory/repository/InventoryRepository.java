@@ -100,7 +100,6 @@ public interface InventoryRepository
           pv.item_code,
           pv.item_name,
           pv.unit
-        HAVING actualQuantity <> 0 OR expectedQuantity <> 0
         ORDER BY
           s.style_name,
           COALESCE(sz.size_order, 0),
