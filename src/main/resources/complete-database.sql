@@ -917,10 +917,33 @@ INSERT INTO request_sets (set_name, created_by, created_at) VALUES
 -- =====================================================
 -- PHẦN 5: INVENTORY REQUESTS (89 phiếu xuất/nhập)
 -- =====================================================
--- Request 1: Nhập kho ban đầu (dòng 5) - set_id = 1
+-- Requests nhập kho ban đầu cho TẤT CẢ sản phẩm (set_id = 1, unit = 'Kho')
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 1, 'IN', NULL, '2025-06-20 00:00:00'
-FROM units u WHERE u.unit_name = 'Kho';
+SELECT 1, u.unit_id, 1, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
+SELECT 1, u.unit_id, 3, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
+SELECT 1, u.unit_id, 4, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
+SELECT 1, u.unit_id, 5, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
+SELECT 1, u.unit_id, 6, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
+SELECT 1, u.unit_id, 7, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
+SELECT 1, u.unit_id, 8, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
+SELECT 1, u.unit_id, 9, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
+SELECT 1, u.unit_id, 10, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
 
 -- Set status = 'EXECUTED' và submitted_at cho tất cả request_sets cũ (dữ liệu lịch sử đã được thực hiện)
 UPDATE request_sets SET status = 'EXECUTED', submitted_at = created_at WHERE set_id > 0;
@@ -954,6 +977,95 @@ BEGIN
         IF v_variant_id IS NOT NULL THEN
             INSERT INTO inventory_request_items (request_id, variant_id, quantity)
             VALUES (p_request_id, v_variant_id, p_quantity);
+        END IF;
+    END IF;
+END//
+
+-- Procedure cho STRUCTURED với gender + size (không có length) — SP3,5,6
+DROP PROCEDURE IF EXISTS insert_item_by_gender//
+CREATE PROCEDURE insert_item_by_gender(
+    IN p_product_id BIGINT,
+    IN p_size_value VARCHAR(10),
+    IN p_gender VARCHAR(10),
+    IN p_quantity INT
+)
+BEGIN
+    DECLARE v_variant_id BIGINT;
+    DECLARE v_request_id BIGINT;
+
+    SELECT r.request_id INTO v_request_id
+    FROM inventory_requests r WHERE r.set_id = 1 AND r.product_id = p_product_id;
+
+    IF p_quantity > 0 AND v_request_id IS NOT NULL THEN
+        SELECT pv.variant_id INTO v_variant_id
+        FROM product_variants pv
+        JOIN sizes sz ON sz.size_id = pv.size_id
+        WHERE pv.product_id = p_product_id
+          AND sz.size_value = p_size_value
+          AND pv.gender = p_gender;
+
+        IF v_variant_id IS NOT NULL THEN
+            INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+            VALUES (v_request_id, v_variant_id, p_quantity);
+        END IF;
+    END IF;
+END//
+
+-- Procedure cho STRUCTURED với gender + size + length — SP4
+DROP PROCEDURE IF EXISTS insert_item_by_gender_length//
+CREATE PROCEDURE insert_item_by_gender_length(
+    IN p_product_id BIGINT,
+    IN p_size_value VARCHAR(10),
+    IN p_length_code VARCHAR(10),
+    IN p_gender VARCHAR(10),
+    IN p_quantity INT
+)
+BEGIN
+    DECLARE v_variant_id BIGINT;
+    DECLARE v_request_id BIGINT;
+
+    SELECT r.request_id INTO v_request_id
+    FROM inventory_requests r WHERE r.set_id = 1 AND r.product_id = p_product_id;
+
+    IF p_quantity > 0 AND v_request_id IS NOT NULL THEN
+        SELECT pv.variant_id INTO v_variant_id
+        FROM product_variants pv
+        JOIN sizes sz ON sz.size_id = pv.size_id
+        JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+        WHERE pv.product_id = p_product_id
+          AND sz.size_value = p_size_value
+          AND lt.code = p_length_code
+          AND pv.gender = p_gender;
+
+        IF v_variant_id IS NOT NULL THEN
+            INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+            VALUES (v_request_id, v_variant_id, p_quantity);
+        END IF;
+    END IF;
+END//
+
+-- Procedure cho ITEM_BASED — SP7,8,9,10
+DROP PROCEDURE IF EXISTS insert_item_by_code//
+CREATE PROCEDURE insert_item_by_code(
+    IN p_product_id BIGINT,
+    IN p_item_code VARCHAR(50),
+    IN p_quantity INT
+)
+BEGIN
+    DECLARE v_variant_id BIGINT;
+    DECLARE v_request_id BIGINT;
+
+    SELECT r.request_id INTO v_request_id
+    FROM inventory_requests r WHERE r.set_id = 1 AND r.product_id = p_product_id;
+
+    IF p_quantity > 0 AND v_request_id IS NOT NULL THEN
+        SELECT pv.variant_id INTO v_variant_id
+        FROM product_variants pv
+        WHERE pv.product_id = p_product_id AND pv.item_code = p_item_code;
+
+        IF v_variant_id IS NOT NULL THEN
+            INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+            VALUES (v_request_id, v_variant_id, p_quantity);
         END IF;
     END IF;
 END//
