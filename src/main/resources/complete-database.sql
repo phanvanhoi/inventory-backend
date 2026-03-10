@@ -1152,6 +1152,458 @@ CALL insert_item_by_variant(1, 'SLIM Ngắn', 44, 'COC', 10);
 CALL insert_item_by_variant(1, 'SLIM Ngắn', 44, 'DAI', 10);
 
 -- =====================================================
+-- Product 3: ÁO KHOÁC 2026 — Nhập kho ban đầu
+-- STRUCTURED: gender + size (no length)
+-- =====================================================
+-- NAM
+CALL insert_item_by_gender(3, 'XS', 'NAM', 3);
+CALL insert_item_by_gender(3, 'S', 'NAM', 8);
+CALL insert_item_by_gender(3, 'M', 'NAM', 18);
+CALL insert_item_by_gender(3, 'L', 'NAM', 22);
+CALL insert_item_by_gender(3, 'XL', 'NAM', 20);
+CALL insert_item_by_gender(3, '2XL', 'NAM', 15);
+CALL insert_item_by_gender(3, '3XL', 'NAM', 10);
+CALL insert_item_by_gender(3, '4XL', 'NAM', 6);
+CALL insert_item_by_gender(3, '5XL', 'NAM', 3);
+CALL insert_item_by_gender(3, '6XL', 'NAM', 2);
+-- NỮ
+CALL insert_item_by_gender(3, 'XS', 'NU', 4);
+CALL insert_item_by_gender(3, 'S', 'NU', 10);
+CALL insert_item_by_gender(3, 'M', 'NU', 16);
+CALL insert_item_by_gender(3, 'L', 'NU', 14);
+CALL insert_item_by_gender(3, 'XL', 'NU', 12);
+CALL insert_item_by_gender(3, '2XL', 'NU', 8);
+CALL insert_item_by_gender(3, '3XL', 'NU', 5);
+CALL insert_item_by_gender(3, '4XL', 'NU', 3);
+CALL insert_item_by_gender(3, '5XL', 'NU', 2);
+CALL insert_item_by_gender(3, '6XL', 'NU', 1);
+
+-- =====================================================
+-- Product 4: ÁO PHÔNG 2026 — Nhập kho ban đầu
+-- STRUCTURED: gender + size + length (COC/DAI)
+-- =====================================================
+-- NAM
+CALL insert_item_by_gender_length(4, 'XS', 'COC', 'NAM', 2);
+CALL insert_item_by_gender_length(4, 'XS', 'DAI', 'NAM', 2);
+CALL insert_item_by_gender_length(4, 'S', 'COC', 'NAM', 6);
+CALL insert_item_by_gender_length(4, 'S', 'DAI', 'NAM', 5);
+CALL insert_item_by_gender_length(4, 'M', 'COC', 'NAM', 15);
+CALL insert_item_by_gender_length(4, 'M', 'DAI', 'NAM', 12);
+CALL insert_item_by_gender_length(4, 'L', 'COC', 'NAM', 18);
+CALL insert_item_by_gender_length(4, 'L', 'DAI', 'NAM', 15);
+CALL insert_item_by_gender_length(4, 'XL', 'COC', 'NAM', 16);
+CALL insert_item_by_gender_length(4, 'XL', 'DAI', 'NAM', 14);
+CALL insert_item_by_gender_length(4, '2XL', 'COC', 'NAM', 12);
+CALL insert_item_by_gender_length(4, '2XL', 'DAI', 'NAM', 10);
+CALL insert_item_by_gender_length(4, '3XL', 'COC', 'NAM', 8);
+CALL insert_item_by_gender_length(4, '3XL', 'DAI', 'NAM', 6);
+CALL insert_item_by_gender_length(4, '4XL', 'COC', 'NAM', 4);
+CALL insert_item_by_gender_length(4, '4XL', 'DAI', 'NAM', 3);
+CALL insert_item_by_gender_length(4, '5XL', 'COC', 'NAM', 2);
+CALL insert_item_by_gender_length(4, '5XL', 'DAI', 'NAM', 2);
+CALL insert_item_by_gender_length(4, '6XL', 'COC', 'NAM', 1);
+CALL insert_item_by_gender_length(4, '6XL', 'DAI', 'NAM', 1);
+-- NỮ
+CALL insert_item_by_gender_length(4, 'XS', 'COC', 'NU', 3);
+CALL insert_item_by_gender_length(4, 'XS', 'DAI', 'NU', 2);
+CALL insert_item_by_gender_length(4, 'S', 'COC', 'NU', 8);
+CALL insert_item_by_gender_length(4, 'S', 'DAI', 'NU', 6);
+CALL insert_item_by_gender_length(4, 'M', 'COC', 'NU', 14);
+CALL insert_item_by_gender_length(4, 'M', 'DAI', 'NU', 11);
+CALL insert_item_by_gender_length(4, 'L', 'COC', 'NU', 12);
+CALL insert_item_by_gender_length(4, 'L', 'DAI', 'NU', 10);
+CALL insert_item_by_gender_length(4, 'XL', 'COC', 'NU', 10);
+CALL insert_item_by_gender_length(4, 'XL', 'DAI', 'NU', 8);
+CALL insert_item_by_gender_length(4, '2XL', 'COC', 'NU', 6);
+CALL insert_item_by_gender_length(4, '2XL', 'DAI', 'NU', 5);
+CALL insert_item_by_gender_length(4, '3XL', 'COC', 'NU', 4);
+CALL insert_item_by_gender_length(4, '3XL', 'DAI', 'NU', 3);
+CALL insert_item_by_gender_length(4, '4XL', 'COC', 'NU', 2);
+CALL insert_item_by_gender_length(4, '4XL', 'DAI', 'NU', 2);
+CALL insert_item_by_gender_length(4, '5XL', 'COC', 'NU', 1);
+CALL insert_item_by_gender_length(4, '5XL', 'DAI', 'NU', 1);
+CALL insert_item_by_gender_length(4, '6XL', 'COC', 'NU', 1);
+CALL insert_item_by_gender_length(4, '6XL', 'DAI', 'NU', 1);
+
+-- =====================================================
+-- Product 5: ÁO LEN + GILE LEN 2026 — Nhập kho ban đầu
+-- STRUCTURED: gender + size (no length)
+-- =====================================================
+-- NAM
+CALL insert_item_by_gender(5, 'XS', 'NAM', 2);
+CALL insert_item_by_gender(5, 'S', 'NAM', 6);
+CALL insert_item_by_gender(5, 'M', 'NAM', 14);
+CALL insert_item_by_gender(5, 'L', 'NAM', 18);
+CALL insert_item_by_gender(5, 'XL', 'NAM', 16);
+CALL insert_item_by_gender(5, '2XL', 'NAM', 12);
+CALL insert_item_by_gender(5, '3XL', 'NAM', 8);
+CALL insert_item_by_gender(5, '4XL', 'NAM', 5);
+CALL insert_item_by_gender(5, '5XL', 'NAM', 3);
+CALL insert_item_by_gender(5, '6XL', 'NAM', 2);
+-- NỮ
+CALL insert_item_by_gender(5, 'XS', 'NU', 3);
+CALL insert_item_by_gender(5, 'S', 'NU', 8);
+CALL insert_item_by_gender(5, 'M', 'NU', 12);
+CALL insert_item_by_gender(5, 'L', 'NU', 10);
+CALL insert_item_by_gender(5, 'XL', 'NU', 8);
+CALL insert_item_by_gender(5, '2XL', 'NU', 6);
+CALL insert_item_by_gender(5, '3XL', 'NU', 4);
+CALL insert_item_by_gender(5, '4XL', 'NU', 2);
+CALL insert_item_by_gender(5, '5XL', 'NU', 1);
+CALL insert_item_by_gender(5, '6XL', 'NU', 1);
+
+-- =====================================================
+-- Product 6: GILE BẢO HỘ 2026 — Nhập kho ban đầu
+-- STRUCTURED: gender + size (no length)
+-- =====================================================
+-- NAM
+CALL insert_item_by_gender(6, 'XS', 'NAM', 4);
+CALL insert_item_by_gender(6, 'S', 'NAM', 10);
+CALL insert_item_by_gender(6, 'M', 'NAM', 20);
+CALL insert_item_by_gender(6, 'L', 'NAM', 25);
+CALL insert_item_by_gender(6, 'XL', 'NAM', 22);
+CALL insert_item_by_gender(6, '2XL', 'NAM', 16);
+CALL insert_item_by_gender(6, '3XL', 'NAM', 10);
+CALL insert_item_by_gender(6, '4XL', 'NAM', 6);
+CALL insert_item_by_gender(6, '5XL', 'NAM', 3);
+CALL insert_item_by_gender(6, '6XL', 'NAM', 2);
+-- NỮ
+CALL insert_item_by_gender(6, 'XS', 'NU', 5);
+CALL insert_item_by_gender(6, 'S', 'NU', 12);
+CALL insert_item_by_gender(6, 'M', 'NU', 18);
+CALL insert_item_by_gender(6, 'L', 'NU', 15);
+CALL insert_item_by_gender(6, 'XL', 'NU', 12);
+CALL insert_item_by_gender(6, '2XL', 'NU', 8);
+CALL insert_item_by_gender(6, '3XL', 'NU', 5);
+CALL insert_item_by_gender(6, '4XL', 'NU', 3);
+CALL insert_item_by_gender(6, '5XL', 'NU', 2);
+CALL insert_item_by_gender(6, '6XL', 'NU', 1);
+
+-- =====================================================
+-- Product 7: BẢO HỘ LAO ĐỘNG 2026 — Nhập kho ban đầu
+-- ITEM_BASED
+-- =====================================================
+CALL insert_item_by_code(7, 'GIAY-38', 15);
+CALL insert_item_by_code(7, 'GIAY-39', 25);
+CALL insert_item_by_code(7, 'GIAY-40', 35);
+CALL insert_item_by_code(7, 'GIAY-41', 40);
+CALL insert_item_by_code(7, 'GIAY-42', 38);
+CALL insert_item_by_code(7, 'GIAY-43', 20);
+CALL insert_item_by_code(7, 'GIAY-44', 12);
+CALL insert_item_by_code(7, 'GIAY-45', 8);
+CALL insert_item_by_code(7, 'AM-S', 10);
+CALL insert_item_by_code(7, 'AM-M', 20);
+CALL insert_item_by_code(7, 'AM-L', 25);
+CALL insert_item_by_code(7, 'AM-XL', 22);
+CALL insert_item_by_code(7, 'AM-2XL', 15);
+CALL insert_item_by_code(7, 'AM-3XL', 10);
+CALL insert_item_by_code(7, 'AM-4XL', 5);
+CALL insert_item_by_code(7, 'M1', 50);
+CALL insert_item_by_code(7, 'TUI1', 30);
+CALL insert_item_by_code(7, 'BL1', 20);
+
+-- =====================================================
+-- Product 8: NHẬP XUẤT VẢI 2026 — Nhập kho ban đầu
+-- ITEM_BASED (đơn vị: mét, kilogam)
+-- =====================================================
+CALL insert_item_by_code(8, 'B1', 520);
+CALL insert_item_by_code(8, 'B2', 380);
+CALL insert_item_by_code(8, 'B4', 150);
+CALL insert_item_by_code(8, 'B7', 450);
+CALL insert_item_by_code(8, 'B9', 200);
+CALL insert_item_by_code(8, 'B11', 180);
+CALL insert_item_by_code(8, 'B12', 320);
+CALL insert_item_by_code(8, 'B13', 160);
+CALL insert_item_by_code(8, 'B15', 400);
+CALL insert_item_by_code(8, 'B16', 280);
+CALL insert_item_by_code(8, 'B17', 350);
+CALL insert_item_by_code(8, 'B18', 150);
+CALL insert_item_by_code(8, 'B19', 300);
+CALL insert_item_by_code(8, 'B20', 220);
+CALL insert_item_by_code(8, 'B21', 120);
+CALL insert_item_by_code(8, 'B22', 250);
+CALL insert_item_by_code(8, 'B23', 180);
+CALL insert_item_by_code(8, 'B24', 100);
+CALL insert_item_by_code(8, 'B25', 80);
+CALL insert_item_by_code(8, 'B26', 600);
+CALL insert_item_by_code(8, 'B27', 450);
+CALL insert_item_by_code(8, 'B28', 400);
+CALL insert_item_by_code(8, 'B29', 300);
+CALL insert_item_by_code(8, 'B30', 350);
+CALL insert_item_by_code(8, 'B31', 250);
+CALL insert_item_by_code(8, 'B32', 200);
+CALL insert_item_by_code(8, 'B33', 300);
+CALL insert_item_by_code(8, 'B34', 280);
+CALL insert_item_by_code(8, 'B35', 45);
+CALL insert_item_by_code(8, 'B37', 150);
+CALL insert_item_by_code(8, 'B39', 120);
+
+-- =====================================================
+-- Product 9: PHỤ KIỆN — Nhập kho ban đầu
+-- ITEM_BASED (đơn vị: chiếc, bộ)
+-- =====================================================
+CALL insert_item_by_code(9, 'PK1', 120);
+CALL insert_item_by_code(9, 'PK2', 85);
+CALL insert_item_by_code(9, 'PK3', 40);
+CALL insert_item_by_code(9, 'PK4', 65);
+CALL insert_item_by_code(9, 'PK5', 55);
+CALL insert_item_by_code(9, 'PK6', 70);
+CALL insert_item_by_code(9, 'PK8', 25);
+CALL insert_item_by_code(9, 'PK9', 90);
+CALL insert_item_by_code(9, 'PK10', 60);
+CALL insert_item_by_code(9, 'PK11', 75);
+CALL insert_item_by_code(9, 'PK13', 45);
+CALL insert_item_by_code(9, 'PK14', 50);
+CALL insert_item_by_code(9, 'PK15', 20);
+CALL insert_item_by_code(9, 'PK16', 15);
+CALL insert_item_by_code(9, 'PK17', 80);
+CALL insert_item_by_code(9, 'PK18', 60);
+CALL insert_item_by_code(9, 'PK19', 30);
+CALL insert_item_by_code(9, 'PK20', 25);
+CALL insert_item_by_code(9, 'PK21', 35);
+CALL insert_item_by_code(9, 'PK22', 40);
+CALL insert_item_by_code(9, 'PK23', 20);
+CALL insert_item_by_code(9, 'PK24', 30);
+CALL insert_item_by_code(9, 'PK25', 25);
+CALL insert_item_by_code(9, 'PK26', 50);
+CALL insert_item_by_code(9, 'PK27', 35);
+CALL insert_item_by_code(9, 'PK28', 45);
+CALL insert_item_by_code(9, 'PK29', 20);
+CALL insert_item_by_code(9, 'PK30', 25);
+CALL insert_item_by_code(9, 'PK31', 15);
+CALL insert_item_by_code(9, 'PK32', 10);
+CALL insert_item_by_code(9, 'PK33', 30);
+CALL insert_item_by_code(9, 'PK34', 55);
+CALL insert_item_by_code(9, 'PK35', 40);
+CALL insert_item_by_code(9, 'PK36', 25);
+CALL insert_item_by_code(9, 'PK37', 35);
+CALL insert_item_by_code(9, 'PK38', 30);
+CALL insert_item_by_code(9, 'PK39', 20);
+CALL insert_item_by_code(9, 'PK40', 25);
+CALL insert_item_by_code(9, 'PK41', 45);
+CALL insert_item_by_code(9, 'PK42', 40);
+CALL insert_item_by_code(9, 'PK43', 30);
+CALL insert_item_by_code(9, 'PK44', 25);
+CALL insert_item_by_code(9, 'PK45', 60);
+CALL insert_item_by_code(9, 'PK46', 35);
+CALL insert_item_by_code(9, 'PK47', 20);
+CALL insert_item_by_code(9, 'PK48', 50);
+CALL insert_item_by_code(9, 'PK49', 40);
+
+-- =====================================================
+-- Product 10: PHỤ LIỆU — Nhập kho ban đầu (dữ liệu thực tế)
+-- ITEM_BASED (258 mã, chỉ insert những mã có tồn kho > 0)
+-- =====================================================
+-- Nhóm KHOA
+CALL insert_item_by_code(10, 'KHOA1', 9250);
+CALL insert_item_by_code(10, 'KHOA3', 1300);
+CALL insert_item_by_code(10, 'KHOA4', 7200);
+CALL insert_item_by_code(10, 'KHOA5', 87);
+CALL insert_item_by_code(10, 'KHOA6', 2080);
+CALL insert_item_by_code(10, 'KHOA7', 605);
+CALL insert_item_by_code(10, 'KHOA8', 5000);
+CALL insert_item_by_code(10, 'KHOA9', 536);
+CALL insert_item_by_code(10, 'KHOA30', 2630);
+CALL insert_item_by_code(10, 'KHOA31', 2400);
+CALL insert_item_by_code(10, 'KHOA32', 982);
+CALL insert_item_by_code(10, 'KHOA33', 830);
+CALL insert_item_by_code(10, 'KHOA36', 499);
+CALL insert_item_by_code(10, 'KHOA37', 3);
+CALL insert_item_by_code(10, 'KHOA38', 9);
+CALL insert_item_by_code(10, 'KHOA39', 15);
+CALL insert_item_by_code(10, 'KHOA47', 1602);
+CALL insert_item_by_code(10, 'KHOA48', 17);
+CALL insert_item_by_code(10, 'KHOA49', 35);
+CALL insert_item_by_code(10, 'KHOA50', 430);
+CALL insert_item_by_code(10, 'KHOA51', 8);
+CALL insert_item_by_code(10, 'KHOA52', 21);
+CALL insert_item_by_code(10, 'KHOA53', 83);
+CALL insert_item_by_code(10, 'KHOA54', 183);
+CALL insert_item_by_code(10, 'KHOA55', 61);
+CALL insert_item_by_code(10, 'KHOA56', 49);
+CALL insert_item_by_code(10, 'KHOA57', 811);
+CALL insert_item_by_code(10, 'KHOA58', 56);
+CALL insert_item_by_code(10, 'KHOA61', 35);
+CALL insert_item_by_code(10, 'KHOA64', 100);
+CALL insert_item_by_code(10, 'KHOA65', 218);
+CALL insert_item_by_code(10, 'KHOA69', 158);
+CALL insert_item_by_code(10, 'KHOA73', 148);
+CALL insert_item_by_code(10, 'KHOA74', 500);
+CALL insert_item_by_code(10, 'KHOA75', 231);
+CALL insert_item_by_code(10, 'KHOA76', 215);
+CALL insert_item_by_code(10, 'KHOA77', 158);
+CALL insert_item_by_code(10, 'KHOA78', 43);
+CALL insert_item_by_code(10, 'KHOA79', 1215);
+CALL insert_item_by_code(10, 'KHOA80', 357);
+CALL insert_item_by_code(10, 'KHOA103', 50);
+CALL insert_item_by_code(10, 'KHOA81', 4980);
+CALL insert_item_by_code(10, 'KHOA82', 1600);
+CALL insert_item_by_code(10, 'KHOA83', 72);
+CALL insert_item_by_code(10, 'KHOA84', 112);
+CALL insert_item_by_code(10, 'KHOA85', 260);
+CALL insert_item_by_code(10, 'KHOA86', 77);
+CALL insert_item_by_code(10, 'KHOA88', 70);
+CALL insert_item_by_code(10, 'KHOA90', 329);
+CALL insert_item_by_code(10, 'KHOA91', 182);
+CALL insert_item_by_code(10, 'KHOA92', 106);
+CALL insert_item_by_code(10, 'KHOA95', 42);
+CALL insert_item_by_code(10, 'KHOA96', 1110);
+CALL insert_item_by_code(10, 'KHOA97', 42);
+CALL insert_item_by_code(10, 'KHOA98', 48);
+CALL insert_item_by_code(10, 'KHOA99', 83);
+-- Nhóm MAC
+CALL insert_item_by_code(10, 'MAC1', 13288);
+CALL insert_item_by_code(10, 'MAC2', 18200);
+CALL insert_item_by_code(10, 'MAC3', 1941);
+CALL insert_item_by_code(10, 'MAC4', 3500);
+CALL insert_item_by_code(10, 'MAC5', 2026);
+CALL insert_item_by_code(10, 'MAC6', 5412);
+CALL insert_item_by_code(10, 'MAC7', 6705);
+CALL insert_item_by_code(10, 'MAC8', 5601);
+CALL insert_item_by_code(10, 'MAC9', 3000);
+CALL insert_item_by_code(10, 'MAC10', 11500);
+CALL insert_item_by_code(10, 'MAC11', 5460);
+CALL insert_item_by_code(10, 'MAC12', 8700);
+CALL insert_item_by_code(10, 'MAC13', 900);
+CALL insert_item_by_code(10, 'MAC14', 1870);
+CALL insert_item_by_code(10, 'MAC15', 2250);
+CALL insert_item_by_code(10, 'MAC16', 3870);
+CALL insert_item_by_code(10, 'MAC17', 2960);
+CALL insert_item_by_code(10, 'MAC18', 1840);
+CALL insert_item_by_code(10, 'MAC19', 2200);
+CALL insert_item_by_code(10, 'MAC20', 2290);
+CALL insert_item_by_code(10, 'MAC21', 1160);
+CALL insert_item_by_code(10, 'MAC22', 1460);
+CALL insert_item_by_code(10, 'MAC23', 1170);
+CALL insert_item_by_code(10, 'MAC24', 1100);
+CALL insert_item_by_code(10, 'MAC25', 1057);
+CALL insert_item_by_code(10, 'MAC26', 3010);
+CALL insert_item_by_code(10, 'MAC27', 2160);
+CALL insert_item_by_code(10, 'MAC28', 1720);
+CALL insert_item_by_code(10, 'MAC29', 3340);
+CALL insert_item_by_code(10, 'MAC30', 1590);
+CALL insert_item_by_code(10, 'MAC31', 1346);
+CALL insert_item_by_code(10, 'MAC32', 1050);
+CALL insert_item_by_code(10, 'MAC33', 861);
+CALL insert_item_by_code(10, 'MAC34', 1922);
+CALL insert_item_by_code(10, 'MAC35', 1553);
+CALL insert_item_by_code(10, 'MAC36', 284);
+CALL insert_item_by_code(10, 'MAC37', 1404);
+CALL insert_item_by_code(10, 'MAC38', 645);
+CALL insert_item_by_code(10, 'MAC40', 2590);
+CALL insert_item_by_code(10, 'MAC41', 1050);
+CALL insert_item_by_code(10, 'MAC42', 2430);
+CALL insert_item_by_code(10, 'MAC43', 2100);
+CALL insert_item_by_code(10, 'MAC44', 2624);
+CALL insert_item_by_code(10, 'MAC45', 2900);
+CALL insert_item_by_code(10, 'MAC46', 2533);
+CALL insert_item_by_code(10, 'MAC47', 700);
+CALL insert_item_by_code(10, 'MAC48', 360);
+CALL insert_item_by_code(10, 'MAC49', 900);
+CALL insert_item_by_code(10, 'MAC50', 798);
+CALL insert_item_by_code(10, 'MAC51', 1042);
+CALL insert_item_by_code(10, 'MAC52', 727);
+CALL insert_item_by_code(10, 'MAC53', 5519);
+CALL insert_item_by_code(10, 'MAC54', 1567);
+CALL insert_item_by_code(10, 'MAC55', 2118);
+CALL insert_item_by_code(10, 'MAC56', 4292);
+CALL insert_item_by_code(10, 'MAC57', 4800);
+CALL insert_item_by_code(10, 'MAC58', 5000);
+CALL insert_item_by_code(10, 'MAC59', 4930);
+CALL insert_item_by_code(10, 'MAC60', 789);
+CALL insert_item_by_code(10, 'MAC61', 1310);
+CALL insert_item_by_code(10, 'MAC62', 2090);
+CALL insert_item_by_code(10, 'MAC63', 11);
+CALL insert_item_by_code(10, 'MAC64', 1000);
+CALL insert_item_by_code(10, 'MAC65', 1000);
+CALL insert_item_by_code(10, 'MAC66', 709);
+CALL insert_item_by_code(10, 'MAC67', 709);
+CALL insert_item_by_code(10, 'MAC68', 709);
+-- Nhóm KHUY
+CALL insert_item_by_code(10, 'KHUY1', 22);
+CALL insert_item_by_code(10, 'KHUY3', 16);
+CALL insert_item_by_code(10, 'KHUY5', 56);
+CALL insert_item_by_code(10, 'KHUY6', 31);
+CALL insert_item_by_code(10, 'KHUY7', 34);
+CALL insert_item_by_code(10, 'KHUY11', 14);
+CALL insert_item_by_code(10, 'KHUY12', 8);
+-- Nhóm MEX
+CALL insert_item_by_code(10, 'MEX1', 52);
+CALL insert_item_by_code(10, 'MEX2', 190);
+CALL insert_item_by_code(10, 'MEX3', 9);
+CALL insert_item_by_code(10, 'MEX4', 3);
+CALL insert_item_by_code(10, 'MEX5', 415);
+CALL insert_item_by_code(10, 'MEX7', 2230);
+CALL insert_item_by_code(10, 'MEX8', 470);
+-- Nhóm ĐV, NI, LQ
+CALL insert_item_by_code(10, 'ĐV1', 531);
+CALL insert_item_by_code(10, 'ĐV2', 56);
+CALL insert_item_by_code(10, 'NI1', 105);
+CALL insert_item_by_code(10, 'NI2', 308);
+CALL insert_item_by_code(10, 'NI3', 118);
+CALL insert_item_by_code(10, 'NI4', 200);
+CALL insert_item_by_code(10, 'NI5', 1252);
+CALL insert_item_by_code(10, 'LQ1', 280);
+CALL insert_item_by_code(10, 'LQ3', 250);
+CALL insert_item_by_code(10, 'LQ4', 4300);
+CALL insert_item_by_code(10, 'LQ5', 2700);
+-- Nhóm LOT
+CALL insert_item_by_code(10, 'LOT1', 1188);
+CALL insert_item_by_code(10, 'LOT2', 2061);
+CALL insert_item_by_code(10, 'LOT3', 1500);
+CALL insert_item_by_code(10, 'LOT4', 654);
+CALL insert_item_by_code(10, 'LOT5', 1480);
+CALL insert_item_by_code(10, 'LOT10', 757);
+CALL insert_item_by_code(10, 'LOT11', 155);
+CALL insert_item_by_code(10, 'LOT12', 3064);
+CALL insert_item_by_code(10, 'LOT13', 2900);
+CALL insert_item_by_code(10, 'LOT15', 5727);
+CALL insert_item_by_code(10, 'LOT16', 2250);
+CALL insert_item_by_code(10, 'LOT17', 830);
+CALL insert_item_by_code(10, 'LOT18', 1017);
+CALL insert_item_by_code(10, 'LOT19', 4910);
+CALL insert_item_by_code(10, 'LOT20', 950);
+CALL insert_item_by_code(10, 'LOT21', 1650);
+CALL insert_item_by_code(10, 'LOT22', 519);
+CALL insert_item_by_code(10, 'LOT23', 454);
+CALL insert_item_by_code(10, 'LOT25', 53);
+CALL insert_item_by_code(10, 'LOT26', 174);
+CALL insert_item_by_code(10, 'LOT27', 1011);
+CALL insert_item_by_code(10, 'LOT29', 285);
+CALL insert_item_by_code(10, 'LOT30', 26);
+CALL insert_item_by_code(10, 'LOT32', 615);
+CALL insert_item_by_code(10, 'LOT34', 1070);
+CALL insert_item_by_code(10, 'LOT37', 1890);
+-- Nhóm NHAM, TB, K
+CALL insert_item_by_code(10, 'NHAM1', 41);
+CALL insert_item_by_code(10, 'NHAM2', 9);
+CALL insert_item_by_code(10, 'K1', 7000);
+CALL insert_item_by_code(10, 'K2', 300);
+CALL insert_item_by_code(10, 'K3', 7);
+CALL insert_item_by_code(10, 'K5', 8);
+CALL insert_item_by_code(10, 'K6', 2);
+CALL insert_item_by_code(10, 'K7', 5);
+CALL insert_item_by_code(10, 'K8', 195);
+CALL insert_item_by_code(10, 'K9', 700);
+CALL insert_item_by_code(10, 'K10', 700);
+CALL insert_item_by_code(10, 'K11', 585);
+CALL insert_item_by_code(10, 'K12', 7400);
+CALL insert_item_by_code(10, 'K13', 1600);
+CALL insert_item_by_code(10, 'K14', 230);
+CALL insert_item_by_code(10, 'K15', 1489);
+CALL insert_item_by_code(10, 'K16', 940);
+CALL insert_item_by_code(10, 'K17', 750);
+CALL insert_item_by_code(10, 'K18', 800);
+CALL insert_item_by_code(10, 'K19', 818);
+CALL insert_item_by_code(10, 'K20', 863);
+CALL insert_item_by_code(10, 'K21', 828);
+CALL insert_item_by_code(10, 'K22', 100);
+CALL insert_item_by_code(10, 'K23', 189);
+CALL insert_item_by_code(10, 'K24', 200);
+CALL insert_item_by_code(10, 'K25', 200);
+CALL insert_item_by_code(10, 'K26', 2);
+
+-- =====================================================
 -- PHẦN 8: CONTRACT REPORTS (Dữ liệu mẫu báo cáo hợp đồng)
 -- =====================================================
 -- created_by = 4 (Thúy - PURCHASER, PRODUCTION)
@@ -1175,6 +1627,9 @@ INSERT INTO contract_reports (current_phase, unit_id, unit_type, contract_year, 
 -- PHẦN 9: CLEANUP - XÓA PROCEDURE SAU KHI IMPORT
 -- =====================================================
 DROP PROCEDURE IF EXISTS insert_item_by_variant;
+DROP PROCEDURE IF EXISTS insert_item_by_gender;
+DROP PROCEDURE IF EXISTS insert_item_by_gender_length;
+DROP PROCEDURE IF EXISTS insert_item_by_code;
 
 -- =====================================================
 -- HOÀN TẤT IMPORT DATABASE
