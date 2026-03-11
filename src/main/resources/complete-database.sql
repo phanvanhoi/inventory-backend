@@ -364,6 +364,19 @@ INSERT INTO products (product_name, variant_type, note, created_at) VALUES
 -- SP1 là child của SP2 (SƠ MI NAM 2026)
 UPDATE products SET parent_product_id = 2 WHERE product_id = 1;
 
+-- Child products của SP3 (ÁO KHOÁC 2026)
+INSERT INTO products (product_name, variant_type, parent_product_id, note, created_at) VALUES
+('Áo khoác Bưu điện - ghi phối vàng', 'STRUCTURED', 3, 'Áo khoác 2026 - Bưu điện', NOW());
+-- product_id = 12
+INSERT INTO products (product_name, variant_type, parent_product_id, note, created_at) VALUES
+('Áo phông Bưu điện (vàng phối ghi) - Bưu tá', 'STRUCTURED', 4, 'Áo phông 2026 - Bưu điện Bưu tá', NOW());
+-- product_id = 13
+INSERT INTO products (product_name, variant_type, parent_product_id, note, created_at) VALUES
+('Áo Gile len VNPT', 'STRUCTURED', 5, 'Áo len + Gile len 2026 - VNPT', NOW());
+-- product_id = 14
+INSERT INTO products (product_name, variant_type, parent_product_id, note, created_at) VALUES
+('Áo Gile bảo hộ Bưu điện - Kaky vàng', 'STRUCTURED', 6, 'Gile BH 2026 - Bưu điện', NOW());
+
 -- 3.7 Product Variants
 -- ====== Product 1: SƠ MI NAM 2025 (88 biến thể = 4 styles x 11 sizes x 2 lengths) ======
 -- size_id: 1=35, 2=36, 3=37, 4=38, 5=39, 6=40, 7=41, 8=42, 9=43, 10=44, 11=45
@@ -390,40 +403,44 @@ INSERT INTO product_variants (product_id, style_id, size_id, length_type_id) VAL
 (1, 4, 7, 1), (1, 4, 7, 2), (1, 4, 8, 1), (1, 4, 8, 2), (1, 4, 9, 1), (1, 4, 9, 2),
 (1, 4, 10, 1), (1, 4, 10, 2), (1, 4, 11, 1), (1, 4, 11, 2);
 
--- ====== Product 3: ÁO KHOÁC 2026 (size XS-6XL x gender NAM/NỮ = 20 biến thể) ======
+-- ====== Product 3: ÁO KHOÁC 2026 → Parent (variants thuộc child product_id=11) ======
+-- ====== Product 11: Áo khoác Bưu điện - ghi phối vàng (child của SP3) ======
 -- size_id: 12=XS, 13=S, 14=M, 15=L, 16=XL, 17=2XL, 18=3XL, 19=4XL, 20=5XL, 21=6XL
 INSERT INTO product_variants (product_id, size_id, gender) VALUES
-(3, 12, 'NAM'), (3, 13, 'NAM'), (3, 14, 'NAM'), (3, 15, 'NAM'), (3, 16, 'NAM'),
-(3, 17, 'NAM'), (3, 18, 'NAM'), (3, 19, 'NAM'), (3, 20, 'NAM'), (3, 21, 'NAM'),
-(3, 12, 'NU'), (3, 13, 'NU'), (3, 14, 'NU'), (3, 15, 'NU'), (3, 16, 'NU'),
-(3, 17, 'NU'), (3, 18, 'NU'), (3, 19, 'NU'), (3, 20, 'NU'), (3, 21, 'NU');
+(11, 12, 'NAM'), (11, 13, 'NAM'), (11, 14, 'NAM'), (11, 15, 'NAM'), (11, 16, 'NAM'),
+(11, 17, 'NAM'), (11, 18, 'NAM'), (11, 19, 'NAM'), (11, 20, 'NAM'), (11, 21, 'NAM'),
+(11, 12, 'NU'), (11, 13, 'NU'), (11, 14, 'NU'), (11, 15, 'NU'), (11, 16, 'NU'),
+(11, 17, 'NU'), (11, 18, 'NU'), (11, 19, 'NU'), (11, 20, 'NU'), (11, 21, 'NU');
 
--- ====== Product 4: ÁO PHÔNG 2026 (size XS-6XL x gender x length = 40 biến thể) ======
+-- ====== Product 4: ÁO PHÔNG 2026 → Parent (variants thuộc child product_id=12) ======
+-- ====== Product 12: Áo phông Bưu điện (vàng phối ghi) - Bưu tá (child của SP4) ======
 INSERT INTO product_variants (product_id, size_id, length_type_id, gender) VALUES
-(4, 12, 1, 'NAM'), (4, 12, 2, 'NAM'), (4, 13, 1, 'NAM'), (4, 13, 2, 'NAM'),
-(4, 14, 1, 'NAM'), (4, 14, 2, 'NAM'), (4, 15, 1, 'NAM'), (4, 15, 2, 'NAM'),
-(4, 16, 1, 'NAM'), (4, 16, 2, 'NAM'), (4, 17, 1, 'NAM'), (4, 17, 2, 'NAM'),
-(4, 18, 1, 'NAM'), (4, 18, 2, 'NAM'), (4, 19, 1, 'NAM'), (4, 19, 2, 'NAM'),
-(4, 20, 1, 'NAM'), (4, 20, 2, 'NAM'), (4, 21, 1, 'NAM'), (4, 21, 2, 'NAM'),
-(4, 12, 1, 'NU'), (4, 12, 2, 'NU'), (4, 13, 1, 'NU'), (4, 13, 2, 'NU'),
-(4, 14, 1, 'NU'), (4, 14, 2, 'NU'), (4, 15, 1, 'NU'), (4, 15, 2, 'NU'),
-(4, 16, 1, 'NU'), (4, 16, 2, 'NU'), (4, 17, 1, 'NU'), (4, 17, 2, 'NU'),
-(4, 18, 1, 'NU'), (4, 18, 2, 'NU'), (4, 19, 1, 'NU'), (4, 19, 2, 'NU'),
-(4, 20, 1, 'NU'), (4, 20, 2, 'NU'), (4, 21, 1, 'NU'), (4, 21, 2, 'NU');
+(12, 12, 1, 'NAM'), (12, 12, 2, 'NAM'), (12, 13, 1, 'NAM'), (12, 13, 2, 'NAM'),
+(12, 14, 1, 'NAM'), (12, 14, 2, 'NAM'), (12, 15, 1, 'NAM'), (12, 15, 2, 'NAM'),
+(12, 16, 1, 'NAM'), (12, 16, 2, 'NAM'), (12, 17, 1, 'NAM'), (12, 17, 2, 'NAM'),
+(12, 18, 1, 'NAM'), (12, 18, 2, 'NAM'), (12, 19, 1, 'NAM'), (12, 19, 2, 'NAM'),
+(12, 20, 1, 'NAM'), (12, 20, 2, 'NAM'), (12, 21, 1, 'NAM'), (12, 21, 2, 'NAM'),
+(12, 12, 1, 'NU'), (12, 12, 2, 'NU'), (12, 13, 1, 'NU'), (12, 13, 2, 'NU'),
+(12, 14, 1, 'NU'), (12, 14, 2, 'NU'), (12, 15, 1, 'NU'), (12, 15, 2, 'NU'),
+(12, 16, 1, 'NU'), (12, 16, 2, 'NU'), (12, 17, 1, 'NU'), (12, 17, 2, 'NU'),
+(12, 18, 1, 'NU'), (12, 18, 2, 'NU'), (12, 19, 1, 'NU'), (12, 19, 2, 'NU'),
+(12, 20, 1, 'NU'), (12, 20, 2, 'NU'), (12, 21, 1, 'NU'), (12, 21, 2, 'NU');
 
--- ====== Product 5: ÁO LEN + GILE LEN 2026 (size XS-6XL x gender = 20 biến thể) ======
+-- ====== Product 5: ÁO LEN + GILE LEN 2026 → Parent (variants thuộc child product_id=13) ======
+-- ====== Product 13: Áo Gile len VNPT (child của SP5) ======
 INSERT INTO product_variants (product_id, size_id, gender) VALUES
-(5, 12, 'NAM'), (5, 13, 'NAM'), (5, 14, 'NAM'), (5, 15, 'NAM'), (5, 16, 'NAM'),
-(5, 17, 'NAM'), (5, 18, 'NAM'), (5, 19, 'NAM'), (5, 20, 'NAM'), (5, 21, 'NAM'),
-(5, 12, 'NU'), (5, 13, 'NU'), (5, 14, 'NU'), (5, 15, 'NU'), (5, 16, 'NU'),
-(5, 17, 'NU'), (5, 18, 'NU'), (5, 19, 'NU'), (5, 20, 'NU'), (5, 21, 'NU');
+(13, 12, 'NAM'), (13, 13, 'NAM'), (13, 14, 'NAM'), (13, 15, 'NAM'), (13, 16, 'NAM'),
+(13, 17, 'NAM'), (13, 18, 'NAM'), (13, 19, 'NAM'), (13, 20, 'NAM'), (13, 21, 'NAM'),
+(13, 12, 'NU'), (13, 13, 'NU'), (13, 14, 'NU'), (13, 15, 'NU'), (13, 16, 'NU'),
+(13, 17, 'NU'), (13, 18, 'NU'), (13, 19, 'NU'), (13, 20, 'NU'), (13, 21, 'NU');
 
--- ====== Product 6: GILE BẢO HỘ 2026 (size XS-6XL x gender = 20 biến thể) ======
+-- ====== Product 6: GILE BẢO HỘ 2026 → Parent (variants thuộc child product_id=14) ======
+-- ====== Product 14: Áo Gile bảo hộ Bưu điện - Kaky vàng (child của SP6) ======
 INSERT INTO product_variants (product_id, size_id, gender) VALUES
-(6, 12, 'NAM'), (6, 13, 'NAM'), (6, 14, 'NAM'), (6, 15, 'NAM'), (6, 16, 'NAM'),
-(6, 17, 'NAM'), (6, 18, 'NAM'), (6, 19, 'NAM'), (6, 20, 'NAM'), (6, 21, 'NAM'),
-(6, 12, 'NU'), (6, 13, 'NU'), (6, 14, 'NU'), (6, 15, 'NU'), (6, 16, 'NU'),
-(6, 17, 'NU'), (6, 18, 'NU'), (6, 19, 'NU'), (6, 20, 'NU'), (6, 21, 'NU');
+(14, 12, 'NAM'), (14, 13, 'NAM'), (14, 14, 'NAM'), (14, 15, 'NAM'), (14, 16, 'NAM'),
+(14, 17, 'NAM'), (14, 18, 'NAM'), (14, 19, 'NAM'), (14, 20, 'NAM'), (14, 21, 'NAM'),
+(14, 12, 'NU'), (14, 13, 'NU'), (14, 14, 'NU'), (14, 15, 'NU'), (14, 16, 'NU'),
+(14, 17, 'NU'), (14, 18, 'NU'), (14, 19, 'NU'), (14, 20, 'NU'), (14, 21, 'NU');
 
 -- ====== Product 7: BẢO HỘ LAO ĐỘNG 2026 (ITEM_BASED — 15 items) ======
 INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
@@ -931,16 +948,16 @@ INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note,
 SELECT 1, u.unit_id, 1, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 3, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+SELECT 1, u.unit_id, 11, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 4, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+SELECT 1, u.unit_id, 12, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 5, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+SELECT 1, u.unit_id, 13, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 6, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+SELECT 1, u.unit_id, 14, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
 SELECT 1, u.unit_id, 7, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
@@ -1161,132 +1178,132 @@ CALL insert_item_by_variant(1, 'SLIM Ngắn', 44, 'COC', 10);
 CALL insert_item_by_variant(1, 'SLIM Ngắn', 44, 'DAI', 10);
 
 -- =====================================================
--- Product 3: ÁO KHOÁC 2026 — Nhập kho ban đầu
+-- Product 11: Áo khoác Bưu điện - ghi phối vàng (child của SP3)
 -- STRUCTURED: gender + size (no length)
 -- =====================================================
 -- NAM
-CALL insert_item_by_gender(3, 'XS', 'NAM', 3);
-CALL insert_item_by_gender(3, 'S', 'NAM', 8);
-CALL insert_item_by_gender(3, 'M', 'NAM', 18);
-CALL insert_item_by_gender(3, 'L', 'NAM', 22);
-CALL insert_item_by_gender(3, 'XL', 'NAM', 20);
-CALL insert_item_by_gender(3, '2XL', 'NAM', 15);
-CALL insert_item_by_gender(3, '3XL', 'NAM', 10);
-CALL insert_item_by_gender(3, '4XL', 'NAM', 6);
-CALL insert_item_by_gender(3, '5XL', 'NAM', 3);
-CALL insert_item_by_gender(3, '6XL', 'NAM', 2);
+CALL insert_item_by_gender(11, 'XS', 'NAM', 3);
+CALL insert_item_by_gender(11, 'S', 'NAM', 8);
+CALL insert_item_by_gender(11, 'M', 'NAM', 18);
+CALL insert_item_by_gender(11, 'L', 'NAM', 22);
+CALL insert_item_by_gender(11, 'XL', 'NAM', 20);
+CALL insert_item_by_gender(11, '2XL', 'NAM', 15);
+CALL insert_item_by_gender(11, '3XL', 'NAM', 10);
+CALL insert_item_by_gender(11, '4XL', 'NAM', 6);
+CALL insert_item_by_gender(11, '5XL', 'NAM', 3);
+CALL insert_item_by_gender(11, '6XL', 'NAM', 2);
 -- NỮ
-CALL insert_item_by_gender(3, 'XS', 'NU', 4);
-CALL insert_item_by_gender(3, 'S', 'NU', 10);
-CALL insert_item_by_gender(3, 'M', 'NU', 16);
-CALL insert_item_by_gender(3, 'L', 'NU', 14);
-CALL insert_item_by_gender(3, 'XL', 'NU', 12);
-CALL insert_item_by_gender(3, '2XL', 'NU', 8);
-CALL insert_item_by_gender(3, '3XL', 'NU', 5);
-CALL insert_item_by_gender(3, '4XL', 'NU', 3);
-CALL insert_item_by_gender(3, '5XL', 'NU', 2);
-CALL insert_item_by_gender(3, '6XL', 'NU', 1);
+CALL insert_item_by_gender(11, 'XS', 'NU', 4);
+CALL insert_item_by_gender(11, 'S', 'NU', 10);
+CALL insert_item_by_gender(11, 'M', 'NU', 16);
+CALL insert_item_by_gender(11, 'L', 'NU', 14);
+CALL insert_item_by_gender(11, 'XL', 'NU', 12);
+CALL insert_item_by_gender(11, '2XL', 'NU', 8);
+CALL insert_item_by_gender(11, '3XL', 'NU', 5);
+CALL insert_item_by_gender(11, '4XL', 'NU', 3);
+CALL insert_item_by_gender(11, '5XL', 'NU', 2);
+CALL insert_item_by_gender(11, '6XL', 'NU', 1);
 
 -- =====================================================
--- Product 4: ÁO PHÔNG 2026 — Nhập kho ban đầu
+-- Product 12: Áo phông Bưu điện (vàng phối ghi) - Bưu tá (child của SP4)
 -- STRUCTURED: gender + size + length (COC/DAI)
 -- =====================================================
 -- NAM
-CALL insert_item_by_gender_length(4, 'XS', 'COC', 'NAM', 2);
-CALL insert_item_by_gender_length(4, 'XS', 'DAI', 'NAM', 2);
-CALL insert_item_by_gender_length(4, 'S', 'COC', 'NAM', 6);
-CALL insert_item_by_gender_length(4, 'S', 'DAI', 'NAM', 5);
-CALL insert_item_by_gender_length(4, 'M', 'COC', 'NAM', 15);
-CALL insert_item_by_gender_length(4, 'M', 'DAI', 'NAM', 12);
-CALL insert_item_by_gender_length(4, 'L', 'COC', 'NAM', 18);
-CALL insert_item_by_gender_length(4, 'L', 'DAI', 'NAM', 15);
-CALL insert_item_by_gender_length(4, 'XL', 'COC', 'NAM', 16);
-CALL insert_item_by_gender_length(4, 'XL', 'DAI', 'NAM', 14);
-CALL insert_item_by_gender_length(4, '2XL', 'COC', 'NAM', 12);
-CALL insert_item_by_gender_length(4, '2XL', 'DAI', 'NAM', 10);
-CALL insert_item_by_gender_length(4, '3XL', 'COC', 'NAM', 8);
-CALL insert_item_by_gender_length(4, '3XL', 'DAI', 'NAM', 6);
-CALL insert_item_by_gender_length(4, '4XL', 'COC', 'NAM', 4);
-CALL insert_item_by_gender_length(4, '4XL', 'DAI', 'NAM', 3);
-CALL insert_item_by_gender_length(4, '5XL', 'COC', 'NAM', 2);
-CALL insert_item_by_gender_length(4, '5XL', 'DAI', 'NAM', 2);
-CALL insert_item_by_gender_length(4, '6XL', 'COC', 'NAM', 1);
-CALL insert_item_by_gender_length(4, '6XL', 'DAI', 'NAM', 1);
+CALL insert_item_by_gender_length(12, 'XS', 'COC', 'NAM', 2);
+CALL insert_item_by_gender_length(12, 'XS', 'DAI', 'NAM', 2);
+CALL insert_item_by_gender_length(12, 'S', 'COC', 'NAM', 6);
+CALL insert_item_by_gender_length(12, 'S', 'DAI', 'NAM', 5);
+CALL insert_item_by_gender_length(12, 'M', 'COC', 'NAM', 15);
+CALL insert_item_by_gender_length(12, 'M', 'DAI', 'NAM', 12);
+CALL insert_item_by_gender_length(12, 'L', 'COC', 'NAM', 18);
+CALL insert_item_by_gender_length(12, 'L', 'DAI', 'NAM', 15);
+CALL insert_item_by_gender_length(12, 'XL', 'COC', 'NAM', 16);
+CALL insert_item_by_gender_length(12, 'XL', 'DAI', 'NAM', 14);
+CALL insert_item_by_gender_length(12, '2XL', 'COC', 'NAM', 12);
+CALL insert_item_by_gender_length(12, '2XL', 'DAI', 'NAM', 10);
+CALL insert_item_by_gender_length(12, '3XL', 'COC', 'NAM', 8);
+CALL insert_item_by_gender_length(12, '3XL', 'DAI', 'NAM', 6);
+CALL insert_item_by_gender_length(12, '4XL', 'COC', 'NAM', 4);
+CALL insert_item_by_gender_length(12, '4XL', 'DAI', 'NAM', 3);
+CALL insert_item_by_gender_length(12, '5XL', 'COC', 'NAM', 2);
+CALL insert_item_by_gender_length(12, '5XL', 'DAI', 'NAM', 2);
+CALL insert_item_by_gender_length(12, '6XL', 'COC', 'NAM', 1);
+CALL insert_item_by_gender_length(12, '6XL', 'DAI', 'NAM', 1);
 -- NỮ
-CALL insert_item_by_gender_length(4, 'XS', 'COC', 'NU', 3);
-CALL insert_item_by_gender_length(4, 'XS', 'DAI', 'NU', 2);
-CALL insert_item_by_gender_length(4, 'S', 'COC', 'NU', 8);
-CALL insert_item_by_gender_length(4, 'S', 'DAI', 'NU', 6);
-CALL insert_item_by_gender_length(4, 'M', 'COC', 'NU', 14);
-CALL insert_item_by_gender_length(4, 'M', 'DAI', 'NU', 11);
-CALL insert_item_by_gender_length(4, 'L', 'COC', 'NU', 12);
-CALL insert_item_by_gender_length(4, 'L', 'DAI', 'NU', 10);
-CALL insert_item_by_gender_length(4, 'XL', 'COC', 'NU', 10);
-CALL insert_item_by_gender_length(4, 'XL', 'DAI', 'NU', 8);
-CALL insert_item_by_gender_length(4, '2XL', 'COC', 'NU', 6);
-CALL insert_item_by_gender_length(4, '2XL', 'DAI', 'NU', 5);
-CALL insert_item_by_gender_length(4, '3XL', 'COC', 'NU', 4);
-CALL insert_item_by_gender_length(4, '3XL', 'DAI', 'NU', 3);
-CALL insert_item_by_gender_length(4, '4XL', 'COC', 'NU', 2);
-CALL insert_item_by_gender_length(4, '4XL', 'DAI', 'NU', 2);
-CALL insert_item_by_gender_length(4, '5XL', 'COC', 'NU', 1);
-CALL insert_item_by_gender_length(4, '5XL', 'DAI', 'NU', 1);
-CALL insert_item_by_gender_length(4, '6XL', 'COC', 'NU', 1);
-CALL insert_item_by_gender_length(4, '6XL', 'DAI', 'NU', 1);
+CALL insert_item_by_gender_length(12, 'XS', 'COC', 'NU', 3);
+CALL insert_item_by_gender_length(12, 'XS', 'DAI', 'NU', 2);
+CALL insert_item_by_gender_length(12, 'S', 'COC', 'NU', 8);
+CALL insert_item_by_gender_length(12, 'S', 'DAI', 'NU', 6);
+CALL insert_item_by_gender_length(12, 'M', 'COC', 'NU', 14);
+CALL insert_item_by_gender_length(12, 'M', 'DAI', 'NU', 11);
+CALL insert_item_by_gender_length(12, 'L', 'COC', 'NU', 12);
+CALL insert_item_by_gender_length(12, 'L', 'DAI', 'NU', 10);
+CALL insert_item_by_gender_length(12, 'XL', 'COC', 'NU', 10);
+CALL insert_item_by_gender_length(12, 'XL', 'DAI', 'NU', 8);
+CALL insert_item_by_gender_length(12, '2XL', 'COC', 'NU', 6);
+CALL insert_item_by_gender_length(12, '2XL', 'DAI', 'NU', 5);
+CALL insert_item_by_gender_length(12, '3XL', 'COC', 'NU', 4);
+CALL insert_item_by_gender_length(12, '3XL', 'DAI', 'NU', 3);
+CALL insert_item_by_gender_length(12, '4XL', 'COC', 'NU', 2);
+CALL insert_item_by_gender_length(12, '4XL', 'DAI', 'NU', 2);
+CALL insert_item_by_gender_length(12, '5XL', 'COC', 'NU', 1);
+CALL insert_item_by_gender_length(12, '5XL', 'DAI', 'NU', 1);
+CALL insert_item_by_gender_length(12, '6XL', 'COC', 'NU', 1);
+CALL insert_item_by_gender_length(12, '6XL', 'DAI', 'NU', 1);
 
 -- =====================================================
--- Product 5: ÁO LEN + GILE LEN 2026 — Nhập kho ban đầu
+-- Product 13: Áo Gile len VNPT (child của SP5) — Nhập kho ban đầu
 -- STRUCTURED: gender + size (no length)
 -- =====================================================
 -- NAM
-CALL insert_item_by_gender(5, 'XS', 'NAM', 2);
-CALL insert_item_by_gender(5, 'S', 'NAM', 6);
-CALL insert_item_by_gender(5, 'M', 'NAM', 14);
-CALL insert_item_by_gender(5, 'L', 'NAM', 18);
-CALL insert_item_by_gender(5, 'XL', 'NAM', 16);
-CALL insert_item_by_gender(5, '2XL', 'NAM', 12);
-CALL insert_item_by_gender(5, '3XL', 'NAM', 8);
-CALL insert_item_by_gender(5, '4XL', 'NAM', 5);
-CALL insert_item_by_gender(5, '5XL', 'NAM', 3);
-CALL insert_item_by_gender(5, '6XL', 'NAM', 2);
+CALL insert_item_by_gender(13, 'XS', 'NAM', 2);
+CALL insert_item_by_gender(13, 'S', 'NAM', 6);
+CALL insert_item_by_gender(13, 'M', 'NAM', 14);
+CALL insert_item_by_gender(13, 'L', 'NAM', 18);
+CALL insert_item_by_gender(13, 'XL', 'NAM', 16);
+CALL insert_item_by_gender(13, '2XL', 'NAM', 12);
+CALL insert_item_by_gender(13, '3XL', 'NAM', 8);
+CALL insert_item_by_gender(13, '4XL', 'NAM', 5);
+CALL insert_item_by_gender(13, '5XL', 'NAM', 3);
+CALL insert_item_by_gender(13, '6XL', 'NAM', 2);
 -- NỮ
-CALL insert_item_by_gender(5, 'XS', 'NU', 3);
-CALL insert_item_by_gender(5, 'S', 'NU', 8);
-CALL insert_item_by_gender(5, 'M', 'NU', 12);
-CALL insert_item_by_gender(5, 'L', 'NU', 10);
-CALL insert_item_by_gender(5, 'XL', 'NU', 8);
-CALL insert_item_by_gender(5, '2XL', 'NU', 6);
-CALL insert_item_by_gender(5, '3XL', 'NU', 4);
-CALL insert_item_by_gender(5, '4XL', 'NU', 2);
-CALL insert_item_by_gender(5, '5XL', 'NU', 1);
-CALL insert_item_by_gender(5, '6XL', 'NU', 1);
+CALL insert_item_by_gender(13, 'XS', 'NU', 3);
+CALL insert_item_by_gender(13, 'S', 'NU', 8);
+CALL insert_item_by_gender(13, 'M', 'NU', 12);
+CALL insert_item_by_gender(13, 'L', 'NU', 10);
+CALL insert_item_by_gender(13, 'XL', 'NU', 8);
+CALL insert_item_by_gender(13, '2XL', 'NU', 6);
+CALL insert_item_by_gender(13, '3XL', 'NU', 4);
+CALL insert_item_by_gender(13, '4XL', 'NU', 2);
+CALL insert_item_by_gender(13, '5XL', 'NU', 1);
+CALL insert_item_by_gender(13, '6XL', 'NU', 1);
 
 -- =====================================================
--- Product 6: GILE BẢO HỘ 2026 — Nhập kho ban đầu
+-- Product 14: Áo Gile bảo hộ Bưu điện - Kaky vàng (child của SP6) — Nhập kho ban đầu
 -- STRUCTURED: gender + size (no length)
 -- =====================================================
 -- NAM
-CALL insert_item_by_gender(6, 'XS', 'NAM', 4);
-CALL insert_item_by_gender(6, 'S', 'NAM', 10);
-CALL insert_item_by_gender(6, 'M', 'NAM', 20);
-CALL insert_item_by_gender(6, 'L', 'NAM', 25);
-CALL insert_item_by_gender(6, 'XL', 'NAM', 22);
-CALL insert_item_by_gender(6, '2XL', 'NAM', 16);
-CALL insert_item_by_gender(6, '3XL', 'NAM', 10);
-CALL insert_item_by_gender(6, '4XL', 'NAM', 6);
-CALL insert_item_by_gender(6, '5XL', 'NAM', 3);
-CALL insert_item_by_gender(6, '6XL', 'NAM', 2);
+CALL insert_item_by_gender(14, 'XS', 'NAM', 4);
+CALL insert_item_by_gender(14, 'S', 'NAM', 10);
+CALL insert_item_by_gender(14, 'M', 'NAM', 20);
+CALL insert_item_by_gender(14, 'L', 'NAM', 25);
+CALL insert_item_by_gender(14, 'XL', 'NAM', 22);
+CALL insert_item_by_gender(14, '2XL', 'NAM', 16);
+CALL insert_item_by_gender(14, '3XL', 'NAM', 10);
+CALL insert_item_by_gender(14, '4XL', 'NAM', 6);
+CALL insert_item_by_gender(14, '5XL', 'NAM', 3);
+CALL insert_item_by_gender(14, '6XL', 'NAM', 2);
 -- NỮ
-CALL insert_item_by_gender(6, 'XS', 'NU', 5);
-CALL insert_item_by_gender(6, 'S', 'NU', 12);
-CALL insert_item_by_gender(6, 'M', 'NU', 18);
-CALL insert_item_by_gender(6, 'L', 'NU', 15);
-CALL insert_item_by_gender(6, 'XL', 'NU', 12);
-CALL insert_item_by_gender(6, '2XL', 'NU', 8);
-CALL insert_item_by_gender(6, '3XL', 'NU', 5);
-CALL insert_item_by_gender(6, '4XL', 'NU', 3);
-CALL insert_item_by_gender(6, '5XL', 'NU', 2);
-CALL insert_item_by_gender(6, '6XL', 'NU', 1);
+CALL insert_item_by_gender(14, 'XS', 'NU', 5);
+CALL insert_item_by_gender(14, 'S', 'NU', 12);
+CALL insert_item_by_gender(14, 'M', 'NU', 18);
+CALL insert_item_by_gender(14, 'L', 'NU', 15);
+CALL insert_item_by_gender(14, 'XL', 'NU', 12);
+CALL insert_item_by_gender(14, '2XL', 'NU', 8);
+CALL insert_item_by_gender(14, '3XL', 'NU', 5);
+CALL insert_item_by_gender(14, '4XL', 'NU', 3);
+CALL insert_item_by_gender(14, '5XL', 'NU', 2);
+CALL insert_item_by_gender(14, '6XL', 'NU', 1);
 
 -- =====================================================
 -- Product 7: BẢO HỘ LAO ĐỘNG 2026 — Nhập kho ban đầu
