@@ -176,9 +176,13 @@ public class InventoryController {
 
         List<InventoryRequestHistoryDTO> rawData;
         if (canViewApproved) {
-            rawData = inventoryRepository.getRequestHistoryByProductAndStyle(productId, filterValue, warehouseId);
+            rawData = warehouseId != null
+                    ? inventoryRepository.getRequestHistoryByProductAndStyleAndWarehouse(productId, filterValue, warehouseId)
+                    : inventoryRepository.getRequestHistoryByProductAndStyle(productId, filterValue);
         } else {
-            rawData = inventoryRepository.getRequestHistoryByProductAndStyleExecutedOnly(productId, filterValue, warehouseId);
+            rawData = warehouseId != null
+                    ? inventoryRepository.getRequestHistoryByProductAndStyleExecutedOnlyAndWarehouse(productId, filterValue, warehouseId)
+                    : inventoryRepository.getRequestHistoryByProductAndStyleExecutedOnly(productId, filterValue);
         }
 
         String variantType = product.getVariantType().name();

@@ -217,7 +217,7 @@ public interface InventoryRepository
     );
 
     /**
-     * Lấy lịch sử các requests theo productId và filter value
+     * Lấy lịch sử các requests theo productId và filter value (tất cả kho)
      * Dành cho ADMIN, PURCHASER: Xem cả APPROVED, RECEIVING và EXECUTED
      * filterValue = styleName (STRUCTURED with style) hoặc gender (STRUCTURED with gender)
      */
@@ -255,7 +255,6 @@ public interface InventoryRepository
             LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
-              AND (:warehouseId IS NULL OR r.warehouse_id = :warehouseId)
               AND rs.status IN ('APPROVED', 'RECEIVING', 'EXECUTED')
             UNION ALL
             SELECT
@@ -290,7 +289,6 @@ public interface InventoryRepository
             LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
-              AND (:warehouseId IS NULL OR r.warehouse_id = :warehouseId)
               AND rs.status IN ('RECEIVING', 'EXECUTED')
         ) combined
         ORDER BY createdAt DESC, sizeValue, lengthCode
@@ -299,12 +297,97 @@ public interface InventoryRepository
     )
     List<InventoryRequestHistoryDTO> getRequestHistoryByProductAndStyle(
             @Param("productId") Long productId,
+            @Param("filterValue") String filterValue
+    );
+
+    /**
+     * Lấy lịch sử các requests theo productId, filter value và warehouse
+     * Dành cho ADMIN, PURCHASER: Xem cả APPROVED, RECEIVING và EXECUTED
+     */
+    @Query(
+            value = """
+        SELECT * FROM (
+            SELECT
+                r.request_id AS requestId,
+                rs.set_id AS setId,
+                rs.set_name AS setName,
+                rs.status AS setStatus,
+                un.unit_name AS unitName,
+                r.request_type AS requestType,
+                pv.variant_id AS variantId,
+                s.style_name AS styleName,
+                sz.size_value AS sizeValue,
+                lt.code AS lengthCode,
+                pv.gender AS gender,
+                pv.item_code AS itemCode,
+                pv.item_name AS itemName,
+                pv.unit AS unit,
+                i.quantity AS quantity,
+                r.note AS note,
+                r.created_at AS createdAt,
+                rs.created_by AS createdBy,
+                u.full_name AS createdByName
+            FROM inventory_request_items i
+            JOIN inventory_requests r ON r.request_id = i.request_id
+            JOIN request_sets rs ON rs.set_id = r.set_id
+            LEFT JOIN units un ON un.unit_id = r.unit_id
+            LEFT JOIN users u ON u.user_id = rs.created_by
+            JOIN product_variants pv ON pv.variant_id = i.variant_id
+            LEFT JOIN styles s ON s.style_id = pv.style_id
+            LEFT JOIN sizes sz ON sz.size_id = pv.size_id
+            LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+            WHERE r.product_id = :productId
+              AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
+              AND r.warehouse_id = :warehouseId
+              AND rs.status IN ('APPROVED', 'RECEIVING', 'EXECUTED')
+            UNION ALL
+            SELECT
+                r.request_id AS requestId,
+                rs.set_id AS setId,
+                rs.set_name AS setName,
+                rs.status AS setStatus,
+                un.unit_name AS unitName,
+                CONCAT('RECEIPT_', IF(r.request_type IN ('IN','ADJUST_IN'), 'IN', 'OUT')) AS requestType,
+                pv.variant_id AS variantId,
+                s.style_name AS styleName,
+                sz.size_value AS sizeValue,
+                lt.code AS lengthCode,
+                pv.gender AS gender,
+                pv.item_code AS itemCode,
+                pv.item_name AS itemName,
+                pv.unit AS unit,
+                ri.received_quantity AS quantity,
+                rr.note AS note,
+                rr.received_at AS createdAt,
+                rr.received_by AS createdBy,
+                u2.full_name AS createdByName
+            FROM receipt_items ri
+            JOIN receipt_records rr ON rr.receipt_id = ri.receipt_id
+            JOIN inventory_requests r ON r.request_id = ri.request_id
+            JOIN request_sets rs ON rs.set_id = rr.set_id
+            LEFT JOIN units un ON un.unit_id = r.unit_id
+            LEFT JOIN users u2 ON u2.user_id = rr.received_by
+            JOIN product_variants pv ON pv.variant_id = ri.variant_id
+            LEFT JOIN styles s ON s.style_id = pv.style_id
+            LEFT JOIN sizes sz ON sz.size_id = pv.size_id
+            LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+            WHERE r.product_id = :productId
+              AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
+              AND r.warehouse_id = :warehouseId
+              AND rs.status IN ('RECEIVING', 'EXECUTED')
+        ) combined
+        ORDER BY createdAt DESC, sizeValue, lengthCode
+        """,
+            nativeQuery = true
+    )
+    List<InventoryRequestHistoryDTO> getRequestHistoryByProductAndStyleAndWarehouse(
+            @Param("productId") Long productId,
             @Param("filterValue") String filterValue,
             @Param("warehouseId") Long warehouseId
     );
 
     /**
-     * Lấy lịch sử các requests theo productId và filter value
+     * Lấy lịch sử các requests theo productId và filter value (tất cả kho)
      * Dành cho USER, STOCKKEEPER: Xem EXECUTED + RECEIVING
      */
     @Query(
@@ -341,7 +424,6 @@ public interface InventoryRepository
             LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
-              AND (:warehouseId IS NULL OR r.warehouse_id = :warehouseId)
               AND rs.status IN ('RECEIVING', 'EXECUTED')
             UNION ALL
             SELECT
@@ -376,7 +458,6 @@ public interface InventoryRepository
             LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
-              AND (:warehouseId IS NULL OR r.warehouse_id = :warehouseId)
               AND rs.status IN ('RECEIVING', 'EXECUTED')
         ) combined
         ORDER BY createdAt DESC, sizeValue, lengthCode
@@ -384,6 +465,91 @@ public interface InventoryRepository
             nativeQuery = true
     )
     List<InventoryRequestHistoryDTO> getRequestHistoryByProductAndStyleExecutedOnly(
+            @Param("productId") Long productId,
+            @Param("filterValue") String filterValue
+    );
+
+    /**
+     * Lấy lịch sử các requests theo productId, filter value và warehouse
+     * Dành cho USER, STOCKKEEPER: Xem EXECUTED + RECEIVING
+     */
+    @Query(
+            value = """
+        SELECT * FROM (
+            SELECT
+                r.request_id AS requestId,
+                rs.set_id AS setId,
+                rs.set_name AS setName,
+                rs.status AS setStatus,
+                un.unit_name AS unitName,
+                r.request_type AS requestType,
+                pv.variant_id AS variantId,
+                s.style_name AS styleName,
+                sz.size_value AS sizeValue,
+                lt.code AS lengthCode,
+                pv.gender AS gender,
+                pv.item_code AS itemCode,
+                pv.item_name AS itemName,
+                pv.unit AS unit,
+                i.quantity AS quantity,
+                r.note AS note,
+                r.created_at AS createdAt,
+                rs.created_by AS createdBy,
+                u.full_name AS createdByName
+            FROM inventory_request_items i
+            JOIN inventory_requests r ON r.request_id = i.request_id
+            JOIN request_sets rs ON rs.set_id = r.set_id
+            LEFT JOIN units un ON un.unit_id = r.unit_id
+            LEFT JOIN users u ON u.user_id = rs.created_by
+            JOIN product_variants pv ON pv.variant_id = i.variant_id
+            LEFT JOIN styles s ON s.style_id = pv.style_id
+            LEFT JOIN sizes sz ON sz.size_id = pv.size_id
+            LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+            WHERE r.product_id = :productId
+              AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
+              AND r.warehouse_id = :warehouseId
+              AND rs.status IN ('RECEIVING', 'EXECUTED')
+            UNION ALL
+            SELECT
+                r.request_id AS requestId,
+                rs.set_id AS setId,
+                rs.set_name AS setName,
+                rs.status AS setStatus,
+                un.unit_name AS unitName,
+                CONCAT('RECEIPT_', IF(r.request_type IN ('IN','ADJUST_IN'), 'IN', 'OUT')) AS requestType,
+                pv.variant_id AS variantId,
+                s.style_name AS styleName,
+                sz.size_value AS sizeValue,
+                lt.code AS lengthCode,
+                pv.gender AS gender,
+                pv.item_code AS itemCode,
+                pv.item_name AS itemName,
+                pv.unit AS unit,
+                ri.received_quantity AS quantity,
+                rr.note AS note,
+                rr.received_at AS createdAt,
+                rr.received_by AS createdBy,
+                u2.full_name AS createdByName
+            FROM receipt_items ri
+            JOIN receipt_records rr ON rr.receipt_id = ri.receipt_id
+            JOIN inventory_requests r ON r.request_id = ri.request_id
+            JOIN request_sets rs ON rs.set_id = rr.set_id
+            LEFT JOIN units un ON un.unit_id = r.unit_id
+            LEFT JOIN users u2 ON u2.user_id = rr.received_by
+            JOIN product_variants pv ON pv.variant_id = ri.variant_id
+            LEFT JOIN styles s ON s.style_id = pv.style_id
+            LEFT JOIN sizes sz ON sz.size_id = pv.size_id
+            LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
+            WHERE r.product_id = :productId
+              AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
+              AND r.warehouse_id = :warehouseId
+              AND rs.status IN ('RECEIVING', 'EXECUTED')
+        ) combined
+        ORDER BY createdAt DESC, sizeValue, lengthCode
+        """,
+            nativeQuery = true
+    )
+    List<InventoryRequestHistoryDTO> getRequestHistoryByProductAndStyleExecutedOnlyAndWarehouse(
             @Param("productId") Long productId,
             @Param("filterValue") String filterValue,
             @Param("warehouseId") Long warehouseId
