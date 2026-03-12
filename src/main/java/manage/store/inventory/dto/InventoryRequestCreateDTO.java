@@ -13,6 +13,7 @@ public class InventoryRequestCreateDTO {
     private String requestType; // IN, OUT, ADJUST_IN, ADJUST_OUT (tùy role)
     private LocalDate expectedDate; // Bắt buộc cho ADJUST_IN, ADJUST_OUT
     private String note;
+    private String fabricMetadata; // JSON state cho fabric templates
     private List<ItemDTO> items;
 
     public InventoryRequestCreateDTO() {
@@ -56,6 +57,14 @@ public class InventoryRequestCreateDTO {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public String getFabricMetadata() {
+        return fabricMetadata;
+    }
+
+    public void setFabricMetadata(String fabricMetadata) {
+        this.fabricMetadata = fabricMetadata;
     }
 
     public Long getWarehouseId() {

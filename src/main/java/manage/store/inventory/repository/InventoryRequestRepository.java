@@ -27,7 +27,8 @@ public interface InventoryRequestRepository
           r.created_at      AS createdAt,
           r.request_status  AS requestStatus,
           r.warehouse_id    AS warehouseId,
-          w.warehouse_name  AS warehouseName
+          w.warehouse_name  AS warehouseName,
+          r.fabric_metadata AS fabricMetadata
         FROM inventory_requests r
         LEFT JOIN units u ON u.unit_id = r.unit_id
         LEFT JOIN positions pos ON pos.position_id = r.position_id

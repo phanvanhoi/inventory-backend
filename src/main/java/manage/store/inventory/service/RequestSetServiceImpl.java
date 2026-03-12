@@ -213,6 +213,7 @@ public class RequestSetServiceImpl implements RequestSetService {
         );
         request.setExpectedDate(dto.getExpectedDate());
         request.setNote(dto.getNote());
+        request.setFabricMetadata(dto.getFabricMetadata());
         request.setRequestStatus("PENDING");
         request.setCreatedAt(LocalDateTime.now());
         request.setSetId(setId);

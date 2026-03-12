@@ -16,4 +16,5 @@ public interface InventoryRequestHeaderDTO {
     String getRequestStatus();
     Long getWarehouseId();
     String getWarehouseName();
+    String getFabricMetadata();
 }

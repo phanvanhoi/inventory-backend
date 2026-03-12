@@ -37,6 +37,9 @@ public class InventoryRequest {
     @Column(name = "warehouse_id")
     private Long warehouseId;
 
+    @Column(name = "fabric_metadata", columnDefinition = "TEXT")
+    private String fabricMetadata;
+
     public enum RequestType {
         IN,          // Nhập kho thực tế
         OUT,         // Xuất kho thực tế
@@ -76,4 +79,7 @@ public class InventoryRequest {
 
     public Long getWarehouseId() { return warehouseId; }
     public void setWarehouseId(Long warehouseId) { this.warehouseId = warehouseId; }
+
+    public String getFabricMetadata() { return fabricMetadata; }
+    public void setFabricMetadata(String fabricMetadata) { this.fabricMetadata = fabricMetadata; }
 }
