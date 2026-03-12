@@ -1778,6 +1778,65 @@ END//
 DELIMITER ;
 
 -- =====================================================
+-- PHẦN 9b: NHẬP KHO TRƯỜNG — Clone dữ liệu Vải (Product 8)
+-- =====================================================
+
+-- Tạo request set cho nhập kho Trường
+INSERT INTO request_sets (set_name, created_by, created_at) VALUES
+('Nhập kho Trường - Vải ban đầu', NULL, '2025-06-20 00:00:00');
+
+SET @truong_set_id = LAST_INSERT_ID();
+
+-- Tạo inventory request cho product 8, warehouse_id = 2 (Kho Trường)
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at, warehouse_id)
+VALUES (@truong_set_id, NULL, 8, 'IN', 'Nhập kho Trường ban đầu', '2025-06-20 00:00:00', 2);
+
+SET @truong_request_id = LAST_INSERT_ID();
+
+-- Clone items từ Kho Chính sang Kho Trường (số lượng nhỏ hơn ~30-50%)
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @truong_request_id, pv.variant_id, CASE pv.item_code
+    WHEN 'B1'  THEN 180
+    WHEN 'B2'  THEN 120
+    WHEN 'B4'  THEN 50
+    WHEN 'B7'  THEN 150
+    WHEN 'B9'  THEN 70
+    WHEN 'B11' THEN 60
+    WHEN 'B12' THEN 100
+    WHEN 'B13' THEN 50
+    WHEN 'B15' THEN 130
+    WHEN 'B16' THEN 90
+    WHEN 'B17' THEN 120
+    WHEN 'B18' THEN 50
+    WHEN 'B19' THEN 100
+    WHEN 'B20' THEN 70
+    WHEN 'B21' THEN 40
+    WHEN 'B22' THEN 80
+    WHEN 'B23' THEN 60
+    WHEN 'B24' THEN 35
+    WHEN 'B25' THEN 25
+    WHEN 'B26' THEN 200
+    WHEN 'B27' THEN 150
+    WHEN 'B28' THEN 130
+    WHEN 'B29' THEN 100
+    WHEN 'B30' THEN 120
+    WHEN 'B31' THEN 80
+    WHEN 'B32' THEN 65
+    WHEN 'B33' THEN 100
+    WHEN 'B34' THEN 90
+    WHEN 'B35' THEN 15
+    WHEN 'B37' THEN 50
+    WHEN 'B39' THEN 40
+    ELSE 0
+END
+FROM product_variants pv
+WHERE pv.product_id = 8
+  AND pv.item_code IN ('B1','B2','B4','B7','B9','B11','B12','B13','B15','B16','B17','B18','B19','B20','B21','B22','B23','B24','B25','B26','B27','B28','B29','B30','B31','B32','B33','B34','B35','B37','B39');
+
+-- Set status EXECUTED
+UPDATE request_sets SET status = 'EXECUTED', submitted_at = created_at WHERE set_id = @truong_set_id;
+
+-- =====================================================
 -- PHẦN 10: CLEANUP - XÓA PROCEDURE SAU KHI IMPORT
 -- =====================================================
 DROP PROCEDURE IF EXISTS insert_item_by_variant;
