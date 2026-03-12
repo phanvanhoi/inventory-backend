@@ -207,6 +207,7 @@ CREATE TABLE inventory_requests (
     request_status VARCHAR(20) DEFAULT 'PENDING',
     warehouse_id BIGINT NOT NULL DEFAULT 1,
     note TEXT,
+    fabric_metadata TEXT NULL COMMENT 'JSON state cho fabric templates (norms, workers, warehouses...)',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (set_id) REFERENCES request_sets(set_id),
     FOREIGN KEY (unit_id) REFERENCES units(unit_id),
