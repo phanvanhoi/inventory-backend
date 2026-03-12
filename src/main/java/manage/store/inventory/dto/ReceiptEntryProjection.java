@@ -1,5 +1,6 @@
 package manage.store.inventory.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -10,5 +11,5 @@ public interface ReceiptEntryProjection {
     Long getReceiptId();
     LocalDateTime getReceivedAt();
     String getReceivedByName();
-    Integer getReceivedQuantity();
+    BigDecimal getReceivedQuantity();
 }

@@ -2,6 +2,7 @@ package manage.store.inventory.service;
 
 import java.util.List;
 
+import manage.store.inventory.dto.RequestCompleteResponseDTO;
 import manage.store.inventory.dto.RequestSetCreateDTO;
 import manage.store.inventory.dto.RequestSetDetailDTO;
 import manage.store.inventory.dto.RequestSetListDTO;
@@ -71,4 +72,11 @@ public interface RequestSetService {
     // - Status → RECEIVING (không quay về PENDING)
     // - Thông báo Creator + tất cả ADMIN
     void editAndReceiveRequestSet(Long setId, EditAndReceiveDTO dto, Long userId);
+
+    // Đánh dấu 1 request (kho) đã hoàn thành (multi-warehouse)
+    // - Chỉ STOCKKEEPER
+    // - Set phải APPROVED hoặc RECEIVING
+    // - Kho đầu tiên COMPLETED → set chuyển RECEIVING
+    // - Tất cả requests COMPLETED → set chuyển EXECUTED
+    RequestCompleteResponseDTO completeRequest(Long requestId, Long userId);
 }

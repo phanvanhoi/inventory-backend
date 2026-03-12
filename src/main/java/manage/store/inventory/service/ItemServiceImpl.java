@@ -1,5 +1,6 @@
 package manage.store.inventory.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -98,7 +99,7 @@ public class ItemServiceImpl implements ItemService {
         InventoryRequestItem item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Item not found: " + itemId));
 
-        if (dto.getQuantity() != null && dto.getQuantity() > 0) {
+        if (dto.getQuantity() != null && dto.getQuantity().compareTo(BigDecimal.ZERO) > 0) {
             item.setQuantity(dto.getQuantity());
         }
 

@@ -1,5 +1,6 @@
 package manage.store.inventory.repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -317,7 +318,7 @@ public interface InventoryRepository
         """,
             nativeQuery = true
     )
-    Integer getActualQuantityByVariant(
+    BigDecimal getActualQuantityByVariant(
             @Param("productId") Long productId,
             @Param("variantId") Long variantId
     );
@@ -358,7 +359,7 @@ public interface InventoryRepository
         """,
             nativeQuery = true
     )
-    Integer getExpectedQuantityByVariantAtDate(
+    BigDecimal getExpectedQuantityByVariantAtDate(
             @Param("productId") Long productId,
             @Param("variantId") Long variantId,
             @Param("targetDate") LocalDate targetDate

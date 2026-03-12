@@ -1,5 +1,6 @@
 package manage.store.inventory.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -24,13 +25,13 @@ public class RequestHistoryRowDTO {
     private Long createdBy;
     private String createdByName;
 
-    // For STRUCTURED: Map<sizeValue, quantity> - VD: {"35": 10, "36": 5, ...}
-    private Map<String, Integer> sizes;
+    // For STRUCTURED: Map<sizeValue, quantity> - VD: {"35": 10.00, "36": 5.50, ...}
+    private Map<String, BigDecimal> sizes;
 
     // For ITEM_BASED: single variant info per row
     private Long variantId;
     private String itemCode;
     private String itemName;
     private String unit;
-    private Integer quantity;
+    private BigDecimal quantity;
 }

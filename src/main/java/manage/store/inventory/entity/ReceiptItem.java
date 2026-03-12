@@ -1,5 +1,7 @@
 package manage.store.inventory.entity;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -28,5 +30,5 @@ public class ReceiptItem {
     private Long variantId;
 
     @Column(name = "received_quantity", nullable = false)
-    private Integer receivedQuantity;
+    private BigDecimal receivedQuantity;
 }

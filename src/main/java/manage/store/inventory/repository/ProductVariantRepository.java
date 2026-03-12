@@ -66,6 +66,23 @@ public interface ProductVariantRepository
     );
 
     /**
+     * Lookup STRUCTURED variant: size only (Giày BH, Bộ áo mưa — no gender, no length, no style)
+     */
+    @Query("""
+        SELECT pv FROM ProductVariant pv
+        JOIN Size s ON s.sizeId = pv.sizeId
+        WHERE pv.productId = :productId
+          AND s.sizeValue = :sizeValue
+          AND pv.gender IS NULL
+          AND pv.lengthTypeId IS NULL
+          AND pv.styleId IS NULL
+    """)
+    Optional<ProductVariant> findStructuredVariantWithSizeOnly(
+        @Param("productId") Long productId,
+        @Param("sizeValue") String sizeValue
+    );
+
+    /**
      * Lookup ITEM_BASED variant by item_code
      */
     @Query("SELECT pv FROM ProductVariant pv WHERE pv.productId = :productId AND pv.itemCode = :itemCode")

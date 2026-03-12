@@ -13,4 +13,5 @@ public interface InventoryRequestHeaderDTO {
     LocalDate getExpectedDate();
     String getNote();
     LocalDateTime getCreatedAt();
+    String getRequestStatus();
 }

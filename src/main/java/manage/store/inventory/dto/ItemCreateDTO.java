@@ -1,5 +1,7 @@
 package manage.store.inventory.dto;
 
+import java.math.BigDecimal;
+
 import lombok.Data;
 
 @Data
@@ -14,5 +16,5 @@ public class ItemCreateDTO {
     // ITEM_BASED variant lookup
     private Long variantId;
 
-    private Integer quantity;
+    private BigDecimal quantity;
 }

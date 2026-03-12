@@ -1,5 +1,6 @@
 package manage.store.inventory.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public interface InventoryRequestHistoryDTO {
@@ -18,7 +19,7 @@ public interface InventoryRequestHistoryDTO {
     String getItemCode();
     String getItemName();
     String getUnit();
-    Integer getQuantity();
+    BigDecimal getQuantity();
     String getNote();
     LocalDateTime getCreatedAt();
     Long getCreatedBy();

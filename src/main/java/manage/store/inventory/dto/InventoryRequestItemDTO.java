@@ -1,5 +1,7 @@
 package manage.store.inventory.dto;
 
+import java.math.BigDecimal;
+
 public class InventoryRequestItemDTO {
 
     private Long variantId;
@@ -10,12 +12,22 @@ public class InventoryRequestItemDTO {
     private String itemCode;
     private String itemName;
     private String unit;
-    private Integer quantity;
+    private BigDecimal quantity;
+
+    // Fabric fields
+    private String workerNote;
+    private String fabricNote;
+    private Long employeeId;
+    private String garmentQuantity;
+
+    // Employee info (joined from unit_employees + positions)
+    private String employeeName;
+    private String positionCode;
 
     public InventoryRequestItemDTO() {
     }
 
-    // Constructor cho STRUCTURED variants (JPQL)
+    // Constructor cho JPQL query (backward compatible — Integer quantity auto-converts)
     public InventoryRequestItemDTO(
             Long variantId,
             String styleName,
@@ -25,7 +37,7 @@ public class InventoryRequestItemDTO {
             String itemCode,
             String itemName,
             String unit,
-            Integer quantity
+            BigDecimal quantity
     ) {
         this.variantId = variantId;
         this.styleName = styleName;
@@ -36,6 +48,41 @@ public class InventoryRequestItemDTO {
         this.itemName = itemName;
         this.unit = unit;
         this.quantity = quantity;
+    }
+
+    // Full constructor with fabric fields
+    public InventoryRequestItemDTO(
+            Long variantId,
+            String styleName,
+            String sizeValue,
+            String lengthCode,
+            String gender,
+            String itemCode,
+            String itemName,
+            String unit,
+            BigDecimal quantity,
+            String workerNote,
+            String fabricNote,
+            Long employeeId,
+            String garmentQuantity,
+            String employeeName,
+            String positionCode
+    ) {
+        this.variantId = variantId;
+        this.styleName = styleName;
+        this.sizeValue = sizeValue;
+        this.lengthCode = lengthCode;
+        this.gender = gender;
+        this.itemCode = itemCode;
+        this.itemName = itemName;
+        this.unit = unit;
+        this.quantity = quantity;
+        this.workerNote = workerNote;
+        this.fabricNote = fabricNote;
+        this.employeeId = employeeId;
+        this.garmentQuantity = garmentQuantity;
+        this.employeeName = employeeName;
+        this.positionCode = positionCode;
     }
 
     public Long getVariantId() { return variantId; }
@@ -62,6 +109,24 @@ public class InventoryRequestItemDTO {
     public String getUnit() { return unit; }
     public void setUnit(String unit) { this.unit = unit; }
 
-    public Integer getQuantity() { return quantity; }
-    public void setQuantity(Integer quantity) { this.quantity = quantity; }
+    public BigDecimal getQuantity() { return quantity; }
+    public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
+
+    public String getWorkerNote() { return workerNote; }
+    public void setWorkerNote(String workerNote) { this.workerNote = workerNote; }
+
+    public String getFabricNote() { return fabricNote; }
+    public void setFabricNote(String fabricNote) { this.fabricNote = fabricNote; }
+
+    public Long getEmployeeId() { return employeeId; }
+    public void setEmployeeId(Long employeeId) { this.employeeId = employeeId; }
+
+    public String getGarmentQuantity() { return garmentQuantity; }
+    public void setGarmentQuantity(String garmentQuantity) { this.garmentQuantity = garmentQuantity; }
+
+    public String getEmployeeName() { return employeeName; }
+    public void setEmployeeName(String employeeName) { this.employeeName = employeeName; }
+
+    public String getPositionCode() { return positionCode; }
+    public void setPositionCode(String positionCode) { this.positionCode = positionCode; }
 }

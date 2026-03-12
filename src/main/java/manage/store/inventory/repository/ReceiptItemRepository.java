@@ -1,5 +1,6 @@
 package manage.store.inventory.repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -28,7 +29,7 @@ public interface ReceiptItemRepository extends JpaRepository<ReceiptItem, Long> 
             """,
             nativeQuery = true
     )
-    Integer getTotalReceivedByRequestAndVariant(
+    BigDecimal getTotalReceivedByRequestAndVariant(
             @Param("setId") Long setId,
             @Param("requestId") Long requestId,
             @Param("variantId") Long variantId

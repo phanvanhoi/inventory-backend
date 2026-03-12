@@ -1,5 +1,6 @@
 package manage.store.inventory.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import jakarta.validation.Valid;
@@ -28,6 +29,6 @@ public class ReceiptCreateDTO {
 
         @NotNull(message = "Số lượng nhận không được để trống")
         @Positive(message = "Số lượng nhận phải > 0")
-        private Integer receivedQuantity;
+        private BigDecimal receivedQuantity;
     }
 }

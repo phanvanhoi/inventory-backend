@@ -1,5 +1,6 @@
 package manage.store.inventory.controller;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -215,9 +216,9 @@ public class InventoryController {
                 row.setCreatedByName(item.getCreatedByName());
 
                 // Initialize sizes map with 0
-                Map<String, Integer> sizes = new LinkedHashMap<>();
+                Map<String, BigDecimal> sizes = new LinkedHashMap<>();
                 for (String size : sizeColumns) {
-                    sizes.put(size, 0);
+                    sizes.put(size, BigDecimal.ZERO);
                 }
                 row.setSizes(sizes);
 

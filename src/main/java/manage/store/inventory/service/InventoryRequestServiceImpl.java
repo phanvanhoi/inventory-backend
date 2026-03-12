@@ -1,5 +1,6 @@
 package manage.store.inventory.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -75,6 +76,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
                 InventoryRequest.RequestType.valueOf(dto.getRequestType())
         );
         request.setNote(dto.getNote());
+        request.setRequestStatus("PENDING");
         request.setCreatedAt(LocalDateTime.now());
 
         request = requestRepository.save(request);
@@ -88,7 +90,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
 
         for (InventoryRequestCreateDTO.ItemDTO item : dto.getItems()) {
 
-            if (item.getQuantity() == null || item.getQuantity() <= 0) {
+            if (item.getQuantity() == null || item.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
                 continue;
             }
 
@@ -98,6 +100,10 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
             requestItem.setRequestId(request.getRequestId());
             requestItem.setVariantId(variant.getVariantId());
             requestItem.setQuantity(item.getQuantity());
+            requestItem.setWorkerNote(item.getWorkerNote());
+            requestItem.setFabricNote(item.getFabricNote());
+            requestItem.setEmployeeId(item.getEmployeeId());
+            requestItem.setGarmentQuantity(item.getGarmentQuantity());
 
             itemRepository.save(requestItem);
         }
@@ -168,6 +174,19 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
                             "Variant not found: productId=" + product.getProductId()
                             + ", size=" + item.getSizeValue()
                             + ", gender=" + item.getGender()
+                    ));
+        }
+
+        // STRUCTURED: chỉ size (Giày BH, Bộ áo mưa — no gender, no length, no style)
+        if (item.getSizeValue() != null) {
+            return variantRepository
+                    .findStructuredVariantWithSizeOnly(
+                            product.getProductId(),
+                            item.getSizeValue()
+                    )
+                    .orElseThrow(() -> new RuntimeException(
+                            "Variant not found: productId=" + product.getProductId()
+                            + ", size=" + item.getSizeValue()
                     ));
         }
 

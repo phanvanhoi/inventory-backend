@@ -1,5 +1,6 @@
 package manage.store.inventory.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -86,7 +87,13 @@ public class InventoryRequestCreateDTO {
         // ITEM_BASED variant lookup
         private Long variantId;    // direct variant ID
 
-        private Integer quantity;
+        private BigDecimal quantity;
+
+        // Fabric fields
+        private String workerNote;       // Tên thợ (Mẫu 1)
+        private String fabricNote;       // Ghi chú cây vải
+        private Long employeeId;         // FK → unit_employees (Mẫu 2)
+        private String garmentQuantity;  // "1D", "1Q" (Mẫu 2)
 
         public ItemDTO() {
         }
@@ -106,7 +113,19 @@ public class InventoryRequestCreateDTO {
         public Long getVariantId() { return variantId; }
         public void setVariantId(Long variantId) { this.variantId = variantId; }
 
-        public Integer getQuantity() { return quantity; }
-        public void setQuantity(Integer quantity) { this.quantity = quantity; }
+        public BigDecimal getQuantity() { return quantity; }
+        public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
+
+        public String getWorkerNote() { return workerNote; }
+        public void setWorkerNote(String workerNote) { this.workerNote = workerNote; }
+
+        public String getFabricNote() { return fabricNote; }
+        public void setFabricNote(String fabricNote) { this.fabricNote = fabricNote; }
+
+        public Long getEmployeeId() { return employeeId; }
+        public void setEmployeeId(Long employeeId) { this.employeeId = employeeId; }
+
+        public String getGarmentQuantity() { return garmentQuantity; }
+        public void setGarmentQuantity(String garmentQuantity) { this.garmentQuantity = garmentQuantity; }
     }
 }

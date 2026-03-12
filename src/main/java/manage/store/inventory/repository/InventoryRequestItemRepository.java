@@ -26,13 +26,21 @@ public interface InventoryRequestItemRepository
             pv.itemCode,
             pv.itemName,
             pv.unit,
-            i.quantity
+            i.quantity,
+            i.workerNote,
+            i.fabricNote,
+            i.employeeId,
+            i.garmentQuantity,
+            ue.fullName,
+            pos.positionCode
         )
         FROM InventoryRequestItem i
         JOIN ProductVariant pv ON pv.variantId = i.variantId
         LEFT JOIN Style s      ON s.styleId = pv.styleId
         LEFT JOIN Size sz      ON sz.sizeId = pv.sizeId
         LEFT JOIN LengthType lt ON lt.lengthTypeId = pv.lengthTypeId
+        LEFT JOIN UnitEmployee ue ON ue.employeeId = i.employeeId
+        LEFT JOIN Position pos ON pos.positionId = ue.positionId
         WHERE i.requestId = :requestId
         ORDER BY s.styleName, sz.sizeValue, lt.code, pv.itemCode
     """)

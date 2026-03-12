@@ -1,5 +1,6 @@
 package manage.store.inventory.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -34,6 +35,6 @@ public class ReceiptDetailDTO {
         private String itemCode;
         private String itemName;
         private String unit;
-        private Integer receivedQuantity;
+        private BigDecimal receivedQuantity;
     }
 }

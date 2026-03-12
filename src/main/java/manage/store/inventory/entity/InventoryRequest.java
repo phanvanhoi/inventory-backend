@@ -31,6 +31,9 @@ public class InventoryRequest {
     @Column(name = "set_id")
     private Long setId;
 
+    @Column(name = "request_status")
+    private String requestStatus;
+
     public enum RequestType {
         IN,          // Nhập kho thực tế
         OUT,         // Xuất kho thực tế
@@ -64,4 +67,7 @@ public class InventoryRequest {
 
     public LocalDate getExpectedDate() { return expectedDate; }
     public void setExpectedDate(LocalDate expectedDate) { this.expectedDate = expectedDate; }
+
+    public String getRequestStatus() { return requestStatus; }
+    public void setRequestStatus(String requestStatus) { this.requestStatus = requestStatus; }
 }

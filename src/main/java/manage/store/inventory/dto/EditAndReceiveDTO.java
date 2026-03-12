@@ -1,5 +1,6 @@
 package manage.store.inventory.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
@@ -22,6 +23,6 @@ public class EditAndReceiveDTO {
     @Data
     public static class ItemQuantityUpdate {
         private Long itemId;
-        private Integer quantity;
+        private BigDecimal quantity;
     }
 }

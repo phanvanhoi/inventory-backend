@@ -1,5 +1,7 @@
 package manage.store.inventory.service;
 
+import java.math.BigDecimal;
+
 import manage.store.inventory.dto.ExportItemDTO;
 import manage.store.inventory.entity.RequestSet;
 import manage.store.inventory.repository.InventoryRequestItemRepository;
@@ -182,7 +184,7 @@ public class ExcelExportService {
 
         // Group items by unit+position -> style -> size/length -> quantity
         // LinkedHashMap to keep order
-        Map<String, Map<String, Map<String, Integer>>> grouped = new LinkedHashMap<>();
+        Map<String, Map<String, Map<String, BigDecimal>>> grouped = new LinkedHashMap<>();
         // key: "unitName|positionCode", value: {styleName: {sizeValue_lengthCode: quantity}}
         Map<String, String> unitPositionMap = new LinkedHashMap<>();
 
@@ -190,28 +192,28 @@ public class ExcelExportService {
             String unitKey = item.getUnitName() + "|" + (item.getPositionCode() != null ? item.getPositionCode() : "");
             unitPositionMap.put(unitKey, unitKey);
 
-            Map<String, Map<String, Integer>> styleMap = grouped.computeIfAbsent(unitKey, k -> new LinkedHashMap<>());
-            Map<String, Integer> sizeMap = styleMap.computeIfAbsent(item.getStyleName(), k -> new LinkedHashMap<>());
+            Map<String, Map<String, BigDecimal>> styleMap = grouped.computeIfAbsent(unitKey, k -> new LinkedHashMap<>());
+            Map<String, BigDecimal> sizeMap = styleMap.computeIfAbsent(item.getStyleName(), k -> new LinkedHashMap<>());
             String sizeKey = item.getSizeValue() + "_" + item.getLengthCode();
-            sizeMap.merge(sizeKey, item.getQuantity(), Integer::sum);
+            sizeMap.merge(sizeKey, item.getQuantity(), BigDecimal::add);
         }
 
         int dataStartRow = rowIdx;
         int stt = 1;
 
-        for (Map.Entry<String, Map<String, Map<String, Integer>>> unitEntry : grouped.entrySet()) {
+        for (Map.Entry<String, Map<String, Map<String, BigDecimal>>> unitEntry : grouped.entrySet()) {
             String unitKey = unitEntry.getKey();
             String[] parts = unitKey.split("\\|", -1);
             String unitName = parts[0];
             String positionCode = parts.length > 1 ? parts[1] : "";
 
-            Map<String, Map<String, Integer>> styles = unitEntry.getValue();
+            Map<String, Map<String, BigDecimal>> styles = unitEntry.getValue();
             int unitStartRow = rowIdx;
             boolean firstStyle = true;
 
-            for (Map.Entry<String, Map<String, Integer>> styleEntry : styles.entrySet()) {
+            for (Map.Entry<String, Map<String, BigDecimal>> styleEntry : styles.entrySet()) {
                 String styleName = styleEntry.getKey();
-                Map<String, Integer> sizeData = styleEntry.getValue();
+                Map<String, BigDecimal> sizeData = styleEntry.getValue();
 
                 Row dataRow = sheet.createRow(rowIdx);
 
@@ -245,19 +247,19 @@ public class ExcelExportService {
                     int colCoc = FIRST_SIZE_COL + i * 2;
                     int colDai = colCoc + 1;
 
-                    Integer cocQty = sizeData.get(SIZES[i] + "_COC");
-                    Integer daiQty = sizeData.get(SIZES[i] + "_DAI");
+                    BigDecimal cocQty = sizeData.get(SIZES[i] + "_COC");
+                    BigDecimal daiQty = sizeData.get(SIZES[i] + "_DAI");
 
                     Cell coc = dataRow.createCell(colCoc);
                     coc.setCellStyle(dataStyle);
-                    if (cocQty != null && cocQty > 0) {
-                        coc.setCellValue(cocQty);
+                    if (cocQty != null && cocQty.compareTo(BigDecimal.ZERO) > 0) {
+                        coc.setCellValue(cocQty.doubleValue());
                     }
 
                     Cell dai = dataRow.createCell(colDai);
                     dai.setCellStyle(dataStyle);
-                    if (daiQty != null && daiQty > 0) {
-                        dai.setCellValue(daiQty);
+                    if (daiQty != null && daiQty.compareTo(BigDecimal.ZERO) > 0) {
+                        dai.setCellValue(daiQty.doubleValue());
                     }
                 }
 

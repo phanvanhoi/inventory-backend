@@ -155,7 +155,7 @@ CREATE TABLE request_sets (
 CREATE TABLE approval_history (
     history_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     set_id BIGINT NOT NULL,
-    action ENUM('SUBMIT', 'APPROVE', 'REJECT', 'EXECUTE', 'RECEIVE', 'COMPLETE', 'EDIT') NOT NULL,
+    action ENUM('SUBMIT', 'APPROVE', 'REJECT', 'EXECUTE', 'RECEIVE', 'COMPLETE', 'EDIT', 'EDIT_AND_RECEIVE') NOT NULL,
     performed_by BIGINT NOT NULL,
     reason TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -195,6 +195,7 @@ CREATE TABLE inventory_requests (
     product_id BIGINT,
     request_type ENUM('IN', 'OUT', 'ADJUST_IN', 'ADJUST_OUT') NOT NULL,
     expected_date DATE NULL,
+    request_status VARCHAR(20) DEFAULT 'PENDING',
     note TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (set_id) REFERENCES request_sets(set_id),
@@ -210,14 +211,32 @@ CREATE TABLE inventory_requests (
     INDEX idx_request_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2.14 Bảng inventory_request_items (Chi tiết từng item trong phiếu)
+-- 2.14a Bảng unit_employees (Nhân viên đơn vị — dùng cho xuất vải Mẫu 2)
+CREATE TABLE unit_employees (
+    employee_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    unit_id BIGINT NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    position_id BIGINT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (unit_id) REFERENCES units(unit_id),
+    FOREIGN KEY (position_id) REFERENCES positions(position_id),
+    INDEX idx_employee_unit (unit_id),
+    INDEX idx_employee_name (full_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.14b Bảng inventory_request_items (Chi tiết từng item trong phiếu)
 CREATE TABLE inventory_request_items (
     item_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     request_id BIGINT NOT NULL,
     variant_id BIGINT NOT NULL,
-    quantity INT NOT NULL DEFAULT 0,
+    quantity DECIMAL(10,2) NOT NULL DEFAULT 0,
+    worker_note VARCHAR(200) NULL,
+    fabric_note VARCHAR(200) NULL,
+    employee_id BIGINT NULL,
+    garment_quantity VARCHAR(10) NULL,
     FOREIGN KEY (request_id) REFERENCES inventory_requests(request_id) ON DELETE CASCADE,
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id),
+    FOREIGN KEY (employee_id) REFERENCES unit_employees(employee_id),
     INDEX idx_item_request (request_id),
     INDEX idx_item_variant (variant_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -242,7 +261,7 @@ CREATE TABLE receipt_items (
     receipt_id BIGINT NOT NULL,
     request_id BIGINT NOT NULL,
     variant_id BIGINT NOT NULL,
-    received_quantity INT NOT NULL,
+    received_quantity DECIMAL(10,2) NOT NULL,
     FOREIGN KEY (receipt_id) REFERENCES receipt_records(receipt_id) ON DELETE CASCADE,
     FOREIGN KEY (request_id) REFERENCES inventory_requests(request_id),
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id),
@@ -356,7 +375,7 @@ INSERT INTO products (product_name, variant_type, note, created_at) VALUES
 ('ÁO PHÔNG 2026', 'STRUCTURED', 'Size(XS-6XL) + Gender(NAM/NỮ) + Length(Cộc/Dài)', '2026-01-01 00:00:00'),
 ('ÁO LEN + GILE LEN 2026', 'STRUCTURED', 'Size(XS-6XL) + Gender(NAM/NỮ)', '2026-01-01 00:00:00'),
 ('GILE BẢO HỘ 2026', 'STRUCTURED', 'Size(XS-6XL) + Gender(NAM/NỮ)', '2026-01-01 00:00:00'),
-('BẢO HỘ LAO ĐỘNG 2026', 'ITEM_BASED', '15 items hỗn hợp (giày, áo mưa, mũ...)', '2026-01-01 00:00:00'),
+('BẢO HỘ LAO ĐỘNG CÓ SIZE 2026', 'STRUCTURED', 'Parent: Giày BH + Áo mưa', '2026-01-01 00:00:00'),
 ('NHẬP XUẤT VẢI 2026', 'ITEM_BASED', '31 mã vải', '2026-01-01 00:00:00'),
 ('PHỤ KIỆN 2026', 'ITEM_BASED', '49 mã phụ kiện', '2026-01-01 00:00:00'),
 ('PHỤ LIỆU 2026', 'ITEM_BASED', '~250 mã phụ liệu', '2026-01-01 00:00:00');
@@ -376,6 +395,15 @@ INSERT INTO products (product_name, variant_type, parent_product_id, note, creat
 -- product_id = 14
 INSERT INTO products (product_name, variant_type, parent_product_id, note, created_at) VALUES
 ('Áo Gile bảo hộ Bưu điện - Kaky vàng', 'STRUCTURED', 6, 'Gile BH 2026 - Bưu điện', NOW());
+-- product_id = 15
+INSERT INTO products (product_name, variant_type, parent_product_id, note, created_at) VALUES
+('Giày BH', 'STRUCTURED', 7, 'Giày bảo hộ size 38-45', NOW());
+-- product_id = 16
+INSERT INTO products (product_name, variant_type, parent_product_id, note, created_at) VALUES
+('Bộ áo mưa', 'STRUCTURED', 7, 'Áo mưa size S-4XL', NOW());
+-- product_id = 17
+INSERT INTO products (product_name, variant_type, note, created_at) VALUES
+('BẢO HỘ LAO ĐỘNG 2026', 'ITEM_BASED', 'Mũ, túi, balo...', NOW());
 
 -- 3.7 Product Variants
 -- ====== Product 1: SƠ MI NAM 2025 (88 biến thể = 4 styles x 11 sizes x 2 lengths) ======
@@ -442,26 +470,22 @@ INSERT INTO product_variants (product_id, size_id, gender) VALUES
 (14, 12, 'NU'), (14, 13, 'NU'), (14, 14, 'NU'), (14, 15, 'NU'), (14, 16, 'NU'),
 (14, 17, 'NU'), (14, 18, 'NU'), (14, 19, 'NU'), (14, 20, 'NU'), (14, 21, 'NU');
 
--- ====== Product 7: BẢO HỘ LAO ĐỘNG 2026 (ITEM_BASED — 15 items) ======
+-- ====== Product 7: BẢO HỘ LAO ĐỘNG CÓ SIZE 2026 → Parent ======
+-- ====== Product 15: Giày BH (child của SP7) — STRUCTURED, size 38-45 (no gender) ======
+-- size_id: 4=38, 5=39, 6=40, 7=41, 8=42, 9=43, 10=44, 11=45
+INSERT INTO product_variants (product_id, size_id) VALUES
+(15, 4), (15, 5), (15, 6), (15, 7), (15, 8), (15, 9), (15, 10), (15, 11);
+
+-- ====== Product 16: Bộ áo mưa (child của SP7) — STRUCTURED, size S-4XL (no gender) ======
+-- size_id: 13=S, 14=M, 15=L, 16=XL, 17=2XL, 18=3XL, 19=4XL
+INSERT INTO product_variants (product_id, size_id) VALUES
+(16, 13), (16, 14), (16, 15), (16, 16), (16, 17), (16, 18), (16, 19);
+
+-- ====== Product 17: BẢO HỘ LAO ĐỘNG 2026 (ITEM_BASED — 3 items) ======
 INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
-(7, 'GIAY-38', 'Giày BH size 38', 'đôi'),
-(7, 'GIAY-39', 'Giày BH size 39', 'đôi'),
-(7, 'GIAY-40', 'Giày BH size 40', 'đôi'),
-(7, 'GIAY-41', 'Giày BH size 41', 'đôi'),
-(7, 'GIAY-42', 'Giày BH size 42', 'đôi'),
-(7, 'GIAY-43', 'Giày BH size 43', 'đôi'),
-(7, 'GIAY-44', 'Giày BH size 44', 'đôi'),
-(7, 'GIAY-45', 'Giày BH size 45', 'đôi'),
-(7, 'AM-S', 'Bộ áo mưa size S', 'bộ'),
-(7, 'AM-M', 'Bộ áo mưa size M', 'bộ'),
-(7, 'AM-L', 'Bộ áo mưa size L', 'bộ'),
-(7, 'AM-XL', 'Bộ áo mưa size XL', 'bộ'),
-(7, 'AM-2XL', 'Bộ áo mưa size 2XL', 'bộ'),
-(7, 'AM-3XL', 'Bộ áo mưa size 3XL', 'bộ'),
-(7, 'AM-4XL', 'Bộ áo mưa size 4XL', 'bộ'),
-(7, 'M1', 'Mũ BHLĐ', 'chiếc'),
-(7, 'TUI1', 'Túi đựng dụng cụ', 'chiếc'),
-(7, 'BL1', 'Balo VNPT', 'chiếc');
+(17, 'M1', 'Mũ BHLĐ', 'chiếc'),
+(17, 'TUI1', 'Túi đựng dụng cụ', 'chiếc'),
+(17, 'BL1', 'Balo VNPT', 'chiếc');
 
 -- Product 8: NHẬP XUẤT VẢI 2026 (31 mã — ITEM_BASED)
 INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
@@ -960,7 +984,11 @@ INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note,
 SELECT 1, u.unit_id, 14, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 7, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+SELECT 1, u.unit_id, 15, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
+SELECT 1, u.unit_id, 16, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
+SELECT 1, u.unit_id, 17, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
 SELECT 1, u.unit_id, 8, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
@@ -1070,7 +1098,36 @@ BEGIN
     END IF;
 END//
 
--- Procedure cho ITEM_BASED — SP7,8,9,10
+-- Procedure cho STRUCTURED với size only (không gender, không length) — SP15,16
+DROP PROCEDURE IF EXISTS insert_item_by_size//
+CREATE PROCEDURE insert_item_by_size(
+    IN p_product_id BIGINT,
+    IN p_size_value VARCHAR(10),
+    IN p_quantity INT
+)
+BEGIN
+    DECLARE v_variant_id BIGINT;
+    DECLARE v_request_id BIGINT;
+
+    SELECT r.request_id INTO v_request_id
+    FROM inventory_requests r WHERE r.set_id = 1 AND r.product_id = p_product_id;
+
+    IF p_quantity > 0 AND v_request_id IS NOT NULL THEN
+        SELECT pv.variant_id INTO v_variant_id
+        FROM product_variants pv
+        JOIN sizes sz ON sz.size_id = pv.size_id
+        WHERE pv.product_id = p_product_id
+          AND sz.size_value = p_size_value
+          AND pv.gender IS NULL;
+
+        IF v_variant_id IS NOT NULL THEN
+            INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+            VALUES (v_request_id, v_variant_id, p_quantity);
+        END IF;
+    END IF;
+END//
+
+-- Procedure cho ITEM_BASED — SP17,8,9,10
 DROP PROCEDURE IF EXISTS insert_item_by_code//
 CREATE PROCEDURE insert_item_by_code(
     IN p_product_id BIGINT,
@@ -1306,27 +1363,37 @@ CALL insert_item_by_gender(14, '5XL', 'NU', 2);
 CALL insert_item_by_gender(14, '6XL', 'NU', 1);
 
 -- =====================================================
--- Product 7: BẢO HỘ LAO ĐỘNG 2026 — Nhập kho ban đầu
+-- Product 15: Giày BH (child của SP7) — Nhập kho ban đầu
+-- STRUCTURED: size only (38-45)
+-- =====================================================
+CALL insert_item_by_size(15, '38', 15);
+CALL insert_item_by_size(15, '39', 25);
+CALL insert_item_by_size(15, '40', 35);
+CALL insert_item_by_size(15, '41', 40);
+CALL insert_item_by_size(15, '42', 38);
+CALL insert_item_by_size(15, '43', 20);
+CALL insert_item_by_size(15, '44', 12);
+CALL insert_item_by_size(15, '45', 8);
+
+-- =====================================================
+-- Product 16: Bộ áo mưa (child của SP7) — Nhập kho ban đầu
+-- STRUCTURED: size only (S-4XL)
+-- =====================================================
+CALL insert_item_by_size(16, 'S', 10);
+CALL insert_item_by_size(16, 'M', 20);
+CALL insert_item_by_size(16, 'L', 25);
+CALL insert_item_by_size(16, 'XL', 22);
+CALL insert_item_by_size(16, '2XL', 15);
+CALL insert_item_by_size(16, '3XL', 10);
+CALL insert_item_by_size(16, '4XL', 5);
+
+-- =====================================================
+-- Product 17: BẢO HỘ LAO ĐỘNG 2026 — Nhập kho ban đầu
 -- ITEM_BASED
 -- =====================================================
-CALL insert_item_by_code(7, 'GIAY-38', 15);
-CALL insert_item_by_code(7, 'GIAY-39', 25);
-CALL insert_item_by_code(7, 'GIAY-40', 35);
-CALL insert_item_by_code(7, 'GIAY-41', 40);
-CALL insert_item_by_code(7, 'GIAY-42', 38);
-CALL insert_item_by_code(7, 'GIAY-43', 20);
-CALL insert_item_by_code(7, 'GIAY-44', 12);
-CALL insert_item_by_code(7, 'GIAY-45', 8);
-CALL insert_item_by_code(7, 'AM-S', 10);
-CALL insert_item_by_code(7, 'AM-M', 20);
-CALL insert_item_by_code(7, 'AM-L', 25);
-CALL insert_item_by_code(7, 'AM-XL', 22);
-CALL insert_item_by_code(7, 'AM-2XL', 15);
-CALL insert_item_by_code(7, 'AM-3XL', 10);
-CALL insert_item_by_code(7, 'AM-4XL', 5);
-CALL insert_item_by_code(7, 'M1', 50);
-CALL insert_item_by_code(7, 'TUI1', 30);
-CALL insert_item_by_code(7, 'BL1', 20);
+CALL insert_item_by_code(17, 'M1', 50);
+CALL insert_item_by_code(17, 'TUI1', 30);
+CALL insert_item_by_code(17, 'BL1', 20);
 
 -- =====================================================
 -- Product 8: NHẬP XUẤT VẢI 2026 — Nhập kho ban đầu

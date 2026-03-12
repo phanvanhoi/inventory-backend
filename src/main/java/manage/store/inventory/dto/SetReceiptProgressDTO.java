@@ -1,5 +1,6 @@
 package manage.store.inventory.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -37,9 +38,9 @@ public class SetReceiptProgressDTO {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class OverallSummary {
-        private int totalProposed;
-        private int totalReceived;
-        private int totalRemaining;
+        private BigDecimal totalProposed;
+        private BigDecimal totalReceived;
+        private BigDecimal totalRemaining;
         private double overallPercentage;
         private int receiptCount;        // Số lần nhận hàng
         private LocalDateTime firstReceivedAt;
@@ -60,9 +61,9 @@ public class SetReceiptProgressDTO {
         private String requestType;     // IN, OUT, ADJUST_IN, ADJUST_OUT
 
         // Tổng hợp phiếu
-        private int totalProposed;
-        private int totalReceived;
-        private int totalRemaining;
+        private BigDecimal totalProposed;
+        private BigDecimal totalReceived;
+        private BigDecimal totalRemaining;
         private double percentage;
 
         // Chi tiết từng biến thể
@@ -85,9 +86,9 @@ public class SetReceiptProgressDTO {
         private String itemName;
         private String unit;
 
-        private int proposedQuantity;
-        private int totalReceived;
-        private int remainingQuantity;
+        private BigDecimal proposedQuantity;
+        private BigDecimal totalReceived;
+        private BigDecimal remainingQuantity;
         private double percentage;
 
         // Lịch sử các lần nhận cho variant này
@@ -104,7 +105,7 @@ public class SetReceiptProgressDTO {
         private Long receiptId;
         private LocalDateTime receivedAt;
         private String receivedByName;
-        private int receivedQuantity;
+        private BigDecimal receivedQuantity;
     }
 
     // =========================================================
@@ -119,6 +120,6 @@ public class SetReceiptProgressDTO {
         private String receivedByName;
         private String note;
         private int totalItems;        // Số biến thể nhận trong lần này
-        private int totalQuantity;     // Tổng số lượng nhận trong lần này
+        private BigDecimal totalQuantity;     // Tổng số lượng nhận trong lần này
     }
 }

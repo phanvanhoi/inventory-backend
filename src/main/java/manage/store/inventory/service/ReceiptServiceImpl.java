@@ -1,5 +1,6 @@
 package manage.store.inventory.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -177,14 +178,14 @@ public class ReceiptServiceImpl implements ReceiptService {
         for (InventoryRequest request : requests) {
             List<InventoryRequestItem> items = itemRepository.findByRequestId(request.getRequestId());
             for (InventoryRequestItem item : items) {
-                Integer totalReceived = receiptItemRepository.getTotalReceivedByRequestAndVariant(
+                BigDecimal totalReceived = receiptItemRepository.getTotalReceivedByRequestAndVariant(
                         setId, request.getRequestId(), item.getVariantId());
-                if (totalReceived != null && totalReceived > 0) {
+                if (totalReceived != null && totalReceived.compareTo(BigDecimal.ZERO) > 0) {
                     item.setQuantity(totalReceived);
                     itemRepository.save(item);
                 } else {
                     // Variant không có receipt nào → quantity = 0
-                    item.setQuantity(0);
+                    item.setQuantity(BigDecimal.ZERO);
                     itemRepository.save(item);
                 }
             }
@@ -198,11 +199,11 @@ public class ReceiptServiceImpl implements ReceiptService {
                 // Validate tồn kho thực tế trước khi chuyển ADJUST_OUT → OUT
                 List<InventoryRequestItem> outItems = itemRepository.findByRequestId(request.getRequestId());
                 for (InventoryRequestItem outItem : outItems) {
-                    if (outItem.getQuantity() > 0) {
-                        Integer actualQty = inventoryRepository.getActualQuantityByVariant(
+                    if (outItem.getQuantity().compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal actualQty = inventoryRepository.getActualQuantityByVariant(
                                 request.getProductId(), outItem.getVariantId());
-                        if (actualQty == null) actualQty = 0;
-                        if (outItem.getQuantity() > actualQty) {
+                        if (actualQty == null) actualQty = BigDecimal.ZERO;
+                        if (outItem.getQuantity().compareTo(actualQty) > 0) {
                             throw new RuntimeException(
                                     "Không thể hoàn tất: số lượng xuất (" + outItem.getQuantity() +
                                     ") vượt quá tồn kho thực tế (" + actualQty + "). " +
@@ -293,8 +294,8 @@ public class ReceiptServiceImpl implements ReceiptService {
         List<InventoryRequest> requests = requestRepository.findBySetId(setId);
         List<SetReceiptProgressDTO.RequestProgress> requestProgressList = new ArrayList<>();
 
-        int grandTotalProposed = 0;
-        int grandTotalReceived = 0;
+        BigDecimal grandTotalProposed = BigDecimal.ZERO;
+        BigDecimal grandTotalReceived = BigDecimal.ZERO;
 
         for (InventoryRequest request : requests) {
             SetReceiptProgressDTO.RequestProgress rp = new SetReceiptProgressDTO.RequestProgress();
@@ -315,19 +316,19 @@ public class ReceiptServiceImpl implements ReceiptService {
                     .findItemDetailsByRequestId(request.getRequestId());
 
             List<SetReceiptProgressDTO.ItemProgress> itemProgressList = new ArrayList<>();
-            int requestTotalProposed = 0;
-            int requestTotalReceived = 0;
+            BigDecimal requestTotalProposed = BigDecimal.ZERO;
+            BigDecimal requestTotalReceived = BigDecimal.ZERO;
 
             for (ItemDetailDTO itemDetail : itemDetails) {
-                Integer totalReceived = receiptItemRepository.getTotalReceivedByRequestAndVariant(
+                BigDecimal totalReceived = receiptItemRepository.getTotalReceivedByRequestAndVariant(
                         setId, request.getRequestId(), itemDetail.getVariantId());
-                if (totalReceived == null) totalReceived = 0;
+                if (totalReceived == null) totalReceived = BigDecimal.ZERO;
 
-                int proposed = itemDetail.getQuantity() != null ? itemDetail.getQuantity() : 0;
-                int remaining = Math.max(0, proposed - totalReceived);
-                double pct = proposed > 0
-                        ? Math.round((double) totalReceived / proposed * 100.0 * 100.0) / 100.0
-                        : (totalReceived > 0 ? 100.0 : 0.0);
+                BigDecimal proposed = itemDetail.getQuantity() != null ? itemDetail.getQuantity() : BigDecimal.ZERO;
+                BigDecimal remaining = proposed.subtract(totalReceived).max(BigDecimal.ZERO);
+                double pct = proposed.compareTo(BigDecimal.ZERO) > 0
+                        ? Math.round(totalReceived.doubleValue() / proposed.doubleValue() * 100.0 * 100.0) / 100.0
+                        : (totalReceived.compareTo(BigDecimal.ZERO) > 0 ? 100.0 : 0.0);
 
                 // Lịch sử nhận cho variant này
                 List<ReceiptEntryProjection> entries = receiptItemRepository
@@ -358,14 +359,14 @@ public class ReceiptServiceImpl implements ReceiptService {
                 ip.setReceiptHistory(receiptHistory);
                 itemProgressList.add(ip);
 
-                requestTotalProposed += proposed;
-                requestTotalReceived += totalReceived;
+                requestTotalProposed = requestTotalProposed.add(proposed);
+                requestTotalReceived = requestTotalReceived.add(totalReceived);
             }
 
-            int requestRemaining = Math.max(0, requestTotalProposed - requestTotalReceived);
-            double requestPct = requestTotalProposed > 0
-                    ? Math.round((double) requestTotalReceived / requestTotalProposed * 100.0 * 100.0) / 100.0
-                    : (requestTotalReceived > 0 ? 100.0 : 0.0);
+            BigDecimal requestRemaining = requestTotalProposed.subtract(requestTotalReceived).max(BigDecimal.ZERO);
+            double requestPct = requestTotalProposed.compareTo(BigDecimal.ZERO) > 0
+                    ? Math.round(requestTotalReceived.doubleValue() / requestTotalProposed.doubleValue() * 100.0 * 100.0) / 100.0
+                    : (requestTotalReceived.compareTo(BigDecimal.ZERO) > 0 ? 100.0 : 0.0);
 
             rp.setTotalProposed(requestTotalProposed);
             rp.setTotalReceived(requestTotalReceived);
@@ -374,8 +375,8 @@ public class ReceiptServiceImpl implements ReceiptService {
             rp.setItems(itemProgressList);
             requestProgressList.add(rp);
 
-            grandTotalProposed += requestTotalProposed;
-            grandTotalReceived += requestTotalReceived;
+            grandTotalProposed = grandTotalProposed.add(requestTotalProposed);
+            grandTotalReceived = grandTotalReceived.add(requestTotalReceived);
         }
 
         result.setRequests(requestProgressList);
@@ -390,16 +391,16 @@ public class ReceiptServiceImpl implements ReceiptService {
             tl.setReceivedByName(row.getReceivedByName());
             tl.setNote(row.getNote());
             tl.setTotalItems(row.getTotalItems() != null ? row.getTotalItems() : 0);
-            tl.setTotalQuantity(row.getTotalQuantity() != null ? row.getTotalQuantity() : 0);
+            tl.setTotalQuantity(row.getTotalQuantity() != null ? row.getTotalQuantity() : BigDecimal.ZERO);
             timeline.add(tl);
         }
         result.setTimeline(timeline);
 
         // ── Build overall summary ──
-        int grandRemaining = Math.max(0, grandTotalProposed - grandTotalReceived);
-        double overallPct = grandTotalProposed > 0
-                ? Math.round((double) grandTotalReceived / grandTotalProposed * 100.0 * 100.0) / 100.0
-                : (grandTotalReceived > 0 ? 100.0 : 0.0);
+        BigDecimal grandRemaining = grandTotalProposed.subtract(grandTotalReceived).max(BigDecimal.ZERO);
+        double overallPct = grandTotalProposed.compareTo(BigDecimal.ZERO) > 0
+                ? Math.round(grandTotalReceived.doubleValue() / grandTotalProposed.doubleValue() * 100.0 * 100.0) / 100.0
+                : (grandTotalReceived.compareTo(BigDecimal.ZERO) > 0 ? 100.0 : 0.0);
 
         SetReceiptProgressDTO.OverallSummary summary = new SetReceiptProgressDTO.OverallSummary();
         summary.setTotalProposed(grandTotalProposed);

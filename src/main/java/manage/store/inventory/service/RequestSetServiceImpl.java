@@ -1,5 +1,6 @@
 package manage.store.inventory.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import manage.store.inventory.dto.ApprovalHistoryDTO;
 import manage.store.inventory.dto.InventoryRequestCreateDTO;
 import manage.store.inventory.dto.InventoryRequestDetailDTO;
+import manage.store.inventory.dto.RequestCompleteResponseDTO;
 import manage.store.inventory.dto.RequestSetCreateDTO;
 import manage.store.inventory.dto.RequestSetDetailDTO;
 import manage.store.inventory.dto.RequestSetListDTO;
@@ -207,6 +209,7 @@ public class RequestSetServiceImpl implements RequestSetService {
         );
         request.setExpectedDate(dto.getExpectedDate());
         request.setNote(dto.getNote());
+        request.setRequestStatus("PENDING");
         request.setCreatedAt(LocalDateTime.now());
         request.setSetId(setId);
 
@@ -220,7 +223,7 @@ public class RequestSetServiceImpl implements RequestSetService {
                 .orElseThrow(() -> new RuntimeException("Product not found: " + dto.getProductId()));
 
         for (InventoryRequestCreateDTO.ItemDTO item : dto.getItems()) {
-            if (item.getQuantity() == null || item.getQuantity() <= 0) {
+            if (item.getQuantity() == null || item.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
                 continue;
             }
 
@@ -230,6 +233,10 @@ public class RequestSetServiceImpl implements RequestSetService {
             requestItem.setRequestId(request.getRequestId());
             requestItem.setVariantId(variant.getVariantId());
             requestItem.setQuantity(item.getQuantity());
+            requestItem.setWorkerNote(item.getWorkerNote());
+            requestItem.setFabricNote(item.getFabricNote());
+            requestItem.setEmployeeId(item.getEmployeeId());
+            requestItem.setGarmentQuantity(item.getGarmentQuantity());
 
             itemRepository.save(requestItem);
         }
@@ -266,6 +273,13 @@ public class RequestSetServiceImpl implements RequestSetService {
                     .orElseThrow(() -> new RuntimeException("Variant not found: productId=" + product.getProductId()
                             + ", size=" + item.getSizeValue() + ", gender=" + item.getGender()));
         }
+        // STRUCTURED: chỉ size (Giày BH, Bộ áo mưa)
+        if (item.getSizeValue() != null) {
+            return variantRepository
+                    .findStructuredVariantWithSizeOnly(product.getProductId(), item.getSizeValue())
+                    .orElseThrow(() -> new RuntimeException("Variant not found: productId=" + product.getProductId()
+                            + ", size=" + item.getSizeValue()));
+        }
         throw new RuntimeException("Không thể xác định variant cho product: " + product.getProductId());
     }
 
@@ -282,7 +296,7 @@ public class RequestSetServiceImpl implements RequestSetService {
                 .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
 
         for (InventoryRequestCreateDTO.ItemDTO item : dto.getItems()) {
-            if (item.getQuantity() == null || item.getQuantity() <= 0) {
+            if (item.getQuantity() == null || item.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
                 continue;
             }
 
@@ -290,10 +304,10 @@ public class RequestSetServiceImpl implements RequestSetService {
 
             if ("OUT".equals(requestType)) {
                 // OUT: Validate với tồn thực tế
-                Integer actualQty = inventoryRepository.getActualQuantityByVariant(productId, variant.getVariantId());
-                if (actualQty == null) actualQty = 0;
+                BigDecimal actualQty = inventoryRepository.getActualQuantityByVariant(productId, variant.getVariantId());
+                if (actualQty == null) actualQty = BigDecimal.ZERO;
 
-                if (item.getQuantity() > actualQty) {
+                if (item.getQuantity().compareTo(actualQty) > 0) {
                     throw new IllegalArgumentException(
                             "Số lượng xuất (" + item.getQuantity() + ") vượt quá tồn kho thực tế (" + actualQty + ") " +
                             "cho biến thể: size=" + item.getSizeValue() + ", length=" + item.getLengthCode()
@@ -301,12 +315,12 @@ public class RequestSetServiceImpl implements RequestSetService {
                 }
             } else if ("ADJUST_OUT".equals(requestType)) {
                 // ADJUST_OUT: Validate với tồn dự kiến tại expected_date
-                Integer expectedQty = inventoryRepository.getExpectedQuantityByVariantAtDate(
+                BigDecimal expectedQty = inventoryRepository.getExpectedQuantityByVariantAtDate(
                         productId, variant.getVariantId(), dto.getExpectedDate()
                 );
-                if (expectedQty == null) expectedQty = 0;
+                if (expectedQty == null) expectedQty = BigDecimal.ZERO;
 
-                if (item.getQuantity() > expectedQty) {
+                if (item.getQuantity().compareTo(expectedQty) > 0) {
                     throw new IllegalArgumentException(
                             "Số lượng dự kiến xuất (" + item.getQuantity() + ") vượt quá tồn kho dự kiến (" + expectedQty + ") " +
                             "tại ngày " + dto.getExpectedDate() + " " +
@@ -671,10 +685,10 @@ public class RequestSetServiceImpl implements RequestSetService {
             if (request.getRequestType() == InventoryRequest.RequestType.ADJUST_OUT) {
                 List<InventoryRequestItem> items = itemRepository.findByRequestId(request.getRequestId());
                 for (InventoryRequestItem item : items) {
-                    Integer actualQty = inventoryRepository.getActualQuantityByVariant(
+                    BigDecimal actualQty = inventoryRepository.getActualQuantityByVariant(
                             request.getProductId(), item.getVariantId());
-                    if (actualQty == null) actualQty = 0;
-                    if (item.getQuantity() > actualQty) {
+                    if (actualQty == null) actualQty = BigDecimal.ZERO;
+                    if (item.getQuantity().compareTo(actualQty) > 0) {
                         throw new RuntimeException(
                                 "Không thể xuất kho: số lượng xuất (" + item.getQuantity() +
                                 ") vượt quá tồn kho thực tế (" + actualQty + "). " +
@@ -832,7 +846,7 @@ public class RequestSetServiceImpl implements RequestSetService {
                         "Item " + itemUpdate.getItemId() + " không thuộc bộ phiếu này");
             }
 
-            if (itemUpdate.getQuantity() == null || itemUpdate.getQuantity() < 0) {
+            if (itemUpdate.getQuantity() == null || itemUpdate.getQuantity().compareTo(BigDecimal.ZERO) < 0) {
                 throw new RuntimeException("Số lượng không hợp lệ cho item " + itemUpdate.getItemId());
             }
 
@@ -855,5 +869,110 @@ public class RequestSetServiceImpl implements RequestSetService {
 
         // 6. Thông báo cho Creator + tất cả ADMIN
         notificationService.notifyOfEditAndReceive(requestSet, user, dto.getReason());
+    }
+
+    // =====================================================
+    // COMPLETE REQUEST (Multi-warehouse)
+    // Thủ kho đánh dấu kho của mình đã hoàn thành
+    // =====================================================
+    @Override
+    public RequestCompleteResponseDTO completeRequest(Long requestId, Long userId) {
+        InventoryRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        if (!user.isStockkeeper()) {
+            throw new RuntimeException("Chỉ STOCKKEEPER mới có quyền đánh dấu hoàn thành");
+        }
+
+        if (request.getSetId() == null) {
+            throw new RuntimeException("Request không thuộc bộ phiếu nào");
+        }
+
+        RequestSet requestSet = requestSetRepository.findById(request.getSetId())
+                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + request.getSetId()));
+
+        // Set phải APPROVED hoặc RECEIVING
+        if (requestSet.getStatus() != RequestSetStatus.APPROVED
+                && requestSet.getStatus() != RequestSetStatus.RECEIVING) {
+            throw new RuntimeException("Bộ phiếu phải ở trạng thái APPROVED hoặc RECEIVING");
+        }
+
+        // Request chưa COMPLETED
+        if ("COMPLETED".equals(request.getRequestStatus())) {
+            throw new RuntimeException("Request này đã hoàn thành rồi");
+        }
+
+        // Validate tồn kho nếu là ADJUST_OUT
+        if (request.getRequestType() == InventoryRequest.RequestType.ADJUST_OUT) {
+            List<InventoryRequestItem> items = itemRepository.findByRequestId(requestId);
+            for (InventoryRequestItem item : items) {
+                BigDecimal actualQty = inventoryRepository.getActualQuantityByVariant(
+                        request.getProductId(), item.getVariantId());
+                if (actualQty == null) actualQty = BigDecimal.ZERO;
+                if (item.getQuantity().compareTo(actualQty) > 0) {
+                    throw new RuntimeException(
+                            "Không thể xuất kho: số lượng xuất (" + item.getQuantity() +
+                            ") vượt quá tồn kho thực tế (" + actualQty + ")");
+                }
+            }
+        }
+
+        // Chuyển ADJUST_IN → IN, ADJUST_OUT → OUT cho request này
+        if (request.getRequestType() == InventoryRequest.RequestType.ADJUST_IN) {
+            request.setRequestType(InventoryRequest.RequestType.IN);
+        } else if (request.getRequestType() == InventoryRequest.RequestType.ADJUST_OUT) {
+            request.setRequestType(InventoryRequest.RequestType.OUT);
+        }
+
+        // Đánh dấu request COMPLETED
+        request.setRequestStatus("COMPLETED");
+        requestRepository.save(request);
+
+        // Kiểm tra tất cả requests trong set
+        List<InventoryRequest> allRequests = requestRepository.findBySetId(request.getSetId());
+        int totalCount = allRequests.size();
+        int completedCount = (int) allRequests.stream()
+                .filter(r -> "COMPLETED".equals(r.getRequestStatus()))
+                .count();
+
+        // Cập nhật set status
+        if (completedCount == totalCount) {
+            // Tất cả hoàn thành → EXECUTED
+            requestSet.setStatus(RequestSetStatus.EXECUTED);
+            requestSet.setExecutedByUser(user);
+            requestSet.setExecutedAt(LocalDateTime.now());
+
+            // Log history
+            ApprovalHistory history = new ApprovalHistory();
+            history.setRequestSet(requestSet);
+            history.setAction(ApprovalAction.EXECUTE);
+            history.setPerformedBy(user);
+            history.setCreatedAt(LocalDateTime.now());
+            approvalHistoryRepository.save(history);
+
+            notificationService.notifyCreatorOfExecution(requestSet, user);
+        } else if (requestSet.getStatus() == RequestSetStatus.APPROVED) {
+            // Kho đầu tiên hoàn thành → RECEIVING
+            requestSet.setStatus(RequestSetStatus.RECEIVING);
+
+            ApprovalHistory history = new ApprovalHistory();
+            history.setRequestSet(requestSet);
+            history.setAction(ApprovalAction.RECEIVE);
+            history.setPerformedBy(user);
+            history.setCreatedAt(LocalDateTime.now());
+            approvalHistoryRepository.save(history);
+        }
+        requestSetRepository.save(requestSet);
+
+        return new RequestCompleteResponseDTO(
+                requestId,
+                request.getRequestStatus(),
+                requestSet.getStatus().name(),
+                completedCount,
+                totalCount
+        );
     }
 }

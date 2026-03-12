@@ -12,5 +12,5 @@ public interface ReceiptTimelineProjection {
     String getReceivedByName();
     String getNote();
     Integer getTotalItems();
-    Integer getTotalQuantity();
+    java.math.BigDecimal getTotalQuantity();
 }

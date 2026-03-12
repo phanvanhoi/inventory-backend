@@ -1,5 +1,7 @@
 package manage.store.inventory.dto;
 
+import java.math.BigDecimal;
+
 public interface ItemDetailDTO {
 
     Long getItemId();
@@ -12,5 +14,5 @@ public interface ItemDetailDTO {
     String getItemCode();
     String getItemName();
     String getUnit();
-    Integer getQuantity();
+    BigDecimal getQuantity();
 }

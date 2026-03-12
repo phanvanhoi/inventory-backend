@@ -24,7 +24,8 @@ public interface InventoryRequestRepository
           r.request_type    AS requestType,
           r.expected_date   AS expectedDate,
           r.note            AS note,
-          r.created_at      AS createdAt
+          r.created_at      AS createdAt,
+          r.request_status  AS requestStatus
         FROM inventory_requests r
         JOIN units u ON u.unit_id = r.unit_id
         LEFT JOIN positions pos ON pos.position_id = r.position_id
