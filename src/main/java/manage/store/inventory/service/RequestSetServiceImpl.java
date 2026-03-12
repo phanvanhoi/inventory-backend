@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +47,8 @@ import manage.store.inventory.repository.WarehouseRepository;
 @Service
 @Transactional
 public class RequestSetServiceImpl implements RequestSetService {
+
+    private static final Logger log = LoggerFactory.getLogger(RequestSetServiceImpl.class);
 
     private final RequestSetRepository requestSetRepository;
     private final InventoryRequestRepository requestRepository;
@@ -229,6 +233,10 @@ public class RequestSetServiceImpl implements RequestSetService {
 
         request = requestRepository.save(request);
 
+        log.info("[createRequestInSet] Created request #{} in set={}, warehouseId={}, type={}, itemCount={}",
+                request.getRequestId(), setId, request.getWarehouseId(), request.getRequestType(),
+                dto.getItems() != null ? dto.getItems().size() : 0);
+
         if (dto.getItems() == null) {
             return;
         }
@@ -253,6 +261,8 @@ public class RequestSetServiceImpl implements RequestSetService {
             requestItem.setGarmentQuantity(item.getGarmentQuantity());
 
             itemRepository.save(requestItem);
+            log.info("[createRequestInSet]   Item: requestId={}, variantId={}, qty={}",
+                    requestItem.getRequestId(), requestItem.getVariantId(), requestItem.getQuantity());
         }
     }
 
@@ -704,6 +714,12 @@ public class RequestSetServiceImpl implements RequestSetService {
 
         // Validate tồn kho thực tế trước khi chuyển ADJUST_OUT → OUT
         List<InventoryRequest> requests = requestRepository.findBySetId(setId);
+        log.info("[execute] SetId={}, total requests={}", setId, requests.size());
+        for (InventoryRequest request : requests) {
+            log.info("[execute]   Request #{}: warehouseId={}, type={}, productId={}",
+                    request.getRequestId(), request.getWarehouseId(),
+                    request.getRequestType(), request.getProductId());
+        }
         for (InventoryRequest request : requests) {
             if (request.getRequestType() == InventoryRequest.RequestType.ADJUST_OUT) {
                 List<InventoryRequestItem> items = itemRepository.findByRequestId(request.getRequestId());
