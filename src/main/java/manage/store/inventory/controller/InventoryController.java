@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import manage.store.inventory.dto.InventoryBalanceDTO;
 import manage.store.inventory.dto.InventoryBalanceViewDTO;
 import manage.store.inventory.dto.InventoryRequestHistoryDTO;
@@ -28,6 +31,8 @@ import manage.store.inventory.security.CurrentUser;
 @RestController
 @RequestMapping("/api/inventory")
 public class InventoryController {
+
+    private static final Logger log = LoggerFactory.getLogger(InventoryController.class);
 
     private final InventoryRepository inventoryRepository;
     private final ProductRepository productRepository;
@@ -86,6 +91,8 @@ public class InventoryController {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
 
+        log.info("[getInventoryByProduct] productId={}, warehouseId={}", productId, warehouseId);
+
         List<InventoryBalanceDTO> rawData;
         if (warehouseId != null) {
             rawData = inventoryRepository.getInventoryByProductIdAndWarehouse(productId, warehouseId);
@@ -94,6 +101,13 @@ public class InventoryController {
         }
         boolean canViewExpected = canViewExpectedQuantity();
         List<InventoryBalanceViewDTO> data = convertToViewDTO(rawData, canViewExpected);
+
+        // Debug: log first few items with non-zero quantities
+        data.stream()
+            .filter(d -> d.getActualQuantity() != null && d.getActualQuantity().doubleValue() != 0)
+            .limit(5)
+            .forEach(d -> log.info("[getInventoryByProduct]   variant={} actual={} expected={}",
+                d.getVariantId(), d.getActualQuantity(), d.getExpectedQuantity()));
 
         return new ProductInventoryViewDTO(
                 product.getProductId(),
@@ -115,6 +129,7 @@ public class InventoryController {
     public List<ProductInventoryViewDTO> getAllInventory(
             @RequestParam(value = "warehouseId", required = false) Long warehouseId
     ) {
+        log.info("[getAllInventory] warehouseId={}", warehouseId);
         // Bỏ parent products (chỉ lấy products không có children = leaf products)
         List<Product> products = productRepository.findLeafProducts();
         boolean canViewExpected = canViewExpectedQuantity();
@@ -145,12 +160,14 @@ public class InventoryController {
     /**
      * Lấy lịch sử các requests theo product ID và filter
      * GET /api/inventory/{productId}/history?filter=CỔ ĐIỂN
+     * GET /api/inventory/{productId}/history?filter=CỔ ĐIỂN&warehouseId=1
      * filter = styleName (STRUCTURED with style) hoặc gender (STRUCTURED with gender) hoặc null (ITEM_BASED)
      */
     @GetMapping("/{productId}/history")
     public RequestHistoryMatrixDTO getRequestHistory(
             @PathVariable Long productId,
-            @RequestParam(value = "filter", required = false) String filterValue
+            @RequestParam(value = "filter", required = false) String filterValue,
+            @RequestParam(value = "warehouseId", required = false) Long warehouseId
     ) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
@@ -159,9 +176,9 @@ public class InventoryController {
 
         List<InventoryRequestHistoryDTO> rawData;
         if (canViewApproved) {
-            rawData = inventoryRepository.getRequestHistoryByProductAndStyle(productId, filterValue);
+            rawData = inventoryRepository.getRequestHistoryByProductAndStyle(productId, filterValue, warehouseId);
         } else {
-            rawData = inventoryRepository.getRequestHistoryByProductAndStyleExecutedOnly(productId, filterValue);
+            rawData = inventoryRepository.getRequestHistoryByProductAndStyleExecutedOnly(productId, filterValue, warehouseId);
         }
 
         String variantType = product.getVariantType().name();

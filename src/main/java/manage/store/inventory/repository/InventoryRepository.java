@@ -255,6 +255,7 @@ public interface InventoryRepository
             LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
+              AND (:warehouseId IS NULL OR r.warehouse_id = :warehouseId)
               AND rs.status IN ('APPROVED', 'RECEIVING', 'EXECUTED')
             UNION ALL
             SELECT
@@ -289,6 +290,7 @@ public interface InventoryRepository
             LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
+              AND (:warehouseId IS NULL OR r.warehouse_id = :warehouseId)
               AND rs.status IN ('RECEIVING', 'EXECUTED')
         ) combined
         ORDER BY createdAt DESC, sizeValue, lengthCode
@@ -297,7 +299,8 @@ public interface InventoryRepository
     )
     List<InventoryRequestHistoryDTO> getRequestHistoryByProductAndStyle(
             @Param("productId") Long productId,
-            @Param("filterValue") String filterValue
+            @Param("filterValue") String filterValue,
+            @Param("warehouseId") Long warehouseId
     );
 
     /**
@@ -338,6 +341,7 @@ public interface InventoryRepository
             LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
+              AND (:warehouseId IS NULL OR r.warehouse_id = :warehouseId)
               AND rs.status IN ('RECEIVING', 'EXECUTED')
             UNION ALL
             SELECT
@@ -372,6 +376,7 @@ public interface InventoryRepository
             LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
+              AND (:warehouseId IS NULL OR r.warehouse_id = :warehouseId)
               AND rs.status IN ('RECEIVING', 'EXECUTED')
         ) combined
         ORDER BY createdAt DESC, sizeValue, lengthCode
@@ -380,7 +385,8 @@ public interface InventoryRepository
     )
     List<InventoryRequestHistoryDTO> getRequestHistoryByProductAndStyleExecutedOnly(
             @Param("productId") Long productId,
-            @Param("filterValue") String filterValue
+            @Param("filterValue") String filterValue,
+            @Param("warehouseId") Long warehouseId
     );
 
     /**
