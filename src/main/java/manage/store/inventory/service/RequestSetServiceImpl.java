@@ -40,6 +40,7 @@ import manage.store.inventory.repository.ProductRepository;
 import manage.store.inventory.repository.ProductVariantRepository;
 import manage.store.inventory.repository.RequestSetRepository;
 import manage.store.inventory.repository.UserRepository;
+import manage.store.inventory.repository.WarehouseRepository;
 
 @Service
 @Transactional
@@ -56,6 +57,7 @@ public class RequestSetServiceImpl implements RequestSetService {
     private final InventoryRepository inventoryRepository;
     private final PositionRepository positionRepository;
     private final ProductRepository productRepository;
+    private final WarehouseRepository warehouseRepository;
 
     public RequestSetServiceImpl(
             RequestSetRepository requestSetRepository,
@@ -68,7 +70,8 @@ public class RequestSetServiceImpl implements RequestSetService {
             NotificationService notificationService,
             InventoryRepository inventoryRepository,
             PositionRepository positionRepository,
-            ProductRepository productRepository
+            ProductRepository productRepository,
+            WarehouseRepository warehouseRepository
     ) {
         this.requestSetRepository = requestSetRepository;
         this.requestRepository = requestRepository;
@@ -81,6 +84,7 @@ public class RequestSetServiceImpl implements RequestSetService {
         this.inventoryRepository = inventoryRepository;
         this.positionRepository = positionRepository;
         this.productRepository = productRepository;
+        this.warehouseRepository = warehouseRepository;
     }
 
     @Override
@@ -213,6 +217,15 @@ public class RequestSetServiceImpl implements RequestSetService {
         request.setCreatedAt(LocalDateTime.now());
         request.setSetId(setId);
 
+        // Set warehouse (null = default warehouse)
+        if (dto.getWarehouseId() != null) {
+            request.setWarehouseId(dto.getWarehouseId());
+        } else {
+            request.setWarehouseId(warehouseRepository.findByIsDefaultTrue()
+                    .orElseThrow(() -> new RuntimeException("Default warehouse not found"))
+                    .getWarehouseId());
+        }
+
         request = requestRepository.save(request);
 
         if (dto.getItems() == null) {
@@ -292,6 +305,14 @@ public class RequestSetServiceImpl implements RequestSetService {
         String requestType = dto.getRequestType();
         Long productId = dto.getProductId();
 
+        // Resolve warehouse cho validate
+        Long warehouseId = dto.getWarehouseId();
+        if (warehouseId == null) {
+            warehouseId = warehouseRepository.findByIsDefaultTrue()
+                    .orElseThrow(() -> new RuntimeException("Default warehouse not found"))
+                    .getWarehouseId();
+        }
+
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
 
@@ -303,8 +324,9 @@ public class RequestSetServiceImpl implements RequestSetService {
             ProductVariant variant = resolveVariant(product, item);
 
             if ("OUT".equals(requestType)) {
-                // OUT: Validate với tồn thực tế
-                BigDecimal actualQty = inventoryRepository.getActualQuantityByVariant(productId, variant.getVariantId());
+                // OUT: Validate với tồn thực tế của kho cụ thể
+                BigDecimal actualQty = inventoryRepository.getActualQuantityByVariantAndWarehouse(
+                        productId, variant.getVariantId(), warehouseId);
                 if (actualQty == null) actualQty = BigDecimal.ZERO;
 
                 if (item.getQuantity().compareTo(actualQty) > 0) {
@@ -314,9 +336,9 @@ public class RequestSetServiceImpl implements RequestSetService {
                     );
                 }
             } else if ("ADJUST_OUT".equals(requestType)) {
-                // ADJUST_OUT: Validate với tồn dự kiến tại expected_date
-                BigDecimal expectedQty = inventoryRepository.getExpectedQuantityByVariantAtDate(
-                        productId, variant.getVariantId(), dto.getExpectedDate()
+                // ADJUST_OUT: Validate với tồn dự kiến tại expected_date của kho cụ thể
+                BigDecimal expectedQty = inventoryRepository.getExpectedQuantityByVariantAtDateAndWarehouse(
+                        productId, variant.getVariantId(), dto.getExpectedDate(), warehouseId
                 );
                 if (expectedQty == null) expectedQty = BigDecimal.ZERO;
 
@@ -685,8 +707,8 @@ public class RequestSetServiceImpl implements RequestSetService {
             if (request.getRequestType() == InventoryRequest.RequestType.ADJUST_OUT) {
                 List<InventoryRequestItem> items = itemRepository.findByRequestId(request.getRequestId());
                 for (InventoryRequestItem item : items) {
-                    BigDecimal actualQty = inventoryRepository.getActualQuantityByVariant(
-                            request.getProductId(), item.getVariantId());
+                    BigDecimal actualQty = inventoryRepository.getActualQuantityByVariantAndWarehouse(
+                            request.getProductId(), item.getVariantId(), request.getWarehouseId());
                     if (actualQty == null) actualQty = BigDecimal.ZERO;
                     if (item.getQuantity().compareTo(actualQty) > 0) {
                         throw new RuntimeException(
@@ -909,8 +931,8 @@ public class RequestSetServiceImpl implements RequestSetService {
         if (request.getRequestType() == InventoryRequest.RequestType.ADJUST_OUT) {
             List<InventoryRequestItem> items = itemRepository.findByRequestId(requestId);
             for (InventoryRequestItem item : items) {
-                BigDecimal actualQty = inventoryRepository.getActualQuantityByVariant(
-                        request.getProductId(), item.getVariantId());
+                BigDecimal actualQty = inventoryRepository.getActualQuantityByVariantAndWarehouse(
+                        request.getProductId(), item.getVariantId(), request.getWarehouseId());
                 if (actualQty == null) actualQty = BigDecimal.ZERO;
                 if (item.getQuantity().compareTo(actualQty) > 0) {
                     throw new RuntimeException(

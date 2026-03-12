@@ -200,8 +200,8 @@ public class ReceiptServiceImpl implements ReceiptService {
                 List<InventoryRequestItem> outItems = itemRepository.findByRequestId(request.getRequestId());
                 for (InventoryRequestItem outItem : outItems) {
                     if (outItem.getQuantity().compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal actualQty = inventoryRepository.getActualQuantityByVariant(
-                                request.getProductId(), outItem.getVariantId());
+                        BigDecimal actualQty = inventoryRepository.getActualQuantityByVariantAndWarehouse(
+                                request.getProductId(), outItem.getVariantId(), request.getWarehouseId());
                         if (actualQty == null) actualQty = BigDecimal.ZERO;
                         if (outItem.getQuantity().compareTo(actualQty) > 0) {
                             throw new RuntimeException(

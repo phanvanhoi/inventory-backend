@@ -25,11 +25,14 @@ public interface InventoryRequestRepository
           r.expected_date   AS expectedDate,
           r.note            AS note,
           r.created_at      AS createdAt,
-          r.request_status  AS requestStatus
+          r.request_status  AS requestStatus,
+          r.warehouse_id    AS warehouseId,
+          w.warehouse_name  AS warehouseName
         FROM inventory_requests r
-        JOIN units u ON u.unit_id = r.unit_id
+        LEFT JOIN units u ON u.unit_id = r.unit_id
         LEFT JOIN positions pos ON pos.position_id = r.position_id
         LEFT JOIN products p ON p.product_id = r.product_id
+        LEFT JOIN warehouses w ON w.warehouse_id = r.warehouse_id
         WHERE r.request_id = :requestId
       """,
             nativeQuery = true
@@ -50,7 +53,7 @@ public interface InventoryRequestRepository
       r.note            AS note,
       r.created_at      AS createdAt
     FROM inventory_requests r
-    JOIN units u ON u.unit_id = r.unit_id
+    LEFT JOIN units u ON u.unit_id = r.unit_id
     LEFT JOIN positions pos ON pos.position_id = r.position_id
     LEFT JOIN products p ON p.product_id = r.product_id
     ORDER BY r.created_at DESC

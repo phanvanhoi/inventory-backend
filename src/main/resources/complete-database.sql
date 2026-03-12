@@ -85,7 +85,16 @@ CREATE TABLE product_variants (
     INDEX idx_variant_item_code (item_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2.5 Bảng units (Đơn vị/Khách hàng)
+-- 2.5a Bảng warehouses (Kho)
+CREATE TABLE warehouses (
+    warehouse_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    warehouse_name VARCHAR(255) NOT NULL UNIQUE,
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_warehouse_name (warehouse_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.5b Bảng units (Đơn vị/Khách hàng)
 CREATE TABLE units (
     unit_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     unit_name VARCHAR(255) NOT NULL UNIQUE,
@@ -196,16 +205,19 @@ CREATE TABLE inventory_requests (
     request_type ENUM('IN', 'OUT', 'ADJUST_IN', 'ADJUST_OUT') NOT NULL,
     expected_date DATE NULL,
     request_status VARCHAR(20) DEFAULT 'PENDING',
+    warehouse_id BIGINT NOT NULL DEFAULT 1,
     note TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (set_id) REFERENCES request_sets(set_id),
     FOREIGN KEY (unit_id) REFERENCES units(unit_id),
     FOREIGN KEY (position_id) REFERENCES positions(position_id),
     FOREIGN KEY (product_id) REFERENCES products(product_id),
+    FOREIGN KEY (warehouse_id) REFERENCES warehouses(warehouse_id),
     INDEX idx_request_set (set_id),
     INDEX idx_request_unit (unit_id),
     INDEX idx_request_position (position_id),
     INDEX idx_request_product (product_id),
+    INDEX idx_request_warehouse (warehouse_id),
     INDEX idx_request_type (request_type),
     INDEX idx_request_expected_date (expected_date),
     INDEX idx_request_created (created_at)
@@ -851,7 +863,12 @@ INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
 (10, 'K27', 'Dựng vải', 'mét'),
 (10, 'K28', 'Dựng giấy (đen)', 'mét');
 
--- 3.7 Units (72 đơn vị/khách hàng)
+-- 3.7a Warehouses (Kho)
+INSERT INTO warehouses (warehouse_name, is_default) VALUES
+('Kho Chính', TRUE),
+('Kho Trường', FALSE);
+
+-- 3.7b Units (72 đơn vị/khách hàng)
 INSERT INTO units (unit_name) VALUES
 ('BĐ Hà Nội'),
 ('BĐ Hà Nội, BĐ Hải Phòng'),

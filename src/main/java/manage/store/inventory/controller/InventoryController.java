@@ -74,15 +74,24 @@ public class InventoryController {
     }
 
     /**
-     * Lấy tồn kho theo product ID
+     * Lấy tồn kho theo product ID, optional filter theo kho
      * GET /api/inventory/{productId}
+     * GET /api/inventory/{productId}?warehouseId=1
      */
     @GetMapping("/{productId}")
-    public ProductInventoryViewDTO getInventoryByProduct(@PathVariable Long productId) {
+    public ProductInventoryViewDTO getInventoryByProduct(
+            @PathVariable Long productId,
+            @RequestParam(value = "warehouseId", required = false) Long warehouseId
+    ) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
 
-        List<InventoryBalanceDTO> rawData = inventoryRepository.getInventoryByProductId(productId);
+        List<InventoryBalanceDTO> rawData;
+        if (warehouseId != null) {
+            rawData = inventoryRepository.getInventoryByProductIdAndWarehouse(productId, warehouseId);
+        } else {
+            rawData = inventoryRepository.getInventoryByProductId(productId);
+        }
         boolean canViewExpected = canViewExpectedQuantity();
         List<InventoryBalanceViewDTO> data = convertToViewDTO(rawData, canViewExpected);
 
@@ -100,17 +109,25 @@ public class InventoryController {
     /**
      * Lấy danh sách tất cả products với tồn kho
      * GET /api/inventory
+     * GET /api/inventory?warehouseId=1
      */
     @GetMapping
-    public List<ProductInventoryViewDTO> getAllInventory() {
+    public List<ProductInventoryViewDTO> getAllInventory(
+            @RequestParam(value = "warehouseId", required = false) Long warehouseId
+    ) {
         // Bỏ parent products (chỉ lấy products không có children = leaf products)
         List<Product> products = productRepository.findLeafProducts();
         boolean canViewExpected = canViewExpectedQuantity();
 
         return products.stream()
                 .map(product -> {
-                    List<InventoryBalanceDTO> rawData = inventoryRepository
-                            .getInventoryByProductId(product.getProductId());
+                    List<InventoryBalanceDTO> rawData;
+                    if (warehouseId != null) {
+                        rawData = inventoryRepository.getInventoryByProductIdAndWarehouse(
+                                product.getProductId(), warehouseId);
+                    } else {
+                        rawData = inventoryRepository.getInventoryByProductId(product.getProductId());
+                    }
                     List<InventoryBalanceViewDTO> data = convertToViewDTO(rawData, canViewExpected);
                     return new ProductInventoryViewDTO(
                             product.getProductId(),

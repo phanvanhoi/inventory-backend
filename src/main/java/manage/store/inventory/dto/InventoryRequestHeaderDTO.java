@@ -14,4 +14,6 @@ public interface InventoryRequestHeaderDTO {
     String getNote();
     LocalDateTime getCreatedAt();
     String getRequestStatus();
+    Long getWarehouseId();
+    String getWarehouseName();
 }

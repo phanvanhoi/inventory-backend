@@ -9,6 +9,7 @@ public class InventoryRequestCreateDTO {
     private Long unitId;
     private Long positionId; // Chức danh ID (optional)
     private Long productId;
+    private Long warehouseId; // Kho (null = default warehouse)
     private String requestType; // IN, OUT, ADJUST_IN, ADJUST_OUT (tùy role)
     private LocalDate expectedDate; // Bắt buộc cho ADJUST_IN, ADJUST_OUT
     private String note;
@@ -55,6 +56,14 @@ public class InventoryRequestCreateDTO {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public Long getWarehouseId() {
+        return warehouseId;
+    }
+
+    public void setWarehouseId(Long warehouseId) {
+        this.warehouseId = warehouseId;
     }
 
     public LocalDate getExpectedDate() {

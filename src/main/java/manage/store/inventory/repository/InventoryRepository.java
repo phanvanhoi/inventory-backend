@@ -114,6 +114,109 @@ public interface InventoryRepository
     List<InventoryBalanceDTO> getInventoryByProductId(@Param("productId") Long productId);
 
     /**
+     * Lấy tồn kho theo product + warehouse
+     * warehouseId = null → tất cả kho (tổng hợp), warehouseId != null → filter theo kho
+     */
+    @Query(
+            value = """
+        SELECT
+          pv.variant_id     AS variantId,
+          s.style_name      AS styleName,
+          sz.size_value     AS sizeValue,
+          lt.code           AS lengthCode,
+          pv.gender         AS gender,
+          pv.item_code      AS itemCode,
+          pv.item_name      AS itemName,
+          pv.unit           AS unit,
+          COALESCE((
+            SELECT SUM(CASE
+                WHEN r2.request_type = 'IN' THEN i2.quantity
+                WHEN r2.request_type = 'OUT' THEN -i2.quantity
+                ELSE 0
+            END)
+            FROM inventory_request_items i2
+            JOIN inventory_requests r2 ON r2.request_id = i2.request_id
+            JOIN request_sets rs2 ON rs2.set_id = r2.set_id
+            WHERE i2.variant_id = pv.variant_id
+              AND r2.product_id = :productId
+              AND r2.warehouse_id = :warehouseId
+              AND rs2.status = 'EXECUTED'
+          ), 0)
+          +
+          COALESCE((
+            SELECT SUM(CASE
+                WHEN r2.request_type IN ('IN', 'ADJUST_IN') THEN ri2.received_quantity
+                WHEN r2.request_type IN ('OUT', 'ADJUST_OUT') THEN -ri2.received_quantity
+                ELSE 0
+            END)
+            FROM receipt_items ri2
+            JOIN receipt_records rr2 ON rr2.receipt_id = ri2.receipt_id
+            JOIN inventory_requests r2 ON r2.request_id = ri2.request_id
+            JOIN request_sets rs2 ON rs2.set_id = rr2.set_id
+            WHERE ri2.variant_id = pv.variant_id
+              AND r2.product_id = :productId
+              AND r2.warehouse_id = :warehouseId
+              AND rs2.status = 'RECEIVING'
+          ), 0) AS actualQuantity,
+          COALESCE((
+            SELECT SUM(CASE
+                WHEN r2.request_type = 'IN' THEN i2.quantity
+                WHEN r2.request_type = 'OUT' THEN -i2.quantity
+                ELSE 0
+            END)
+            FROM inventory_request_items i2
+            JOIN inventory_requests r2 ON r2.request_id = i2.request_id
+            JOIN request_sets rs2 ON rs2.set_id = r2.set_id
+            WHERE i2.variant_id = pv.variant_id
+              AND r2.product_id = :productId
+              AND r2.warehouse_id = :warehouseId
+              AND rs2.status = 'EXECUTED'
+          ), 0)
+          +
+          COALESCE((
+            SELECT SUM(CASE
+                WHEN r2.request_type = 'ADJUST_IN' THEN i2.quantity
+                WHEN r2.request_type = 'ADJUST_OUT' THEN -i2.quantity
+                ELSE 0
+            END)
+            FROM inventory_request_items i2
+            JOIN inventory_requests r2 ON r2.request_id = i2.request_id
+            JOIN request_sets rs2 ON rs2.set_id = r2.set_id
+            WHERE i2.variant_id = pv.variant_id
+              AND r2.product_id = :productId
+              AND r2.warehouse_id = :warehouseId
+              AND rs2.status IN ('PENDING', 'APPROVED', 'RECEIVING')
+          ), 0) AS expectedQuantity
+        FROM product_variants pv
+        LEFT JOIN styles s          ON s.style_id = pv.style_id
+        LEFT JOIN sizes sz          ON sz.size_id = pv.size_id
+        LEFT JOIN length_types lt   ON lt.length_type_id = pv.length_type_id
+        WHERE pv.product_id = :productId
+        GROUP BY
+          pv.variant_id,
+          s.style_name,
+          sz.size_value,
+          lt.code,
+          pv.gender,
+          pv.item_code,
+          pv.item_name,
+          pv.unit
+        ORDER BY
+          s.style_name,
+          COALESCE(sz.size_order, 0),
+          sz.size_value,
+          lt.code,
+          pv.gender,
+          pv.item_code
+      """,
+            nativeQuery = true
+    )
+    List<InventoryBalanceDTO> getInventoryByProductIdAndWarehouse(
+            @Param("productId") Long productId,
+            @Param("warehouseId") Long warehouseId
+    );
+
+    /**
      * Lấy lịch sử các requests theo productId và filter value
      * Dành cho ADMIN, PURCHASER: Xem cả APPROVED, RECEIVING và EXECUTED
      * filterValue = styleName (STRUCTURED with style) hoặc gender (STRUCTURED with gender)
@@ -144,7 +247,7 @@ public interface InventoryRepository
             FROM inventory_request_items i
             JOIN inventory_requests r ON r.request_id = i.request_id
             JOIN request_sets rs ON rs.set_id = r.set_id
-            JOIN units un ON un.unit_id = r.unit_id
+            LEFT JOIN units un ON un.unit_id = r.unit_id
             LEFT JOIN users u ON u.user_id = rs.created_by
             JOIN product_variants pv ON pv.variant_id = i.variant_id
             LEFT JOIN styles s ON s.style_id = pv.style_id
@@ -178,7 +281,7 @@ public interface InventoryRepository
             JOIN receipt_records rr ON rr.receipt_id = ri.receipt_id
             JOIN inventory_requests r ON r.request_id = ri.request_id
             JOIN request_sets rs ON rs.set_id = rr.set_id
-            JOIN units un ON un.unit_id = r.unit_id
+            LEFT JOIN units un ON un.unit_id = r.unit_id
             LEFT JOIN users u2 ON u2.user_id = rr.received_by
             JOIN product_variants pv ON pv.variant_id = ri.variant_id
             LEFT JOIN styles s ON s.style_id = pv.style_id
@@ -227,7 +330,7 @@ public interface InventoryRepository
             FROM inventory_request_items i
             JOIN inventory_requests r ON r.request_id = i.request_id
             JOIN request_sets rs ON rs.set_id = r.set_id
-            JOIN units un ON un.unit_id = r.unit_id
+            LEFT JOIN units un ON un.unit_id = r.unit_id
             LEFT JOIN users u ON u.user_id = rs.created_by
             JOIN product_variants pv ON pv.variant_id = i.variant_id
             LEFT JOIN styles s ON s.style_id = pv.style_id
@@ -261,7 +364,7 @@ public interface InventoryRepository
             JOIN receipt_records rr ON rr.receipt_id = ri.receipt_id
             JOIN inventory_requests r ON r.request_id = ri.request_id
             JOIN request_sets rs ON rs.set_id = rr.set_id
-            JOIN units un ON un.unit_id = r.unit_id
+            LEFT JOIN units un ON un.unit_id = r.unit_id
             LEFT JOIN users u2 ON u2.user_id = rr.received_by
             JOIN product_variants pv ON pv.variant_id = ri.variant_id
             LEFT JOIN styles s ON s.style_id = pv.style_id
@@ -321,6 +424,95 @@ public interface InventoryRepository
     BigDecimal getActualQuantityByVariant(
             @Param("productId") Long productId,
             @Param("variantId") Long variantId
+    );
+
+    /**
+     * Lấy tồn kho thực tế theo variant + warehouse
+     */
+    @Query(
+            value = """
+        SELECT
+          COALESCE((
+            SELECT SUM(CASE
+                WHEN r.request_type = 'IN' THEN i.quantity
+                WHEN r.request_type = 'OUT' THEN -i.quantity
+                ELSE 0
+            END)
+            FROM inventory_request_items i
+            JOIN inventory_requests r ON r.request_id = i.request_id
+            JOIN request_sets rs ON rs.set_id = r.set_id
+            WHERE i.variant_id = :variantId
+              AND r.product_id = :productId
+              AND r.warehouse_id = :warehouseId
+              AND rs.status = 'EXECUTED'
+          ), 0)
+          +
+          COALESCE((
+            SELECT SUM(CASE
+                WHEN r.request_type IN ('IN', 'ADJUST_IN') THEN ri.received_quantity
+                WHEN r.request_type IN ('OUT', 'ADJUST_OUT') THEN -ri.received_quantity
+                ELSE 0
+            END)
+            FROM receipt_items ri
+            JOIN receipt_records rr ON rr.receipt_id = ri.receipt_id
+            JOIN inventory_requests r ON r.request_id = ri.request_id
+            JOIN request_sets rs ON rs.set_id = rr.set_id
+            WHERE ri.variant_id = :variantId
+              AND r.product_id = :productId
+              AND r.warehouse_id = :warehouseId
+              AND rs.status = 'RECEIVING'
+          ), 0)
+        """,
+            nativeQuery = true
+    )
+    BigDecimal getActualQuantityByVariantAndWarehouse(
+            @Param("productId") Long productId,
+            @Param("variantId") Long variantId,
+            @Param("warehouseId") Long warehouseId
+    );
+
+    /**
+     * Lấy tồn kho dự kiến tại một ngày cụ thể theo variant + warehouse
+     */
+    @Query(
+            value = """
+        SELECT
+          COALESCE(
+            (SELECT SUM(CASE
+                WHEN r.request_type = 'IN' THEN i.quantity
+                WHEN r.request_type = 'OUT' THEN -i.quantity
+                ELSE 0
+            END)
+            FROM inventory_request_items i
+            JOIN inventory_requests r ON r.request_id = i.request_id
+            JOIN request_sets rs ON rs.set_id = r.set_id
+            WHERE i.variant_id = :variantId
+              AND r.product_id = :productId
+              AND r.warehouse_id = :warehouseId
+              AND rs.status = 'EXECUTED'), 0)
+        +
+          COALESCE(
+            (SELECT SUM(CASE
+                WHEN r.request_type = 'ADJUST_IN' THEN i.quantity
+                WHEN r.request_type = 'ADJUST_OUT' THEN -i.quantity
+                ELSE 0
+            END)
+            FROM inventory_request_items i
+            JOIN inventory_requests r ON r.request_id = i.request_id
+            JOIN request_sets rs ON rs.set_id = r.set_id
+            WHERE i.variant_id = :variantId
+              AND r.product_id = :productId
+              AND r.warehouse_id = :warehouseId
+              AND r.expected_date <= :targetDate
+              AND rs.status IN ('PENDING', 'APPROVED', 'RECEIVING')), 0)
+        """,
+            nativeQuery = true
+    )
+    BigDecimal getExpectedQuantityByVariantAtDateAndWarehouse(
+            @Param("productId") Long productId,
+            @Param("variantId") Long variantId,
+            @Param("targetDate") LocalDate targetDate,
+            @Param("warehouseId") Long warehouseId
     );
 
     /**

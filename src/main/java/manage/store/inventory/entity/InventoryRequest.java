@@ -34,6 +34,9 @@ public class InventoryRequest {
     @Column(name = "request_status")
     private String requestStatus;
 
+    @Column(name = "warehouse_id")
+    private Long warehouseId;
+
     public enum RequestType {
         IN,          // Nhập kho thực tế
         OUT,         // Xuất kho thực tế
@@ -70,4 +73,7 @@ public class InventoryRequest {
 
     public String getRequestStatus() { return requestStatus; }
     public void setRequestStatus(String requestStatus) { this.requestStatus = requestStatus; }
+
+    public Long getWarehouseId() { return warehouseId; }
+    public void setWarehouseId(Long warehouseId) { this.warehouseId = warehouseId; }
 }
