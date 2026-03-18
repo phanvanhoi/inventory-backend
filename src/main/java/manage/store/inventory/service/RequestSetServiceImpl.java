@@ -284,6 +284,12 @@ public class RequestSetServiceImpl implements RequestSetService {
                     .orElseThrow(() -> new RuntimeException("Variant not found: productId=" + product.getProductId()
                             + ", styleId=" + item.getStyleId() + ", size=" + item.getSizeValue() + ", length=" + item.getLengthCode()));
         }
+        if (item.getStyleName() != null) {
+            return variantRepository
+                    .findStructuredVariantWithStyleName(product.getProductId(), item.getStyleName(), item.getSizeValue(), item.getLengthCode())
+                    .orElseThrow(() -> new RuntimeException("Variant not found: productId=" + product.getProductId()
+                            + ", styleName=" + item.getStyleName() + ", size=" + item.getSizeValue() + ", length=" + item.getLengthCode()));
+        }
         Gender gender = item.getGender() != null ? Gender.valueOf(item.getGender()) : null;
         if (item.getLengthCode() != null && gender != null) {
             return variantRepository

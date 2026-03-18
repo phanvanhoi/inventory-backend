@@ -30,6 +30,26 @@ public interface ProductVariantRepository
     );
 
     /**
+     * Lookup STRUCTURED variant: styleName + size + length (Sơ mi nam — by name)
+     */
+    @Query("""
+        SELECT pv FROM ProductVariant pv
+        JOIN Size s ON s.sizeId = pv.sizeId
+        JOIN LengthType lt ON lt.lengthTypeId = pv.lengthTypeId
+        JOIN Style st ON st.styleId = pv.styleId
+        WHERE pv.productId = :productId
+          AND st.styleName = :styleName
+          AND s.sizeValue = :sizeValue
+          AND lt.code = :lengthCode
+    """)
+    Optional<ProductVariant> findStructuredVariantWithStyleName(
+        @Param("productId") Long productId,
+        @Param("styleName") String styleName,
+        @Param("sizeValue") String sizeValue,
+        @Param("lengthCode") String lengthCode
+    );
+
+    /**
      * Lookup STRUCTURED variant: size + gender + length (Áo phông)
      */
     @Query("""

@@ -98,6 +98,7 @@ public class InventoryRequestCreateDTO {
 
         // STRUCTURED variant lookup
         private Long styleId;
+        private String styleName;  // alternative to styleId — lookup by name
         private String sizeValue;
         private String lengthCode; // COC / DAI
         private String gender;     // NAM / NU
@@ -118,6 +119,9 @@ public class InventoryRequestCreateDTO {
 
         public Long getStyleId() { return styleId; }
         public void setStyleId(Long styleId) { this.styleId = styleId; }
+
+        public String getStyleName() { return styleName; }
+        public void setStyleName(String styleName) { this.styleName = styleName; }
 
         public String getSizeValue() { return sizeValue; }
         public void setSizeValue(String sizeValue) { this.sizeValue = sizeValue; }

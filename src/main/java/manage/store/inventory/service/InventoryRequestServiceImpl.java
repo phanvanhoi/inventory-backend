@@ -127,7 +127,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
                     .orElseThrow(() -> new RuntimeException("Variant not found: id=" + variantId));
         }
 
-        // STRUCTURED: có style (Sơ mi nam)
+        // STRUCTURED: có style (Sơ mi nam) — by ID
         if (item.getStyleId() != null) {
             return variantRepository
                     .findStructuredVariantWithStyle(
@@ -139,6 +139,23 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
                     .orElseThrow(() -> new RuntimeException(
                             "Variant not found: productId=" + product.getProductId()
                             + ", styleId=" + item.getStyleId()
+                            + ", size=" + item.getSizeValue()
+                            + ", length=" + item.getLengthCode()
+                    ));
+        }
+
+        // STRUCTURED: có style (Sơ mi nam) — by name
+        if (item.getStyleName() != null) {
+            return variantRepository
+                    .findStructuredVariantWithStyleName(
+                            product.getProductId(),
+                            item.getStyleName(),
+                            item.getSizeValue(),
+                            item.getLengthCode()
+                    )
+                    .orElseThrow(() -> new RuntimeException(
+                            "Variant not found: productId=" + product.getProductId()
+                            + ", styleName=" + item.getStyleName()
                             + ", size=" + item.getSizeValue()
                             + ", length=" + item.getLengthCode()
                     ));
