@@ -42,6 +42,7 @@ CREATE TABLE products (
     variant_type ENUM('STRUCTURED', 'ITEM_BASED') NOT NULL DEFAULT 'STRUCTURED',
     parent_product_id BIGINT NULL,
     note TEXT,
+    min_stock INT DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_product_name (product_name),
     INDEX idx_parent_product (parent_product_id)

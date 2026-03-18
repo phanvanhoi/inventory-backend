@@ -750,4 +750,43 @@ public interface InventoryRepository
             @Param("fromDate") LocalDate fromDate,
             @Param("excludeRequestId") Long excludeRequestId
     );
+
+    /**
+     * Báo cáo xuất nhập tổng hợp theo sản phẩm, date range, warehouse
+     */
+    @Query(value = """
+        SELECT
+            p.product_id AS productId,
+            p.product_name AS productName,
+            COALESCE(SUM(CASE WHEN r.request_type IN ('IN', 'ADJUST_IN') THEN i.quantity ELSE 0 END), 0) AS totalIn,
+            COALESCE(SUM(CASE WHEN r.request_type IN ('OUT', 'ADJUST_OUT') THEN i.quantity ELSE 0 END), 0) AS totalOut,
+            COALESCE(SUM(CASE WHEN r.request_type IN ('IN', 'ADJUST_IN') THEN i.quantity
+                              WHEN r.request_type IN ('OUT', 'ADJUST_OUT') THEN -i.quantity
+                              ELSE 0 END), 0) AS netQuantity,
+            COUNT(DISTINCT rs.set_id) AS transactionCount
+        FROM inventory_request_items i
+        JOIN inventory_requests r ON r.request_id = i.request_id
+        JOIN request_sets rs ON rs.set_id = r.set_id
+        JOIN products p ON p.product_id = r.product_id
+        WHERE rs.status IN ('APPROVED', 'RECEIVING', 'EXECUTED')
+          AND (:fromDate IS NULL OR DATE(rs.created_at) >= :fromDate)
+          AND (:toDate IS NULL OR DATE(rs.created_at) <= :toDate)
+          AND (:warehouseId IS NULL OR r.warehouse_id = :warehouseId)
+        GROUP BY p.product_id, p.product_name
+        ORDER BY p.product_name
+    """, nativeQuery = true)
+    List<InventoryReportProjection> getInventoryReport(
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate,
+            @Param("warehouseId") Long warehouseId
+    );
+
+    interface InventoryReportProjection {
+        Long getProductId();
+        String getProductName();
+        BigDecimal getTotalIn();
+        BigDecimal getTotalOut();
+        BigDecimal getNetQuantity();
+        Long getTransactionCount();
+    }
 }

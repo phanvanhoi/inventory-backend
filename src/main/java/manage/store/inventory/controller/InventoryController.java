@@ -1,6 +1,7 @@
 package manage.store.inventory.controller;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import manage.store.inventory.dto.InventoryBalanceDTO;
+import manage.store.inventory.dto.InventoryReportDTO;
 import manage.store.inventory.dto.InventoryBalanceViewDTO;
 import manage.store.inventory.dto.InventoryRequestHistoryDTO;
 import manage.store.inventory.dto.ProductInventoryViewDTO;
@@ -25,8 +27,11 @@ import manage.store.inventory.dto.RequestHistoryRowDTO;
 import manage.store.inventory.entity.Product;
 import manage.store.inventory.entity.enums.VariantType;
 import manage.store.inventory.repository.InventoryRepository;
+import manage.store.inventory.repository.InventoryRepository.InventoryReportProjection;
 import manage.store.inventory.repository.ProductRepository;
 import manage.store.inventory.security.CurrentUser;
+
+import org.springframework.format.annotation.DateTimeFormat;
 
 @RestController
 @RequestMapping("/api/inventory")
@@ -79,6 +84,25 @@ public class InventoryController {
     }
 
     /**
+     * Báo cáo xuất nhập tổng hợp theo sản phẩm
+     * GET /api/inventory/report?fromDate=2026-01-01&toDate=2026-03-31&warehouseId=1
+     */
+    @GetMapping("/report")
+    public List<InventoryReportDTO> getInventoryReport(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(required = false) Long warehouseId
+    ) {
+        List<InventoryReportProjection> data = inventoryRepository.getInventoryReport(fromDate, toDate, warehouseId);
+        return data.stream()
+                .map(p -> new InventoryReportDTO(
+                        p.getProductId(), p.getProductName(),
+                        p.getTotalIn(), p.getTotalOut(),
+                        p.getNetQuantity(), p.getTransactionCount()))
+                .toList();
+    }
+
+    /**
      * Lấy tồn kho theo product ID, optional filter theo kho
      * GET /api/inventory/{productId}
      * GET /api/inventory/{productId}?warehouseId=1
@@ -109,15 +133,17 @@ public class InventoryController {
             .forEach(d -> log.info("[getInventoryByProduct]   variant={} actual={} expected={}",
                 d.getVariantId(), d.getActualQuantity(), d.getExpectedQuantity()));
 
-        return new ProductInventoryViewDTO(
+        ProductInventoryViewDTO dto = new ProductInventoryViewDTO(
                 product.getProductId(),
                 product.getProductName(),
                 product.getVariantType().name(),
                 product.getNote(),
                 product.getCreatedAt(),
                 data,
-                canViewExpected
+                canViewExpected,
+                product.getMinStock()
         );
+        return dto;
     }
 
     /**
@@ -151,7 +177,8 @@ public class InventoryController {
                             product.getNote(),
                             product.getCreatedAt(),
                             data,
-                            canViewExpected
+                            canViewExpected,
+                            product.getMinStock()
                     );
                 })
                 .toList();

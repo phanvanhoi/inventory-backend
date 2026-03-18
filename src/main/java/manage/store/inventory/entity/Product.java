@@ -36,6 +36,9 @@ public class Product {
     @Column(name = "note")
     private String note;
 
+    @Column(name = "min_stock")
+    private Integer minStock;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 }

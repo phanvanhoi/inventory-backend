@@ -19,4 +19,5 @@ public class ProductInventoryViewDTO {
     private LocalDateTime createdAt;
     private List<InventoryBalanceViewDTO> data;
     private boolean canViewExpected; // cho FE biết user có quyền xem expected không
+    private Integer minStock;
 }

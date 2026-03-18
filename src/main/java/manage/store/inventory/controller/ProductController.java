@@ -83,6 +83,7 @@ public class ProductController {
                 .map(product -> {
                     product.setProductName(productDetails.getProductName());
                     product.setNote(productDetails.getNote());
+                    product.setMinStock(productDetails.getMinStock());
                     return ResponseEntity.ok(productRepository.save(product));
                 })
                 .orElse(ResponseEntity.notFound().build());
