@@ -73,7 +73,8 @@ public class UserController {
                 user.getFullName(),
                 user.getEmail(),
                 user.getCreatedAt(),
-                roles
+                roles,
+                user.getWarehouseId()
         );
     }
 }

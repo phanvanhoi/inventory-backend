@@ -15,4 +15,5 @@ public class UserDTO {
     private String email;
     private LocalDateTime createdAt;
     private List<String> roles;
+    private Long warehouseId;
 }

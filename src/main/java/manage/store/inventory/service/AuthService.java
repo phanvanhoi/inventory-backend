@@ -55,7 +55,8 @@ public class AuthService {
                 user.getUserId(),
                 user.getUsername(),
                 user.getFullName(),
-                roles
+                roles,
+                user.getWarehouseId()
         );
     }
 
@@ -89,7 +90,8 @@ public class AuthService {
                 user.getUserId(),
                 user.getUsername(),
                 user.getFullName(),
-                roles
+                roles,
+                user.getWarehouseId()
         );
     }
 

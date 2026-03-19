@@ -14,13 +14,15 @@ public class AuthResponseDTO {
     private String username;
     private String fullName;
     private List<String> roles;
+    private Long warehouseId;
 
-    public AuthResponseDTO(String token, Long userId, String username, String fullName, List<String> roles) {
+    public AuthResponseDTO(String token, Long userId, String username, String fullName, List<String> roles, Long warehouseId) {
         this.token = token;
         this.tokenType = "Bearer";
         this.userId = userId;
         this.username = username;
         this.fullName = fullName;
         this.roles = roles;
+        this.warehouseId = warehouseId;
     }
 }
