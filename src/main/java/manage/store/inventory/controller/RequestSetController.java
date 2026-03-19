@@ -84,7 +84,7 @@ public class RequestSetController {
     @PreAuthorize("hasAnyRole('USER', 'PURCHASER')")
     public ResponseEntity<Long> createRequestSet(@Valid @RequestBody RequestSetCreateDTO dto) {
         Long setId = requestSetService.createRequestSet(dto, currentUser.getUserId());
-        return ResponseEntity.ok(setId);
+        return ResponseEntity.status(201).body(setId);
     }
 
     // Lấy danh sách bộ phiếu (phân quyền theo role)
@@ -155,10 +155,10 @@ public class RequestSetController {
         return ResponseEntity.ok().build();
     }
 
-    // Xóa bộ phiếu (chủ phiếu)
+    // Xóa bộ phiếu (chủ phiếu hoặc ADMIN)
     @DeleteMapping("/{setId:\\d+}")
     public ResponseEntity<Void> deleteRequestSet(@PathVariable Long setId) {
-        requestSetService.deleteRequestSet(setId);
+        requestSetService.deleteRequestSet(setId, currentUser.getUserId());
         return ResponseEntity.noContent().build();
     }
 

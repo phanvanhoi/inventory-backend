@@ -35,8 +35,8 @@ public interface RequestSetService {
     // - Sau khi cập nhật, status tự động chuyển sang PENDING
     void updateRequestSet(Long setId, RequestSetUpdateDTO dto, Long userId);
 
-    // Xóa bộ phiếu
-    void deleteRequestSet(Long setId);
+    // Xóa bộ phiếu (chủ phiếu hoặc ADMIN)
+    void deleteRequestSet(Long setId, Long userId);
 
     // Xóa tất cả bộ phiếu
     void deleteAllRequestSets();

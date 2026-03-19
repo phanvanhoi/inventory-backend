@@ -1,16 +1,24 @@
 package manage.store.inventory.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import manage.store.inventory.dto.RequestSetListDTO;
 import manage.store.inventory.entity.RequestSet;
 import manage.store.inventory.entity.enums.RequestSetStatus;
 
 public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT rs FROM RequestSet rs WHERE rs.setId = :setId")
+    Optional<RequestSet> findByIdForUpdate(@Param("setId") Long setId);
 
     @Query(
             value = """

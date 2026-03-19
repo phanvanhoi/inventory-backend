@@ -545,7 +545,19 @@ public class RequestSetServiceImpl implements RequestSetService {
     }
 
     @Override
-    public void deleteRequestSet(Long setId) {
+    public void deleteRequestSet(Long setId, Long userId) {
+        RequestSet set = requestSetRepository.findById(setId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ phiếu: " + setId));
+
+        // Chỉ chủ phiếu hoặc ADMIN được xóa
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        boolean isAdmin = user.getRoles().stream()
+                .anyMatch(r -> "ADMIN".equals(r.getRoleName()));
+        if (!isAdmin && !set.getCreatedByUser().getUserId().equals(userId)) {
+            throw new RuntimeException("Bạn không có quyền xóa bộ phiếu này");
+        }
+
         // Lấy tất cả requests trong set
         List<InventoryRequest> requests = requestRepository.findBySetId(setId);
 
@@ -936,7 +948,8 @@ public class RequestSetServiceImpl implements RequestSetService {
             throw new RuntimeException("Request không thuộc bộ phiếu nào");
         }
 
-        RequestSet requestSet = requestSetRepository.findById(request.getSetId())
+        // Pessimistic lock để tránh race condition khi complete đồng thời
+        RequestSet requestSet = requestSetRepository.findByIdForUpdate(request.getSetId())
                 .orElseThrow(() -> new RuntimeException("RequestSet not found: " + request.getSetId()));
 
         // Set phải APPROVED hoặc RECEIVING

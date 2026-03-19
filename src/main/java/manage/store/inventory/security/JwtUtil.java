@@ -6,6 +6,8 @@ import java.util.stream.Collectors;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +22,8 @@ import manage.store.inventory.entity.User;
 
 @Component
 public class JwtUtil {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtUtil.class);
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -65,13 +69,13 @@ public class JwtUtil {
             getClaims(token);
             return true;
         } catch (SecurityException | MalformedJwtException e) {
-            // Invalid JWT signature or malformed token
+            log.warn("Invalid JWT token: {}", e.getMessage());
         } catch (ExpiredJwtException e) {
-            // JWT token is expired
+            log.debug("Expired JWT token: {}", e.getMessage());
         } catch (UnsupportedJwtException e) {
-            // JWT token is unsupported
+            log.warn("Unsupported JWT token: {}", e.getMessage());
         } catch (IllegalArgumentException e) {
-            // JWT claims string is empty
+            log.warn("Empty JWT claims: {}", e.getMessage());
         }
         return false;
     }
