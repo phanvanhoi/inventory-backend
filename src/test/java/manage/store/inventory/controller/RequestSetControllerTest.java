@@ -144,7 +144,7 @@ class RequestSetControllerTest {
         mockMvc.perform(delete("/api/request-sets/1"))
                 .andExpect(status().isNoContent());
 
-        verify(requestSetService).deleteRequestSet(1L);
+        verify(requestSetService).deleteRequestSet(1L, null);
     }
 
     @Test

@@ -42,7 +42,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("POST /api/auth/login - thành công")
     void login_success_returns200() throws Exception {
-        AuthResponseDTO response = new AuthResponseDTO("jwt_token", 1L, "testuser", "Test User", List.of("USER"));
+        AuthResponseDTO response = new AuthResponseDTO("jwt_token", 1L, "testuser", "Test User", List.of("USER"), null);
         when(authService.login(any(LoginRequestDTO.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/auth/login")
@@ -68,7 +68,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("POST /api/auth/register - thành công")
     void register_success_returns200() throws Exception {
-        AuthResponseDTO response = new AuthResponseDTO("jwt_token", 2L, "newuser", "New User", List.of("USER"));
+        AuthResponseDTO response = new AuthResponseDTO("jwt_token", 2L, "newuser", "New User", List.of("USER"), null);
         when(authService.register(any(RegisterRequestDTO.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/auth/register")

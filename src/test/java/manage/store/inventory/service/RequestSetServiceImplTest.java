@@ -438,7 +438,7 @@ class RequestSetServiceImplTest {
 
         when(requestRepository.findBySetId(1L)).thenReturn(List.of(request));
 
-        requestSetService.deleteRequestSet(1L);
+        requestSetService.deleteRequestSet(1L, null);
 
         verify(itemRepository).deleteByRequestId(10L);
         verify(requestRepository).deleteAll(List.of(request));
