@@ -107,7 +107,7 @@ public class InventoryController {
      * GET /api/inventory/{productId}
      * GET /api/inventory/{productId}?warehouseId=1
      */
-    @GetMapping("/{productId}")
+    @GetMapping("/{productId:\\d+}")
     public ProductInventoryViewDTO getInventoryByProduct(
             @PathVariable Long productId,
             @RequestParam(value = "warehouseId", required = false) Long warehouseId
@@ -190,7 +190,7 @@ public class InventoryController {
      * GET /api/inventory/{productId}/history?filter=CỔ ĐIỂN&warehouseId=1
      * filter = styleName (STRUCTURED with style) hoặc gender (STRUCTURED with gender) hoặc null (ITEM_BASED)
      */
-    @GetMapping("/{productId}/history")
+    @GetMapping("/{productId:\\d+}/history")
     public RequestHistoryMatrixDTO getRequestHistory(
             @PathVariable Long productId,
             @RequestParam(value = "filter", required = false) String filterValue,
