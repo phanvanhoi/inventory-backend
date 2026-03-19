@@ -7,9 +7,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
@@ -59,6 +61,19 @@ public class UserController {
             @PathVariable Long userId,
             @Valid @RequestBody ResetPasswordDTO request) {
         authService.resetPassword(userId, request.getNewPassword());
+        return ResponseEntity.ok().build();
+    }
+
+    // ADMIN gán kho cho user
+    @PatchMapping("/{userId}/warehouse")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> assignWarehouse(
+            @PathVariable Long userId,
+            @RequestParam(required = false) Long warehouseId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        user.setWarehouseId(warehouseId);
+        userRepository.save(user);
         return ResponseEntity.ok().build();
     }
 
