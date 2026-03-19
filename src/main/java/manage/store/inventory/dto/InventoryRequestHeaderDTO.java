@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 public interface InventoryRequestHeaderDTO {
 
     Long getRequestId();
+    Long getProductId();
     String getUnitName();
     String getPositionCode(); // Chức danh: GDV, VHX, ...
     String getProductName();

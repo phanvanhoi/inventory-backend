@@ -18,6 +18,7 @@ public interface InventoryRequestRepository
             value = """
         SELECT
           r.request_id      AS requestId,
+          r.product_id      AS productId,
           u.unit_name       AS unitName,
           pos.position_code AS positionCode,
           p.product_name    AS productName,
