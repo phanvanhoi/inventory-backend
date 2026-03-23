@@ -20,6 +20,8 @@ public interface InventoryRequestHistoryDTO {
     String getItemName();
     String getUnit();
     BigDecimal getQuantity();
+    String getWorkerNote();
+    String getFabricNote();
     String getNote();
     LocalDateTime getCreatedAt();
     Long getCreatedBy();
