@@ -259,7 +259,8 @@ public interface InventoryRepository
             LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
-              AND rs.status IN ('APPROVED', 'RECEIVING', 'EXECUTED')
+              AND (rs.status = 'EXECUTED'
+                OR (rs.status IN ('APPROVED', 'RECEIVING') AND r.request_status = 'COMPLETED'))
             UNION ALL
             SELECT
                 r.request_id AS requestId,
@@ -343,7 +344,8 @@ public interface InventoryRepository
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
               AND r.warehouse_id = :warehouseId
-              AND rs.status IN ('APPROVED', 'RECEIVING', 'EXECUTED')
+              AND (rs.status = 'EXECUTED'
+                OR (rs.status IN ('APPROVED', 'RECEIVING') AND r.request_status = 'COMPLETED'))
             UNION ALL
             SELECT
                 r.request_id AS requestId,
@@ -428,7 +430,8 @@ public interface InventoryRepository
             LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
-              AND rs.status IN ('RECEIVING', 'EXECUTED')
+              AND (rs.status = 'EXECUTED'
+                OR (rs.status = 'RECEIVING' AND r.request_status = 'COMPLETED'))
             UNION ALL
             SELECT
                 r.request_id AS requestId,
@@ -512,7 +515,8 @@ public interface InventoryRepository
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
               AND r.warehouse_id = :warehouseId
-              AND rs.status IN ('RECEIVING', 'EXECUTED')
+              AND (rs.status = 'EXECUTED'
+                OR (rs.status = 'RECEIVING' AND r.request_status = 'COMPLETED'))
             UNION ALL
             SELECT
                 r.request_id AS requestId,
@@ -776,7 +780,8 @@ public interface InventoryRepository
         JOIN inventory_requests r ON r.request_id = i.request_id
         JOIN request_sets rs ON rs.set_id = r.set_id
         JOIN products p ON p.product_id = r.product_id
-        WHERE rs.status IN ('APPROVED', 'RECEIVING', 'EXECUTED')
+        WHERE (rs.status = 'EXECUTED'
+            OR (rs.status IN ('APPROVED', 'RECEIVING') AND r.request_status = 'COMPLETED'))
           AND (:fromDate IS NULL OR DATE(rs.created_at) >= :fromDate)
           AND (:toDate IS NULL OR DATE(rs.created_at) <= :toDate)
           AND (:warehouseId IS NULL OR r.warehouse_id = :warehouseId)
