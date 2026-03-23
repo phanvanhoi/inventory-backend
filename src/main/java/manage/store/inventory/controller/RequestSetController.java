@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -190,9 +191,18 @@ public class RequestSetController {
     public ResponseEntity<byte[]> exportRequestSet(@PathVariable Long setId) throws IOException {
         byte[] excelData = excelExportService.exportRequestSet(setId);
 
+        // Lấy tên request set thật từ DB
+        String setName = requestSetRepository.findById(setId)
+                .map(rs -> rs.getSetName())
+                .orElse("de-xuat-" + setId);
+        // Loại bỏ ký tự không hợp lệ cho filename
+        String safeName = setName.replaceAll("[/\\\\?%*:|\"<>]", "-");
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-        headers.setContentDispositionFormData("attachment", "de-xuat-" + setId + ".xlsx");
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename(safeName + ".xlsx", java.nio.charset.StandardCharsets.UTF_8)
+                .build());
 
         return ResponseEntity.ok().headers(headers).body(excelData);
     }
