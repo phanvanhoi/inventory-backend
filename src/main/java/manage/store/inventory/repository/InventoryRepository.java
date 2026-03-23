@@ -43,7 +43,8 @@ public interface InventoryRepository
             JOIN request_sets rs2 ON rs2.set_id = r2.set_id
             WHERE i2.variant_id = pv.variant_id
               AND r2.product_id = :productId
-              AND rs2.status = 'EXECUTED'
+              AND (rs2.status = 'EXECUTED'
+                OR (rs2.status = 'RECEIVING' AND r2.request_status = 'COMPLETED'))
           ), 0)
           +
           COALESCE((
@@ -71,7 +72,8 @@ public interface InventoryRepository
             JOIN request_sets rs2 ON rs2.set_id = r2.set_id
             WHERE i2.variant_id = pv.variant_id
               AND r2.product_id = :productId
-              AND rs2.status = 'EXECUTED'
+              AND (rs2.status = 'EXECUTED'
+                OR (rs2.status = 'RECEIVING' AND r2.request_status = 'COMPLETED'))
           ), 0)
           +
           COALESCE((
@@ -140,7 +142,8 @@ public interface InventoryRepository
             WHERE i2.variant_id = pv.variant_id
               AND r2.product_id = :productId
               AND r2.warehouse_id = :warehouseId
-              AND rs2.status = 'EXECUTED'
+              AND (rs2.status = 'EXECUTED'
+                OR (rs2.status = 'RECEIVING' AND r2.request_status = 'COMPLETED'))
           ), 0)
           +
           COALESCE((
@@ -170,7 +173,8 @@ public interface InventoryRepository
             WHERE i2.variant_id = pv.variant_id
               AND r2.product_id = :productId
               AND r2.warehouse_id = :warehouseId
-              AND rs2.status = 'EXECUTED'
+              AND (rs2.status = 'EXECUTED'
+                OR (rs2.status = 'RECEIVING' AND r2.request_status = 'COMPLETED'))
           ), 0)
           +
           COALESCE((
@@ -573,7 +577,8 @@ public interface InventoryRepository
             JOIN request_sets rs ON rs.set_id = r.set_id
             WHERE i.variant_id = :variantId
               AND r.product_id = :productId
-              AND rs.status = 'EXECUTED'
+              AND (rs.status = 'EXECUTED'
+                OR (rs.status = 'RECEIVING' AND r.request_status = 'COMPLETED'))
           ), 0)
           +
           COALESCE((
@@ -616,7 +621,8 @@ public interface InventoryRepository
             WHERE i.variant_id = :variantId
               AND r.product_id = :productId
               AND r.warehouse_id = :warehouseId
-              AND rs.status = 'EXECUTED'
+              AND (rs.status = 'EXECUTED'
+                OR (rs.status = 'RECEIVING' AND r.request_status = 'COMPLETED'))
           ), 0)
           +
           COALESCE((
@@ -661,7 +667,8 @@ public interface InventoryRepository
             WHERE i.variant_id = :variantId
               AND r.product_id = :productId
               AND r.warehouse_id = :warehouseId
-              AND rs.status = 'EXECUTED'), 0)
+              AND (rs.status = 'EXECUTED'
+                OR (rs.status = 'RECEIVING' AND r.request_status = 'COMPLETED'))), 0)
         +
           COALESCE(
             (SELECT SUM(CASE
@@ -705,7 +712,8 @@ public interface InventoryRepository
             JOIN request_sets rs ON rs.set_id = r.set_id
             WHERE i.variant_id = :variantId
               AND r.product_id = :productId
-              AND rs.status = 'EXECUTED'), 0)
+              AND (rs.status = 'EXECUTED'
+                OR (rs.status = 'RECEIVING' AND r.request_status = 'COMPLETED'))), 0)
         +
           COALESCE(
             (SELECT SUM(CASE
