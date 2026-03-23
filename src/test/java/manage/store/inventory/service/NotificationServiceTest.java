@@ -285,7 +285,7 @@ class NotificationServiceTest {
 
             when(notificationRepository.findById(1L)).thenReturn(Optional.of(n));
 
-            notificationService.markAsRead(1L);
+            notificationService.markAsRead(1L, 1L);
 
             assertTrue(n.getIsRead());
             verify(notificationRepository).save(n);

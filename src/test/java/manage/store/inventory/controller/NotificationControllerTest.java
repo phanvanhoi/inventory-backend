@@ -53,10 +53,12 @@ class NotificationControllerTest {
     @Test
     @DisplayName("POST /api/notifications/{id}/read - đánh dấu đã đọc")
     void markAsRead_returns200() throws Exception {
+        when(currentUser.getUserId()).thenReturn(1L);
+
         mockMvc.perform(post("/api/notifications/1/read"))
                 .andExpect(status().isOk());
 
-        verify(notificationService).markAsRead(1L);
+        verify(notificationService).markAsRead(1L, 1L);
     }
 
     @Test
