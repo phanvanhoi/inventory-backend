@@ -549,6 +549,11 @@ public class RequestSetServiceImpl implements RequestSetService {
         RequestSet set = requestSetRepository.findById(setId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ phiếu: " + setId));
 
+        // Chỉ xóa được PENDING hoặc REJECTED
+        if (set.getStatus() != RequestSetStatus.PENDING && set.getStatus() != RequestSetStatus.REJECTED) {
+            throw new RuntimeException("Chỉ có thể xóa bộ phiếu ở trạng thái Chờ duyệt hoặc Từ chối");
+        }
+
         // Chỉ chủ phiếu hoặc ADMIN được xóa
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
