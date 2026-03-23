@@ -323,6 +323,8 @@ public class InventoryController {
             row.setItemName(item.getItemName());
             row.setUnit(item.getUnit());
             row.setQuantity(item.getQuantity());
+            row.setWorkerNote(item.getWorkerNote());
+            row.setFabricNote(item.getFabricNote());
             rows.add(row);
         }
 

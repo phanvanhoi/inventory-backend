@@ -34,4 +34,6 @@ public class RequestHistoryRowDTO {
     private String itemName;
     private String unit;
     private BigDecimal quantity;
+    private String workerNote;
+    private String fabricNote;
 }
