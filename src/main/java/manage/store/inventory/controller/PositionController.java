@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import manage.store.inventory.entity.Position;
 import manage.store.inventory.repository.PositionRepository;
 
@@ -41,12 +43,14 @@ public class PositionController {
 
     // Tạo chức danh mới
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public Position createPosition(@RequestBody Position position) {
         return positionRepository.save(position);
     }
 
     // Cập nhật chức danh
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Position> updatePosition(@PathVariable Long id, @RequestBody Position positionDetails) {
         return positionRepository.findById(id)
                 .map(position -> {
@@ -59,6 +63,7 @@ public class PositionController {
 
     // Xóa chức danh
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deletePosition(@PathVariable Long id) {
         return positionRepository.findById(id)
                 .map(position -> {

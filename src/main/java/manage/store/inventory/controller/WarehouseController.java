@@ -6,6 +6,8 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import manage.store.inventory.entity.Warehouse;
 import manage.store.inventory.repository.WarehouseRepository;
 
@@ -31,6 +33,7 @@ public class WarehouseController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public Warehouse create(@RequestBody Warehouse warehouse) {
         warehouse.setCreatedAt(LocalDateTime.now());
         if (warehouse.getIsDefault() == null) {
@@ -40,6 +43,7 @@ public class WarehouseController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Warehouse update(@PathVariable Long id, @RequestBody Warehouse dto) {
         Warehouse warehouse = warehouseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Warehouse not found: " + id));
@@ -51,6 +55,7 @@ public class WarehouseController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         Warehouse warehouse = warehouseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Warehouse not found: " + id));

@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import manage.store.inventory.entity.Unit;
 import manage.store.inventory.repository.UnitRepository;
 
@@ -41,12 +43,14 @@ public class UnitController {
 
     // Tạo đơn vị mới
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public Unit createUnit(@RequestBody Unit unit) {
         return unitRepository.save(unit);
     }
 
     // Cập nhật đơn vị
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Unit> updateUnit(@PathVariable Long id, @RequestBody Unit unitDetails) {
         return unitRepository.findById(id)
                 .map(unit -> {
@@ -58,6 +62,7 @@ public class UnitController {
 
     // Xóa đơn vị
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUnit(@PathVariable Long id) {
         return unitRepository.findById(id)
                 .map(unit -> {

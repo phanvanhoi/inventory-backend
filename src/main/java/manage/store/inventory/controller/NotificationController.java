@@ -43,10 +43,10 @@ public class NotificationController {
         return ResponseEntity.ok(notificationService.countUnread(currentUser.getUserId()));
     }
 
-    // Đánh dấu thông báo đã đọc
+    // Đánh dấu thông báo đã đọc (chỉ owner)
     @PostMapping("/{notificationId}/read")
     public ResponseEntity<Void> markAsRead(@PathVariable Long notificationId) {
-        notificationService.markAsRead(notificationId);
+        notificationService.markAsRead(notificationId, currentUser.getUserId());
         return ResponseEntity.ok().build();
     }
 

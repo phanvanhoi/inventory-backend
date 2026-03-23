@@ -76,6 +76,7 @@ public class InventoryRequestController {
 
     // ===== DELETE: XÓA REQUEST =====
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteRequest(@PathVariable Long id) {
         service.deleteRequest(id);
         return ResponseEntity.noContent().build();
@@ -83,6 +84,7 @@ public class InventoryRequestController {
 
     // ===== DELETE: XÓA TẤT CẢ REQUESTS =====
     @DeleteMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteAllRequests() {
         service.deleteAllRequests();
         return ResponseEntity.noContent().build();

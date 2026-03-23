@@ -158,6 +158,7 @@ public class RequestSetController {
 
     // Xóa bộ phiếu (chủ phiếu hoặc ADMIN)
     @DeleteMapping("/{setId:\\d+}")
+    @PreAuthorize("hasAnyRole('USER', 'PURCHASER', 'ADMIN')")
     public ResponseEntity<Void> deleteRequestSet(@PathVariable Long setId) {
         requestSetService.deleteRequestSet(setId, currentUser.getUserId());
         return ResponseEntity.noContent().build();

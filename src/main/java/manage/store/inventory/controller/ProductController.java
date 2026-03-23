@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import manage.store.inventory.dto.ChildProductCreateDTO;
 import manage.store.inventory.entity.Product;
 import manage.store.inventory.repository.ProductRepository;
@@ -64,6 +66,7 @@ public class ProductController {
 
     // Tạo child product (clone variants từ sibling)
     @PostMapping("/{parentId}/children")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Product> createChildProduct(
             @PathVariable Long parentId,
             @RequestBody ChildProductCreateDTO dto) {
@@ -78,6 +81,7 @@ public class ProductController {
 
     // Cập nhật sản phẩm
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product productDetails) {
         return productRepository.findById(id)
                 .map(product -> {

@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import manage.store.inventory.dto.UnitEmployeeCreateDTO;
 import manage.store.inventory.dto.UnitEmployeeDTO;
 import manage.store.inventory.service.UnitEmployeeService;
@@ -32,6 +34,7 @@ public class UnitEmployeeController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public UnitEmployeeDTO createEmployee(
             @PathVariable Long unitId,
             @RequestBody UnitEmployeeCreateDTO dto
@@ -40,6 +43,7 @@ public class UnitEmployeeController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public UnitEmployeeDTO updateEmployee(
             @PathVariable Long unitId,
             @PathVariable Long id,
@@ -49,6 +53,7 @@ public class UnitEmployeeController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteEmployee(
             @PathVariable Long unitId,
             @PathVariable Long id

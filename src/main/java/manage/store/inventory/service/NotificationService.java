@@ -196,9 +196,11 @@ public class NotificationService {
     }
 
     @Transactional
-    public void markAsRead(Long notificationId) {
+    public void markAsRead(Long notificationId, Long userId) {
         notificationRepository.findById(notificationId)
                 .ifPresent(n -> {
+                    // Chỉ owner mới được đánh dấu đã đọc
+                    if (!n.getUser().getUserId().equals(userId)) return;
                     n.setIsRead(true);
                     notificationRepository.save(n);
                 });

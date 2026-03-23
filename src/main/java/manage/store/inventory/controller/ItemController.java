@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import manage.store.inventory.dto.ItemCreateDTO;
 import manage.store.inventory.dto.ItemDetailDTO;
 import manage.store.inventory.dto.ItemUpdateDTO;
@@ -29,6 +31,7 @@ public class ItemController {
 
     // Tạo item mới
     @PostMapping
+    @PreAuthorize("hasAnyRole('USER', 'PURCHASER', 'STOCKKEEPER')")
     public ResponseEntity<Long> createItem(@RequestBody ItemCreateDTO dto) {
         Long itemId = itemService.createItem(dto);
         return ResponseEntity.ok(itemId);
@@ -49,6 +52,7 @@ public class ItemController {
 
     // Cập nhật item (chỉ quantity)
     @PutMapping("/{itemId}")
+    @PreAuthorize("hasAnyRole('USER', 'PURCHASER', 'STOCKKEEPER')")
     public ResponseEntity<ItemDetailDTO> updateItem(
             @PathVariable Long itemId,
             @RequestBody ItemUpdateDTO dto
@@ -59,6 +63,7 @@ public class ItemController {
 
     // Xóa item
     @DeleteMapping("/{itemId}")
+    @PreAuthorize("hasAnyRole('USER', 'PURCHASER', 'STOCKKEEPER')")
     public ResponseEntity<Void> deleteItem(@PathVariable Long itemId) {
         itemService.deleteItem(itemId);
         return ResponseEntity.noContent().build();
