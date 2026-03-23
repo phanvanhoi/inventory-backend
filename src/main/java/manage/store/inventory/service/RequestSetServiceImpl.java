@@ -536,7 +536,8 @@ public class RequestSetServiceImpl implements RequestSetService {
         history.setRequestSet(requestSet);
         history.setAction(ApprovalAction.SUBMIT);
         history.setPerformedBy(user);
-        history.setReason("Cập nhật và gửi duyệt lại");
+        history.setReason(dto.getReason() != null && !dto.getReason().isBlank()
+                ? dto.getReason() : "Cập nhật và gửi duyệt lại");
         history.setCreatedAt(LocalDateTime.now());
         approvalHistoryRepository.save(history);
 
@@ -860,7 +861,8 @@ public class RequestSetServiceImpl implements RequestSetService {
         history.setRequestSet(requestSet);
         history.setAction(ApprovalAction.EDIT);
         history.setPerformedBy(user);
-        history.setReason("Sửa bộ phiếu đã duyệt và gửi duyệt lại");
+        history.setReason(dto.getReason() != null && !dto.getReason().isBlank()
+                ? dto.getReason() : "Sửa bộ phiếu đã duyệt và gửi duyệt lại");
         history.setCreatedAt(LocalDateTime.now());
         approvalHistoryRepository.save(history);
 

@@ -13,5 +13,6 @@ public class RequestSetUpdateDTO {
 
     private String setName;
     private String description;
+    private String reason;
     private List<InventoryRequestCreateDTO> requests;
 }
