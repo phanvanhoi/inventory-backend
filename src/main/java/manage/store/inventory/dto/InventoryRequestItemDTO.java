@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 
 public class InventoryRequestItemDTO {
 
+    private Long itemId;
     private Long variantId;
     private String styleName;
     private String sizeValue;
@@ -29,6 +30,7 @@ public class InventoryRequestItemDTO {
 
     // Constructor cho JPQL query (backward compatible — Integer quantity auto-converts)
     public InventoryRequestItemDTO(
+            Long itemId,
             Long variantId,
             String styleName,
             String sizeValue,
@@ -39,6 +41,7 @@ public class InventoryRequestItemDTO {
             String unit,
             BigDecimal quantity
     ) {
+        this.itemId = itemId;
         this.variantId = variantId;
         this.styleName = styleName;
         this.sizeValue = sizeValue;
@@ -52,6 +55,7 @@ public class InventoryRequestItemDTO {
 
     // Full constructor with fabric fields
     public InventoryRequestItemDTO(
+            Long itemId,
             Long variantId,
             String styleName,
             String sizeValue,
@@ -68,6 +72,7 @@ public class InventoryRequestItemDTO {
             String employeeName,
             String positionCode
     ) {
+        this.itemId = itemId;
         this.variantId = variantId;
         this.styleName = styleName;
         this.sizeValue = sizeValue;
@@ -84,6 +89,9 @@ public class InventoryRequestItemDTO {
         this.employeeName = employeeName;
         this.positionCode = positionCode;
     }
+
+    public Long getItemId() { return itemId; }
+    public void setItemId(Long itemId) { this.itemId = itemId; }
 
     public Long getVariantId() { return variantId; }
     public void setVariantId(Long variantId) { this.variantId = variantId; }

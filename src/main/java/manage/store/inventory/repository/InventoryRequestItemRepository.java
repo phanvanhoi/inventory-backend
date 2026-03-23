@@ -18,6 +18,7 @@ public interface InventoryRequestItemRepository
 
     @Query("""
         SELECT new manage.store.inventory.dto.InventoryRequestItemDTO(
+            i.itemId,
             pv.variantId,
             s.styleName,
             sz.sizeValue,
