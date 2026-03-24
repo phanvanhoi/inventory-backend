@@ -833,13 +833,12 @@ public class RequestSetServiceImpl implements RequestSetService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-        // Kiểm tra quyền: STOCKKEEPER hoặc chủ phiếu
+        // Kiểm tra quyền: chỉ chủ phiếu (STOCKKEEPER dùng "Sửa SL & Nhận hàng")
         boolean isOwner = requestSet.getCreatedByUser() != null
                 && requestSet.getCreatedByUser().getUserId().equals(userId);
-        boolean isStockkeeper = user.isStockkeeper();
 
-        if (!isOwner && !isStockkeeper) {
-            throw new RuntimeException("Chỉ STOCKKEEPER hoặc chủ phiếu mới có quyền sửa bộ phiếu đã duyệt");
+        if (!isOwner) {
+            throw new RuntimeException("Chỉ chủ phiếu mới có quyền sửa bộ phiếu đã duyệt");
         }
 
         // Kiểm tra trạng thái: chỉ APPROVED

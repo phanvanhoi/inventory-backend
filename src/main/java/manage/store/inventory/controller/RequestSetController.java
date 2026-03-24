@@ -245,11 +245,11 @@ public class RequestSetController {
         return receiptService.getProgress(setId);
     }
 
-    // Sửa bộ phiếu đã duyệt (STOCKKEEPER hoặc chủ phiếu)
+    // Sửa bộ phiếu đã duyệt (chỉ chủ phiếu — STOCKKEEPER dùng "Sửa SL & Nhận hàng")
     // Chỉ khi APPROVED (chưa có receipt)
     // Status → PENDING (cần Admin duyệt lại)
     @PutMapping("/{setId:\\d+}/edit")
-    @PreAuthorize("hasAnyRole('USER', 'PURCHASER', 'STOCKKEEPER')")
+    @PreAuthorize("hasAnyRole('USER', 'PURCHASER')")
     public ResponseEntity<Void> editApprovedRequestSet(
             @PathVariable Long setId,
             @Valid @RequestBody RequestSetUpdateDTO dto
