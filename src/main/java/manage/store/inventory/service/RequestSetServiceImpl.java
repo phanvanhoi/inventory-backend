@@ -931,7 +931,8 @@ public class RequestSetServiceImpl implements RequestSetService {
                     "Trạng thái hiện tại: " + requestSet.getStatus());
         }
 
-        // 3. Cập nhật quantity cho từng item
+        // 3. Cập nhật quantity cho từng item + ghi lại chi tiết thay đổi
+        List<String> changes = new ArrayList<>();
         for (EditAndReceiveDTO.ItemQuantityUpdate itemUpdate : dto.getItems()) {
             InventoryRequestItem item = itemRepository.findById(itemUpdate.getItemId())
                     .orElseThrow(() -> new RuntimeException(
@@ -950,7 +951,19 @@ public class RequestSetServiceImpl implements RequestSetService {
                 throw new RuntimeException("Số lượng không hợp lệ cho item " + itemUpdate.getItemId());
             }
 
-            item.setQuantity(itemUpdate.getQuantity());
+            BigDecimal oldQty = item.getQuantity();
+            BigDecimal newQty = itemUpdate.getQuantity();
+            if (oldQty.compareTo(newQty) != 0) {
+                // Lấy tên variant để ghi log
+                ProductVariant pv = variantRepository.findById(item.getVariantId()).orElse(null);
+                String label = pv != null && pv.getItemCode() != null
+                        ? pv.getItemCode()
+                        : "ID:" + item.getVariantId();
+                changes.add(label + ": " + oldQty.stripTrailingZeros().toPlainString()
+                        + " → " + newQty.stripTrailingZeros().toPlainString());
+            }
+
+            item.setQuantity(newQty);
             itemRepository.save(item);
         }
 
@@ -962,12 +975,16 @@ public class RequestSetServiceImpl implements RequestSetService {
         requestSet.setStatus(RequestSetStatus.RECEIVING);
         requestSetRepository.save(requestSet);
 
-        // 6. Lưu lịch sử (EDIT_AND_RECEIVE)
+        // 6. Lưu lịch sử (EDIT_AND_RECEIVE) với chi tiết thay đổi
+        String reason = dto.getReason() != null ? dto.getReason() : "";
+        if (!changes.isEmpty()) {
+            reason += (reason.isEmpty() ? "" : " | ") + "Thay đổi: " + String.join(", ", changes);
+        }
         ApprovalHistory history = new ApprovalHistory();
         history.setRequestSet(requestSet);
         history.setAction(ApprovalAction.EDIT_AND_RECEIVE);
         history.setPerformedBy(user);
-        history.setReason(dto.getReason());
+        history.setReason(reason);
         history.setCreatedAt(LocalDateTime.now());
         approvalHistoryRepository.save(history);
 
