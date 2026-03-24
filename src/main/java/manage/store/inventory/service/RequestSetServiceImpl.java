@@ -30,6 +30,7 @@ import manage.store.inventory.entity.RequestSet;
 import manage.store.inventory.entity.User;
 import manage.store.inventory.entity.enums.ApprovalAction;
 import manage.store.inventory.entity.enums.Gender;
+import manage.store.inventory.entity.ReceiptItem;
 import manage.store.inventory.entity.ReceiptRecord;
 import manage.store.inventory.entity.enums.RequestSetStatus;
 import manage.store.inventory.entity.enums.VariantType;
@@ -953,11 +954,35 @@ public class RequestSetServiceImpl implements RequestSetService {
             itemRepository.save(item);
         }
 
-        // 4. Chuyển status → RECEIVING
+        // 4. Tạo receipt_record + receipt_items cho TẤT CẢ items (coi như đã nhận đủ SL mới)
+        //    Điều này đảm bảo completeReceipt() tính đúng tổng đã nhận
+        ReceiptRecord receipt = new ReceiptRecord();
+        receipt.setSetId(setId);
+        receipt.setReceivedBy(user);
+        receipt.setReceivedAt(LocalDateTime.now());
+        receipt.setNote("Sửa SL & nhận: " + (dto.getReason() != null ? dto.getReason() : ""));
+        receipt = receiptRecordRepository.save(receipt);
+
+        List<InventoryRequest> allRequests = requestRepository.findBySetId(setId);
+        for (InventoryRequest req : allRequests) {
+            List<InventoryRequestItem> reqItems = itemRepository.findByRequestId(req.getRequestId());
+            for (InventoryRequestItem reqItem : reqItems) {
+                if (reqItem.getQuantity().compareTo(BigDecimal.ZERO) > 0) {
+                    ReceiptItem ri = new ReceiptItem();
+                    ri.setReceiptId(receipt.getReceiptId());
+                    ri.setRequestId(req.getRequestId());
+                    ri.setVariantId(reqItem.getVariantId());
+                    ri.setReceivedQuantity(reqItem.getQuantity());
+                    receiptItemRepository.save(ri);
+                }
+            }
+        }
+
+        // 5. Chuyển status → RECEIVING
         requestSet.setStatus(RequestSetStatus.RECEIVING);
         requestSetRepository.save(requestSet);
 
-        // 5. Lưu lịch sử (EDIT_AND_RECEIVE)
+        // 6. Lưu lịch sử (EDIT_AND_RECEIVE)
         ApprovalHistory history = new ApprovalHistory();
         history.setRequestSet(requestSet);
         history.setAction(ApprovalAction.EDIT_AND_RECEIVE);
@@ -966,7 +991,7 @@ public class RequestSetServiceImpl implements RequestSetService {
         history.setCreatedAt(LocalDateTime.now());
         approvalHistoryRepository.save(history);
 
-        // 6. Thông báo cho Creator + tất cả ADMIN
+        // 7. Thông báo cho Creator + tất cả ADMIN
         notificationService.notifyOfEditAndReceive(requestSet, user, dto.getReason());
     }
 
