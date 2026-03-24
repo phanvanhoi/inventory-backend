@@ -954,29 +954,9 @@ public class RequestSetServiceImpl implements RequestSetService {
             itemRepository.save(item);
         }
 
-        // 4. Tạo receipt_record + receipt_items cho TẤT CẢ items (coi như đã nhận đủ SL mới)
-        //    Điều này đảm bảo completeReceipt() tính đúng tổng đã nhận
-        ReceiptRecord receipt = new ReceiptRecord();
-        receipt.setSetId(setId);
-        receipt.setReceivedBy(user);
-        receipt.setReceivedAt(LocalDateTime.now());
-        receipt.setNote("Sửa SL & nhận: " + (dto.getReason() != null ? dto.getReason() : ""));
-        receipt = receiptRecordRepository.save(receipt);
-
-        List<InventoryRequest> allRequests = requestRepository.findBySetId(setId);
-        for (InventoryRequest req : allRequests) {
-            List<InventoryRequestItem> reqItems = itemRepository.findByRequestId(req.getRequestId());
-            for (InventoryRequestItem reqItem : reqItems) {
-                if (reqItem.getQuantity().compareTo(BigDecimal.ZERO) > 0) {
-                    ReceiptItem ri = new ReceiptItem();
-                    ri.setReceiptId(receipt.getReceiptId());
-                    ri.setRequestId(req.getRequestId());
-                    ri.setVariantId(reqItem.getVariantId());
-                    ri.setReceivedQuantity(reqItem.getQuantity());
-                    receiptItemRepository.save(ri);
-                }
-            }
-        }
+        // 4. KHÔNG tạo receipt — editAndReceive chỉ sửa SL, chưa nhận thực tế.
+        //    User có thể: (a) nhận từng phần, hoặc (b) bấm Hoàn tất ngay.
+        //    completeReceipt sẽ xử lý cả 2 case.
 
         // 5. Chuyển status → RECEIVING
         requestSet.setStatus(RequestSetStatus.RECEIVING);

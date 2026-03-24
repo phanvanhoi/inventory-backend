@@ -194,13 +194,12 @@ public class ReceiptServiceImpl implements ReceiptService {
                 BigDecimal totalReceived = receiptItemRepository.getTotalReceivedByRequestAndVariant(
                         setId, request.getRequestId(), item.getVariantId());
                 if (totalReceived != null && totalReceived.compareTo(BigDecimal.ZERO) > 0) {
+                    // Có receipt → dùng tổng thực nhận
                     item.setQuantity(totalReceived);
                     itemRepository.save(item);
-                } else {
-                    // Variant không có receipt nào → quantity = 0
-                    item.setQuantity(BigDecimal.ZERO);
-                    itemRepository.save(item);
                 }
+                // Không có receipt → giữ nguyên quantity hiện tại
+                // (trường hợp editAndReceive: SL đã được sửa đúng, chỉ cần hoàn tất)
             }
 
             // Chuyển ADJUST_IN → IN, ADJUST_OUT → OUT
