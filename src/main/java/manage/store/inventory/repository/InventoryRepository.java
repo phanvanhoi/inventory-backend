@@ -298,7 +298,7 @@ public interface InventoryRepository
             LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
-              AND rs.status IN ('RECEIVING', 'EXECUTED')
+              AND rs.status = 'RECEIVING'
         ) combined
         ORDER BY createdAt DESC, sizeValue, lengthCode
         """,
@@ -388,7 +388,7 @@ public interface InventoryRepository
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
               AND r.warehouse_id = :warehouseId
-              AND rs.status IN ('RECEIVING', 'EXECUTED')
+              AND rs.status = 'RECEIVING'
         ) combined
         ORDER BY createdAt DESC, sizeValue, lengthCode
         """,
@@ -477,7 +477,7 @@ public interface InventoryRepository
             LEFT JOIN length_types lt ON lt.length_type_id = pv.length_type_id
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
-              AND rs.status IN ('RECEIVING', 'EXECUTED')
+              AND rs.status = 'RECEIVING'
         ) combined
         ORDER BY createdAt DESC, sizeValue, lengthCode
         """,
@@ -567,7 +567,7 @@ public interface InventoryRepository
             WHERE r.product_id = :productId
               AND (s.style_name = :filterValue OR pv.gender = :filterValue OR :filterValue IS NULL)
               AND r.warehouse_id = :warehouseId
-              AND rs.status IN ('RECEIVING', 'EXECUTED')
+              AND rs.status = 'RECEIVING'
         ) combined
         ORDER BY createdAt DESC, sizeValue, lengthCode
         """,
