@@ -186,22 +186,11 @@ public class ReceiptServiceImpl implements ReceiptService {
                     "Chỉ có thể hoàn tất bộ phiếu đang trong trạng thái nhận hàng (RECEIVING)");
         }
 
-        // Cập nhật inventory_request_items với số lượng thực nhận
+        // Giữ nguyên items.quantity — không ghi đè bằng receipt totals.
+        // Quantity đã chính xác: gốc từ APPROVED, hoặc đã sửa bởi editAndReceive.
+        // Receipt records chỉ dùng cho tracking tiến độ.
         List<InventoryRequest> requests = requestRepository.findBySetId(setId);
         for (InventoryRequest request : requests) {
-            List<InventoryRequestItem> items = itemRepository.findByRequestId(request.getRequestId());
-            for (InventoryRequestItem item : items) {
-                BigDecimal totalReceived = receiptItemRepository.getTotalReceivedByRequestAndVariant(
-                        setId, request.getRequestId(), item.getVariantId());
-                if (totalReceived != null && totalReceived.compareTo(BigDecimal.ZERO) > 0) {
-                    // Có receipt → dùng tổng thực nhận
-                    item.setQuantity(totalReceived);
-                    itemRepository.save(item);
-                }
-                // Không có receipt → giữ nguyên quantity hiện tại
-                // (trường hợp editAndReceive: SL đã được sửa đúng, chỉ cần hoàn tất)
-            }
-
             // Chuyển ADJUST_IN → IN, ADJUST_OUT → OUT
             InventoryRequest.RequestType currentType = request.getRequestType();
             if (currentType == InventoryRequest.RequestType.ADJUST_IN) {
