@@ -9,4 +9,6 @@ import manage.store.inventory.entity.ApprovalHistory;
 public interface ApprovalHistoryRepository extends JpaRepository<ApprovalHistory, Long> {
 
     List<ApprovalHistory> findByRequestSetSetIdOrderByCreatedAtDesc(Long setId);
+
+    void deleteByRequestSetSetId(Long setId);
 }

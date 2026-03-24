@@ -93,6 +93,7 @@ public class InventoryRequestController {
     // ===== PATCH: CẬP NHẬT REQUEST TYPE =====
     // ADJUST_IN -> IN, ADJUST_OUT -> OUT
     @PatchMapping("/{id}/request-type")
+    @PreAuthorize("hasAnyRole('USER', 'PURCHASER', 'ADMIN')")
     public ResponseEntity<Void> updateRequestType(
             @PathVariable Long id,
             @Valid @RequestBody UpdateRequestTypeDTO dto
@@ -105,6 +106,7 @@ public class InventoryRequestController {
     // Chỉ áp dụng cho ADJUST_IN và ADJUST_OUT
     // Quy tắc: Muốn dời ADJUST_IN thì phải dời hết ADJUST_OUT phụ thuộc trước
     @PatchMapping("/{id}/expected-date")
+    @PreAuthorize("hasAnyRole('USER', 'PURCHASER', 'ADMIN')")
     public ResponseEntity<?> updateExpectedDate(
             @PathVariable Long id,
             @Valid @RequestBody UpdateExpectedDateDTO dto

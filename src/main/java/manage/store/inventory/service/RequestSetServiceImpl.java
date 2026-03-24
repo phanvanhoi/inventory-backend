@@ -30,6 +30,7 @@ import manage.store.inventory.entity.RequestSet;
 import manage.store.inventory.entity.User;
 import manage.store.inventory.entity.enums.ApprovalAction;
 import manage.store.inventory.entity.enums.Gender;
+import manage.store.inventory.entity.ReceiptRecord;
 import manage.store.inventory.entity.enums.RequestSetStatus;
 import manage.store.inventory.entity.enums.VariantType;
 import manage.store.inventory.repository.ApprovalHistoryRepository;
@@ -40,6 +41,8 @@ import manage.store.inventory.repository.InventoryRequestRepository;
 import manage.store.inventory.repository.PositionRepository;
 import manage.store.inventory.repository.ProductRepository;
 import manage.store.inventory.repository.ProductVariantRepository;
+import manage.store.inventory.repository.ReceiptItemRepository;
+import manage.store.inventory.repository.ReceiptRecordRepository;
 import manage.store.inventory.repository.RequestSetRepository;
 import manage.store.inventory.repository.UserRepository;
 import manage.store.inventory.repository.WarehouseRepository;
@@ -62,6 +65,8 @@ public class RequestSetServiceImpl implements RequestSetService {
     private final PositionRepository positionRepository;
     private final ProductRepository productRepository;
     private final WarehouseRepository warehouseRepository;
+    private final ReceiptRecordRepository receiptRecordRepository;
+    private final ReceiptItemRepository receiptItemRepository;
 
     public RequestSetServiceImpl(
             RequestSetRepository requestSetRepository,
@@ -75,7 +80,9 @@ public class RequestSetServiceImpl implements RequestSetService {
             InventoryRepository inventoryRepository,
             PositionRepository positionRepository,
             ProductRepository productRepository,
-            WarehouseRepository warehouseRepository
+            WarehouseRepository warehouseRepository,
+            ReceiptRecordRepository receiptRecordRepository,
+            ReceiptItemRepository receiptItemRepository
     ) {
         this.requestSetRepository = requestSetRepository;
         this.requestRepository = requestRepository;
@@ -89,6 +96,8 @@ public class RequestSetServiceImpl implements RequestSetService {
         this.positionRepository = positionRepository;
         this.productRepository = productRepository;
         this.warehouseRepository = warehouseRepository;
+        this.receiptRecordRepository = receiptRecordRepository;
+        this.receiptItemRepository = receiptItemRepository;
     }
 
     @Override
@@ -600,23 +609,30 @@ public class RequestSetServiceImpl implements RequestSetService {
 
     @Override
     public void deleteAllRequestSets() {
-        // Lấy tất cả sets
         List<RequestSet> allSets = requestSetRepository.findAll();
 
         for (RequestSet set : allSets) {
-            // Lấy tất cả requests trong set
-            List<InventoryRequest> requests = requestRepository.findBySetId(set.getSetId());
+            Long setId = set.getSetId();
 
-            // Xóa items của từng request
+            // 1. Xóa receipt_items → receipt_records (FK constraint)
+            List<ReceiptRecord> records = receiptRecordRepository.findBySetId(setId);
+            for (ReceiptRecord record : records) {
+                receiptItemRepository.deleteByReceiptId(record.getReceiptId());
+            }
+            receiptRecordRepository.deleteAll(records);
+
+            // 2. Xóa approval_history
+            approvalHistoryRepository.deleteByRequestSetSetId(setId);
+
+            // 3. Xóa request_items → requests
+            List<InventoryRequest> requests = requestRepository.findBySetId(setId);
             for (InventoryRequest request : requests) {
                 itemRepository.deleteByRequestId(request.getRequestId());
             }
-
-            // Xóa các requests
             requestRepository.deleteAll(requests);
         }
 
-        // Xóa tất cả sets
+        // 4. Xóa tất cả sets
         requestSetRepository.deleteAll();
     }
 
@@ -764,7 +780,8 @@ public class RequestSetServiceImpl implements RequestSetService {
                     request.getRequestType(), request.getProductId());
         }
         for (InventoryRequest request : requests) {
-            if (request.getRequestType() == InventoryRequest.RequestType.ADJUST_OUT) {
+            if (request.getRequestType() == InventoryRequest.RequestType.ADJUST_OUT
+                    || request.getRequestType() == InventoryRequest.RequestType.OUT) {
                 List<InventoryRequestItem> items = itemRepository.findByRequestId(request.getRequestId());
                 for (InventoryRequestItem item : items) {
                     BigDecimal actualQty = inventoryRepository.getActualQuantityByVariantAndWarehouse(
@@ -988,8 +1005,9 @@ public class RequestSetServiceImpl implements RequestSetService {
             throw new RuntimeException("Request này đã hoàn thành rồi");
         }
 
-        // Validate tồn kho nếu là ADJUST_OUT
-        if (request.getRequestType() == InventoryRequest.RequestType.ADJUST_OUT) {
+        // Validate tồn kho nếu là OUT hoặc ADJUST_OUT
+        if (request.getRequestType() == InventoryRequest.RequestType.ADJUST_OUT
+                || request.getRequestType() == InventoryRequest.RequestType.OUT) {
             List<InventoryRequestItem> items = itemRepository.findByRequestId(requestId);
             for (InventoryRequestItem item : items) {
                 BigDecimal actualQty = inventoryRepository.getActualQuantityByVariantAndWarehouse(

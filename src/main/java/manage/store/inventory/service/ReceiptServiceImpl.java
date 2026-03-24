@@ -105,12 +105,25 @@ public class ReceiptServiceImpl implements ReceiptService {
 
             // Validate variant thuộc request này
             List<InventoryRequestItem> requestItems = itemRepository.findByRequestId(itemDTO.getRequestId());
-            boolean validVariant = requestItems.stream()
-                    .anyMatch(ri -> ri.getVariantId().equals(itemDTO.getVariantId()));
-            if (!validVariant) {
+            InventoryRequestItem matchedItem = requestItems.stream()
+                    .filter(ri -> ri.getVariantId().equals(itemDTO.getVariantId()))
+                    .findFirst()
+                    .orElse(null);
+            if (matchedItem == null) {
                 throw new RuntimeException(
                         "Variant " + itemDTO.getVariantId()
                                 + " không thuộc request " + itemDTO.getRequestId());
+            }
+
+            // Validate: tổng đã nhận + lần này không vượt quá SL đề xuất
+            BigDecimal alreadyReceived = receiptItemRepository
+                    .getTotalReceivedByRequestAndVariant(setId, itemDTO.getRequestId(), itemDTO.getVariantId());
+            BigDecimal totalAfter = alreadyReceived.add(itemDTO.getReceivedQuantity());
+            if (totalAfter.compareTo(matchedItem.getQuantity()) > 0) {
+                throw new RuntimeException(
+                        "Vượt quá SL đề xuất: đã nhận " + alreadyReceived
+                                + ", nhận thêm " + itemDTO.getReceivedQuantity()
+                                + ", đề xuất " + matchedItem.getQuantity());
             }
         }
 
