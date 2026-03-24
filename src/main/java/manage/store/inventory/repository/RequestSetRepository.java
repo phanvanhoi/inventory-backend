@@ -302,4 +302,9 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
             nativeQuery = true
     )
     List<RequestSetListDTO> findAllByStatusesOrderByCreatorName(@Param("statuses") List<String> statuses);
+
+    boolean existsBySetName(String setName);
+
+    @Query("SELECT MAX(CAST(SUBSTRING(rs.setName, LENGTH(:prefix) + 1, LOCATE(' ', CONCAT(SUBSTRING(rs.setName, LENGTH(:prefix) + 1), ' ')) - 1) AS int)) FROM RequestSet rs WHERE rs.setName LIKE CONCAT(:prefix, '%')")
+    Integer findMaxNumberByPrefix(@Param("prefix") String prefix);
 }

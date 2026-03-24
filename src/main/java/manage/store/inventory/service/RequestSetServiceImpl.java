@@ -113,8 +113,27 @@ public class RequestSetServiceImpl implements RequestSetService {
         }
 
         // 1. Tạo RequestSet - bắt đầu với PENDING (bỏ DRAFT)
+        // Auto-increment tên nếu trùng: "ĐX 1 - Hội" → "ĐX 2 - Hội" nếu đã tồn tại
+        String setName = dto.getSetName();
+        if (setName != null && requestSetRepository.existsBySetName(setName)) {
+            // Extract prefix and suffix: "ĐX 1 - Hội" → prefix="ĐX ", suffix=" - Hội"
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(.+?)(\\d+)(.*)$").matcher(setName);
+            if (m.matches()) {
+                String prefix = m.group(1);
+                String suffix = m.group(3);
+                // Find max number with same prefix+suffix pattern
+                int maxNum = 0;
+                for (int i = 1; i <= 1000; i++) {
+                    if (!requestSetRepository.existsBySetName(prefix + i + suffix)) {
+                        maxNum = i;
+                        break;
+                    }
+                }
+                setName = prefix + maxNum + suffix;
+            }
+        }
         RequestSet requestSet = new RequestSet();
-        requestSet.setSetName(dto.getSetName());
+        requestSet.setSetName(setName);
         requestSet.setDescription(dto.getDescription());
         requestSet.setStatus(RequestSetStatus.PENDING);
         requestSet.setCreatedAt(LocalDateTime.now());
