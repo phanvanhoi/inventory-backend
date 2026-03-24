@@ -954,13 +954,24 @@ public class RequestSetServiceImpl implements RequestSetService {
             BigDecimal oldQty = item.getQuantity();
             BigDecimal newQty = itemUpdate.getQuantity();
             if (oldQty.compareTo(newQty) != 0) {
-                // Lấy tên variant để ghi log
+                // Build label chi tiết: [Thợ] Mã hàng - Tên hàng (chi tiết): 30 → 32
                 ProductVariant pv = variantRepository.findById(item.getVariantId()).orElse(null);
-                String label = pv != null && pv.getItemCode() != null
-                        ? pv.getItemCode()
-                        : "ID:" + item.getVariantId();
-                changes.add(label + ": " + oldQty.stripTrailingZeros().toPlainString()
-                        + " → " + newQty.stripTrailingZeros().toPlainString());
+                StringBuilder lb = new StringBuilder();
+                if (item.getWorkerNote() != null && !item.getWorkerNote().isBlank()) {
+                    lb.append("[").append(item.getWorkerNote()).append("] ");
+                }
+                if (pv != null && pv.getItemCode() != null) {
+                    lb.append(pv.getItemCode());
+                    if (pv.getItemName() != null) lb.append(" - ").append(pv.getItemName());
+                } else {
+                    lb.append("variant#").append(item.getVariantId());
+                }
+                if (item.getFabricNote() != null && !item.getFabricNote().isBlank()) {
+                    lb.append(" (").append(item.getFabricNote()).append(")");
+                }
+                lb.append(": ").append(oldQty.stripTrailingZeros().toPlainString())
+                  .append(" → ").append(newQty.stripTrailingZeros().toPlainString());
+                changes.add(lb.toString());
             }
 
             item.setQuantity(newQty);
@@ -978,7 +989,7 @@ public class RequestSetServiceImpl implements RequestSetService {
         // 6. Lưu lịch sử (EDIT_AND_RECEIVE) với chi tiết thay đổi
         String reason = dto.getReason() != null ? dto.getReason() : "";
         if (!changes.isEmpty()) {
-            reason += (reason.isEmpty() ? "" : " | ") + "Thay đổi: " + String.join(", ", changes);
+            reason += (reason.isEmpty() ? "" : "\n") + "Thay đổi:\n" + String.join("\n", changes);
         }
         ApprovalHistory history = new ApprovalHistory();
         history.setRequestSet(requestSet);
