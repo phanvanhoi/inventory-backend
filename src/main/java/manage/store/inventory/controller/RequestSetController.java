@@ -1,10 +1,12 @@
 package manage.store.inventory.controller;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 
@@ -116,17 +118,27 @@ public class RequestSetController {
     // Hỗ trợ: ?status=APPROVED hoặc ?status=APPROVED,EXECUTED
     @GetMapping
     public List<RequestSetListDTO> getAllRequestSets(
-            @RequestParam(required = false) String status
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Integer year
     ) {
         Long userId = currentUser.getUserId();
+        int targetYear = (year != null && year > 0) ? year : LocalDate.now().getYear();
+
+        List<RequestSetListDTO> result;
         if (status != null && !status.isEmpty()) {
             if (status.contains(",")) {
                 List<String> statuses = Arrays.asList(status.split(","));
-                return requestSetService.getRequestSetsByStatuses(statuses, userId);
+                result = requestSetService.getRequestSetsByStatuses(statuses, userId);
+            } else {
+                result = requestSetService.getRequestSetsByStatus(status, userId);
             }
-            return requestSetService.getRequestSetsByStatus(status, userId);
+        } else {
+            result = requestSetService.getAllRequestSets(userId);
         }
-        return requestSetService.getAllRequestSets(userId);
+
+        return result.stream()
+                .filter(s -> s.getCreatedAt() != null && s.getCreatedAt().getYear() == targetYear)
+                .collect(Collectors.toList());
     }
 
     // Lấy chi tiết bộ phiếu
