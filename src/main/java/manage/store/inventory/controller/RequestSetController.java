@@ -2,6 +2,7 @@ package manage.store.inventory.controller;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -46,6 +47,16 @@ import manage.store.inventory.service.RequestSetService;
 @RequestMapping("/api/request-sets")
 public class RequestSetController {
 
+    private static final Map<String, String> CATEGORY_LABELS = new HashMap<>();
+    static {
+        CATEGORY_LABELS.put("VAI_GIAO_THO",     "ĐX VẢI GIAO THỢ");
+        CATEGORY_LABELS.put("VAI_NHAP_KHO_THO", "ĐX VẢI NHẬP KHO THỢ");
+        CATEGORY_LABELS.put("VAI_TRA_KHACH",     "ĐX VẢI TRẢ KHÁCH");
+        CATEGORY_LABELS.put("PHU_LIEU",          "ĐX PHỤ LIỆU");
+        CATEGORY_LABELS.put("PHU_KIEN",          "ĐX PHỤ KIỆN");
+        CATEGORY_LABELS.put("HANG_MAY_SAN",      "ĐX HÀNG MAY SẴN");
+    }
+
     private final RequestSetService requestSetService;
     private final ReceiptService receiptService;
     private final RequestSetRepository requestSetRepository;
@@ -70,16 +81,24 @@ public class RequestSetController {
     }
 
     // Lấy tên gợi ý cho bộ phiếu mới
-    // Format: "ĐX {số thứ tự} - {tên user}"
+    // Format cũ:   "ĐX {n} - {tên user}"
+    // Format mới:  "[ĐX VẢI GIAO THỢ] {n} - {tên user}"  (khi có category)
     @GetMapping("/suggested-name")
     @PreAuthorize("hasAnyRole('USER', 'PURCHASER')")
-    public Map<String, String> getSuggestedName() {
+    public Map<String, String> getSuggestedName(@RequestParam(required = false) String category) {
         Long userId = currentUser.getUserId();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
-        Long count = requestSetRepository.countByCreatedByUserId(userId);
-        String suggestedName = "ĐX " + (count + 1) + " - " + user.getFullName();
+        String suggestedName;
+        if (category != null && !category.isEmpty() && CATEGORY_LABELS.containsKey(category)) {
+            long count = requestSetRepository.countByCreatedByUserIdAndCategory(userId, category);
+            String label = CATEGORY_LABELS.get(category);
+            suggestedName = "[" + label + "] " + (count + 1) + " - " + user.getFullName();
+        } else {
+            long count = requestSetRepository.countByCreatedByUserId(userId);
+            suggestedName = "ĐX " + (count + 1) + " - " + user.getFullName();
+        }
 
         return Map.of("suggestedName", suggestedName);
     }

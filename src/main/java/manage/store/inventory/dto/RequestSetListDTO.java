@@ -18,4 +18,5 @@ public interface RequestSetListDTO {
     String getProductNames(); // Comma-separated list of product names
     String getPositionCodes(); // Comma-separated list: "GDV,VHX"
     LocalDate getEarliestExpectedDate(); // Ngày dự kiến sớm nhất trong các request
+    String getCategory(); // Loại đề xuất: VAI_GIAO_THO, PHU_LIEU, HANG_MAY_SAN, ...
 }

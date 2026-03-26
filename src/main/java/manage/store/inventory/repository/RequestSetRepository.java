@@ -26,6 +26,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.set_id AS setId,
                     rs.set_name AS setName,
                     rs.description AS description,
+                    rs.category AS category,
                     rs.status AS status,
                     rs.created_by AS createdBy,
                     u.full_name AS createdByName,
@@ -41,7 +42,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                 LEFT JOIN inventory_requests ir ON ir.set_id = rs.set_id
                 LEFT JOIN products p ON p.product_id = ir.product_id
                 LEFT JOIN positions pos ON pos.position_id = ir.position_id
-                GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
+                GROUP BY rs.set_id, rs.set_name, rs.description, rs.category, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY rs.created_at DESC
             """,
             nativeQuery = true
@@ -54,6 +55,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.set_id AS setId,
                     rs.set_name AS setName,
                     rs.description AS description,
+                    rs.category AS category,
                     rs.status AS status,
                     rs.created_by AS createdBy,
                     u.full_name AS createdByName,
@@ -70,7 +72,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                 LEFT JOIN products p ON p.product_id = ir.product_id
                 LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 WHERE rs.status = :status
-                GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
+                GROUP BY rs.set_id, rs.set_name, rs.description, rs.category, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY rs.created_at DESC
             """,
             nativeQuery = true
@@ -94,6 +96,10 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
     @Query("SELECT COUNT(rs) FROM RequestSet rs WHERE rs.createdByUser.userId = :userId")
     Long countByCreatedByUserId(@Param("userId") Long userId);
 
+    // Đếm số request sets theo user và category (cho suggested name)
+    @Query("SELECT COUNT(rs) FROM RequestSet rs WHERE rs.createdByUser.userId = :userId AND rs.category = :category")
+    Long countByCreatedByUserIdAndCategory(@Param("userId") Long userId, @Param("category") String category);
+
     // Lấy request sets theo nhiều status
     @Query(
             value = """
@@ -101,6 +107,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.set_id AS setId,
                     rs.set_name AS setName,
                     rs.description AS description,
+                    rs.category AS category,
                     rs.status AS status,
                     rs.created_by AS createdBy,
                     u.full_name AS createdByName,
@@ -117,7 +124,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                 LEFT JOIN products p ON p.product_id = ir.product_id
                 LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 WHERE rs.status IN (:statuses)
-                GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
+                GROUP BY rs.set_id, rs.set_name, rs.description, rs.category, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY rs.created_at DESC
             """,
             nativeQuery = true
@@ -131,6 +138,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.set_id AS setId,
                     rs.set_name AS setName,
                     rs.description AS description,
+                    rs.category AS category,
                     rs.status AS status,
                     rs.created_by AS createdBy,
                     u.full_name AS createdByName,
@@ -147,7 +155,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                 LEFT JOIN products p ON p.product_id = ir.product_id
                 LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 WHERE rs.created_by = :userId
-                GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
+                GROUP BY rs.set_id, rs.set_name, rs.description, rs.category, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY rs.created_at DESC
             """,
             nativeQuery = true
@@ -161,6 +169,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.set_id AS setId,
                     rs.set_name AS setName,
                     rs.description AS description,
+                    rs.category AS category,
                     rs.status AS status,
                     rs.created_by AS createdBy,
                     u.full_name AS createdByName,
@@ -177,7 +186,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                 LEFT JOIN products p ON p.product_id = ir.product_id
                 LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 WHERE rs.created_by = :userId AND rs.status = :status
-                GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
+                GROUP BY rs.set_id, rs.set_name, rs.description, rs.category, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY rs.created_at DESC
             """,
             nativeQuery = true
@@ -191,6 +200,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.set_id AS setId,
                     rs.set_name AS setName,
                     rs.description AS description,
+                    rs.category AS category,
                     rs.status AS status,
                     rs.created_by AS createdBy,
                     u.full_name AS createdByName,
@@ -207,7 +217,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                 LEFT JOIN products p ON p.product_id = ir.product_id
                 LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 WHERE rs.created_by = :userId AND rs.status IN (:statuses)
-                GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
+                GROUP BY rs.set_id, rs.set_name, rs.description, rs.category, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY rs.created_at DESC
             """,
             nativeQuery = true
@@ -221,6 +231,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.set_id AS setId,
                     rs.set_name AS setName,
                     rs.description AS description,
+                    rs.category AS category,
                     rs.status AS status,
                     rs.created_by AS createdBy,
                     u.full_name AS createdByName,
@@ -236,7 +247,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                 LEFT JOIN inventory_requests ir ON ir.set_id = rs.set_id
                 LEFT JOIN products p ON p.product_id = ir.product_id
                 LEFT JOIN positions pos ON pos.position_id = ir.position_id
-                GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
+                GROUP BY rs.set_id, rs.set_name, rs.description, rs.category, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY u.full_name ASC, rs.created_at DESC
             """,
             nativeQuery = true
@@ -250,6 +261,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.set_id AS setId,
                     rs.set_name AS setName,
                     rs.description AS description,
+                    rs.category AS category,
                     rs.status AS status,
                     rs.created_by AS createdBy,
                     u.full_name AS createdByName,
@@ -266,7 +278,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                 LEFT JOIN products p ON p.product_id = ir.product_id
                 LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 WHERE rs.status = :status
-                GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
+                GROUP BY rs.set_id, rs.set_name, rs.description, rs.category, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY u.full_name ASC, rs.created_at DESC
             """,
             nativeQuery = true
@@ -280,6 +292,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                     rs.set_id AS setId,
                     rs.set_name AS setName,
                     rs.description AS description,
+                    rs.category AS category,
                     rs.status AS status,
                     rs.created_by AS createdBy,
                     u.full_name AS createdByName,
@@ -296,7 +309,7 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
                 LEFT JOIN products p ON p.product_id = ir.product_id
                 LEFT JOIN positions pos ON pos.position_id = ir.position_id
                 WHERE rs.status IN (:statuses)
-                GROUP BY rs.set_id, rs.set_name, rs.description, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
+                GROUP BY rs.set_id, rs.set_name, rs.description, rs.category, rs.status, rs.created_by, u.full_name, rs.created_at, rs.submitted_at
                 ORDER BY u.full_name ASC, rs.created_at DESC
             """,
             nativeQuery = true

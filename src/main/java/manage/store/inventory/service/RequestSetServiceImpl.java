@@ -37,6 +37,7 @@ import manage.store.inventory.entity.enums.ApprovalAction;
 import manage.store.inventory.entity.enums.Gender;
 import manage.store.inventory.entity.ReceiptItem;
 import manage.store.inventory.entity.ReceiptRecord;
+import manage.store.inventory.entity.enums.RequestSetCategory;
 import manage.store.inventory.entity.enums.RequestSetStatus;
 import manage.store.inventory.entity.enums.VariantType;
 import manage.store.inventory.repository.ApprovalHistoryRepository;
@@ -150,6 +151,11 @@ public class RequestSetServiceImpl implements RequestSetService {
         RequestSet requestSet = new RequestSet();
         requestSet.setSetName(setName);
         requestSet.setDescription(dto.getDescription());
+        if (dto.getCategory() != null && !dto.getCategory().isEmpty()) {
+            try {
+                requestSet.setCategory(RequestSetCategory.valueOf(dto.getCategory()));
+            } catch (IllegalArgumentException ignored) { }
+        }
         requestSet.setStatus(RequestSetStatus.PENDING);
         requestSet.setCreatedAt(LocalDateTime.now());
         requestSet.setSubmittedAt(LocalDateTime.now());
