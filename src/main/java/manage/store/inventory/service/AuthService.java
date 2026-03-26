@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import manage.store.inventory.dto.auth.AuthResponseDTO;
 import manage.store.inventory.dto.auth.LoginRequestDTO;
 import manage.store.inventory.dto.auth.RegisterRequestDTO;
+import manage.store.inventory.entity.RefreshToken;
 import manage.store.inventory.entity.Role;
 import manage.store.inventory.entity.User;
 import manage.store.inventory.exception.BusinessException;
@@ -27,19 +28,23 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthService(
             UserRepository userRepository,
             RoleRepository roleRepository,
             PasswordEncoder passwordEncoder,
-            JwtUtil jwtUtil
+            JwtUtil jwtUtil,
+            RefreshTokenService refreshTokenService
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.refreshTokenService = refreshTokenService;
     }
 
+    @Transactional
     public AuthResponseDTO login(LoginRequestDTO request) {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new BusinessException("Sai tên đăng nhập hoặc mật khẩu"));
@@ -49,12 +54,15 @@ public class AuthService {
         }
 
         String token = jwtUtil.generateToken(user);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
         List<String> roles = user.getRoles().stream()
                 .map(Role::getRoleName)
                 .collect(Collectors.toList());
 
         return new AuthResponseDTO(
                 token,
+                refreshToken.getToken(),
                 user.getUserId(),
                 user.getUsername(),
                 user.getFullName(),
@@ -76,7 +84,6 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setCreatedAt(LocalDateTime.now());
 
-        // Gán role mặc định là USER
         Role userRole = roleRepository.findByRoleName("USER")
                 .orElseThrow(() -> new ResourceNotFoundException("Role USER không tồn tại"));
         user.getRoles().add(userRole);
@@ -84,18 +91,51 @@ public class AuthService {
         user = userRepository.save(user);
 
         String token = jwtUtil.generateToken(user);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
         List<String> roles = user.getRoles().stream()
                 .map(Role::getRoleName)
                 .collect(Collectors.toList());
 
         return new AuthResponseDTO(
                 token,
+                refreshToken.getToken(),
                 user.getUserId(),
                 user.getUsername(),
                 user.getFullName(),
                 roles,
                 user.getWarehouseId()
         );
+    }
+
+    @Transactional
+    public AuthResponseDTO refreshAccessToken(String refreshTokenStr) {
+        RefreshToken refreshToken = refreshTokenService.validateRefreshToken(refreshTokenStr);
+        User user = refreshToken.getUser();
+
+        // Token rotation: thu hồi token cũ, cấp token mới
+        refreshTokenService.revokeToken(refreshTokenStr);
+        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
+
+        String newAccessToken = jwtUtil.generateToken(user);
+        List<String> roles = user.getRoles().stream()
+                .map(Role::getRoleName)
+                .collect(Collectors.toList());
+
+        return new AuthResponseDTO(
+                newAccessToken,
+                newRefreshToken.getToken(),
+                user.getUserId(),
+                user.getUsername(),
+                user.getFullName(),
+                roles,
+                user.getWarehouseId()
+        );
+    }
+
+    @Transactional
+    public void logout(String refreshTokenStr) {
+        refreshTokenService.revokeToken(refreshTokenStr);
     }
 
     // User tự đổi mật khẩu

@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import manage.store.inventory.dto.auth.AuthResponseDTO;
 import manage.store.inventory.dto.auth.ChangePasswordDTO;
 import manage.store.inventory.dto.auth.LoginRequestDTO;
+import manage.store.inventory.dto.auth.RefreshTokenRequestDTO;
 import manage.store.inventory.dto.auth.RegisterRequestDTO;
 import manage.store.inventory.security.CurrentUser;
 import manage.store.inventory.service.AuthService;
@@ -28,17 +29,25 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
-        AuthResponseDTO response = authService.login(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody RegisterRequestDTO request) {
-        AuthResponseDTO response = authService.register(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(authService.register(request));
     }
 
-    // User tự đổi mật khẩu (yêu cầu đã đăng nhập)
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponseDTO> refresh(@Valid @RequestBody RefreshTokenRequestDTO request) {
+        return ResponseEntity.ok(authService.refreshAccessToken(request.getRefreshToken()));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequestDTO request) {
+        authService.logout(request.getRefreshToken());
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/change-password")
     public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordDTO request) {
         authService.changePassword(currentUser.getUserId(), request.getOldPassword(), request.getNewPassword());

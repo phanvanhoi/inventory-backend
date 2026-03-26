@@ -10,15 +10,17 @@ import lombok.Data;
 public class AuthResponseDTO {
     private String token;
     private String tokenType;
+    private String refreshToken;
     private Long userId;
     private String username;
     private String fullName;
     private List<String> roles;
     private Long warehouseId;
 
-    public AuthResponseDTO(String token, Long userId, String username, String fullName, List<String> roles, Long warehouseId) {
+    public AuthResponseDTO(String token, String refreshToken, Long userId, String username, String fullName, List<String> roles, Long warehouseId) {
         this.token = token;
         this.tokenType = "Bearer";
+        this.refreshToken = refreshToken;
         this.userId = userId;
         this.username = username;
         this.fullName = fullName;
