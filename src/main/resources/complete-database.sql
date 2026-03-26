@@ -44,6 +44,7 @@ CREATE TABLE products (
     note TEXT,
     min_stock INT DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
     INDEX idx_product_name (product_name),
     INDEX idx_parent_product (parent_product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -127,6 +128,7 @@ CREATE TABLE users (
     email VARCHAR(100),
     warehouse_id BIGINT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
     INDEX idx_username (username),
     FOREIGN KEY (warehouse_id) REFERENCES warehouses(warehouse_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -149,6 +151,7 @@ CREATE TABLE request_sets (
     set_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     set_name VARCHAR(255) NOT NULL,
     description TEXT,
+    category ENUM('VAI_GIAO_THO', 'VAI_NHAP_KHO_THO', 'VAI_TRA_KHACH', 'PHU_LIEU', 'PHU_KIEN', 'HANG_MAY_SAN') NULL,
     status ENUM('PENDING', 'APPROVED', 'REJECTED', 'RECEIVING', 'EXECUTED') NOT NULL DEFAULT 'PENDING',
     executed_by BIGINT NULL,
     executed_at DATETIME NULL,
@@ -160,6 +163,7 @@ CREATE TABLE request_sets (
     INDEX idx_set_name (set_name),
     INDEX idx_set_created_by (created_by),
     INDEX idx_set_status (status),
+    INDEX idx_set_category (category),
     INDEX idx_set_executed_by (executed_by)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
