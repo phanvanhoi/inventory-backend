@@ -534,6 +534,7 @@ public class RequestSetServiceImpl implements RequestSetService {
                 requestSet.getSetId(),
                 requestSet.getSetName(),
                 requestSet.getDescription(),
+                requestSet.getCategory() != null ? requestSet.getCategory().name() : null,
                 requestSet.getStatus().name(),
                 createdBy,
                 createdByName,

@@ -97,7 +97,8 @@ public interface RequestSetRepository extends JpaRepository<RequestSet, Long> {
     Long countByCreatedByUserId(@Param("userId") Long userId);
 
     // Đếm số request sets theo user và category (cho suggested name)
-    @Query("SELECT COUNT(rs) FROM RequestSet rs WHERE rs.createdByUser.userId = :userId AND rs.category = :category")
+    // Dùng native query để tránh type mismatch giữa String và enum trong Hibernate 6
+    @Query(value = "SELECT COUNT(*) FROM request_sets WHERE created_by = :userId AND category = :category", nativeQuery = true)
     Long countByCreatedByUserIdAndCategory(@Param("userId") Long userId, @Param("category") String category);
 
     // Lấy request sets theo nhiều status

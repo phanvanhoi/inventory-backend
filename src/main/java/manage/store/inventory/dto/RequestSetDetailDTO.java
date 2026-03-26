@@ -15,6 +15,7 @@ public class RequestSetDetailDTO {
     private Long setId;
     private String setName;
     private String description;
+    private String category;
     private String status;
     private Long createdBy;
     private String createdByName;
