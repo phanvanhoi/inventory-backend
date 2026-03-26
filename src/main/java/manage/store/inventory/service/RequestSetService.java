@@ -3,6 +3,8 @@ package manage.store.inventory.service;
 import java.util.List;
 
 import manage.store.inventory.dto.RequestCompleteResponseDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import manage.store.inventory.dto.RequestSetCreateDTO;
 import manage.store.inventory.dto.RequestSetDetailDTO;
 import manage.store.inventory.dto.RequestSetListDTO;
@@ -19,12 +21,15 @@ public interface RequestSetService {
     // - ADMIN: xem tất cả, sắp xếp theo tên người tạo
     // - STOCKKEEPER: xem tất cả (giữ nguyên)
     List<RequestSetListDTO> getAllRequestSets(Long userId);
+    Page<RequestSetListDTO> getAllRequestSets(Long userId, Pageable pageable);
 
     // Lấy danh sách bộ phiếu theo status (có phân quyền theo role)
     List<RequestSetListDTO> getRequestSetsByStatus(String status, Long userId);
+    Page<RequestSetListDTO> getRequestSetsByStatus(String status, Long userId, Pageable pageable);
 
     // Lấy danh sách bộ phiếu theo nhiều status (có phân quyền theo role)
     List<RequestSetListDTO> getRequestSetsByStatuses(List<String> statuses, Long userId);
+    Page<RequestSetListDTO> getRequestSetsByStatuses(List<String> statuses, Long userId, Pageable pageable);
 
     // Lấy chi tiết bộ phiếu (bao gồm các phiếu con)
     RequestSetDetailDTO getRequestSetDetail(Long setId);

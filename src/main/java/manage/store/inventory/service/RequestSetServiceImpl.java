@@ -9,6 +9,9 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +20,8 @@ import manage.store.inventory.dto.InventoryRequestCreateDTO;
 import manage.store.inventory.dto.InventoryRequestDetailDTO;
 import manage.store.inventory.dto.RequestCompleteResponseDTO;
 import manage.store.inventory.dto.RequestSetCreateDTO;
+import manage.store.inventory.exception.BusinessException;
+import manage.store.inventory.exception.ResourceNotFoundException;
 import manage.store.inventory.dto.RequestSetDetailDTO;
 import manage.store.inventory.dto.RequestSetListDTO;
 import manage.store.inventory.dto.EditAndReceiveDTO;
@@ -105,7 +110,7 @@ public class RequestSetServiceImpl implements RequestSetService {
     public Long createRequestSet(RequestSetCreateDTO dto, Long createdByUserId) {
         // Validate user và quyền tạo
         User creator = userRepository.findById(createdByUserId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + createdByUserId));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         // ADMIN không được tạo request set (trừ khi có role khác như PURCHASER hoặc USER)
         if (creator.isAdmin() && !creator.isPurchaser() && !creator.isUser()) {
@@ -256,7 +261,7 @@ public class RequestSetServiceImpl implements RequestSetService {
             request.setWarehouseId(dto.getWarehouseId());
         } else {
             request.setWarehouseId(warehouseRepository.findByIsDefaultTrue()
-                    .orElseThrow(() -> new RuntimeException("Default warehouse not found"))
+                    .orElseThrow(() -> new ResourceNotFoundException("Kho mặc định không tồn tại"))
                     .getWarehouseId());
         }
 
@@ -271,7 +276,7 @@ public class RequestSetServiceImpl implements RequestSetService {
         }
 
         Product product = productRepository.findById(dto.getProductId())
-                .orElseThrow(() -> new RuntimeException("Product not found: " + dto.getProductId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Sản phẩm không tồn tại"));
 
         for (InventoryRequestCreateDTO.ItemDTO item : dto.getItems()) {
             if (item.getQuantity() == null || item.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
@@ -302,44 +307,39 @@ public class RequestSetServiceImpl implements RequestSetService {
         if (product.getVariantType() == VariantType.ITEM_BASED || item.getVariantId() != null) {
             Long variantId = item.getVariantId();
             if (variantId == null) {
-                throw new RuntimeException("ITEM_BASED product yêu cầu variantId");
+                throw new BusinessException("ITEM_BASED product yêu cầu variantId");
             }
             return variantRepository.findById(variantId)
-                    .orElseThrow(() -> new RuntimeException("Variant not found: id=" + variantId));
+                    .orElseThrow(() -> new ResourceNotFoundException("Biến thể sản phẩm không tồn tại"));
         }
         if (item.getStyleId() != null) {
             return variantRepository
                     .findStructuredVariantWithStyle(product.getProductId(), item.getStyleId(), item.getSizeValue(), item.getLengthCode())
-                    .orElseThrow(() -> new RuntimeException("Variant not found: productId=" + product.getProductId()
-                            + ", styleId=" + item.getStyleId() + ", size=" + item.getSizeValue() + ", length=" + item.getLengthCode()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Biến thể sản phẩm không tồn tại"));
         }
         if (item.getStyleName() != null) {
             return variantRepository
                     .findStructuredVariantWithStyleName(product.getProductId(), item.getStyleName(), item.getSizeValue(), item.getLengthCode())
-                    .orElseThrow(() -> new RuntimeException("Variant not found: productId=" + product.getProductId()
-                            + ", styleName=" + item.getStyleName() + ", size=" + item.getSizeValue() + ", length=" + item.getLengthCode()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Biến thể sản phẩm không tồn tại"));
         }
         Gender gender = item.getGender() != null ? Gender.valueOf(item.getGender()) : null;
         if (item.getLengthCode() != null && gender != null) {
             return variantRepository
                     .findStructuredVariantWithGenderAndLength(product.getProductId(), item.getSizeValue(), item.getLengthCode(), gender)
-                    .orElseThrow(() -> new RuntimeException("Variant not found: productId=" + product.getProductId()
-                            + ", size=" + item.getSizeValue() + ", length=" + item.getLengthCode() + ", gender=" + item.getGender()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Biến thể sản phẩm không tồn tại"));
         }
         if (gender != null) {
             return variantRepository
                     .findStructuredVariantWithGender(product.getProductId(), item.getSizeValue(), gender)
-                    .orElseThrow(() -> new RuntimeException("Variant not found: productId=" + product.getProductId()
-                            + ", size=" + item.getSizeValue() + ", gender=" + item.getGender()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Biến thể sản phẩm không tồn tại"));
         }
         // STRUCTURED: chỉ size (Giày BH, Bộ áo mưa)
         if (item.getSizeValue() != null) {
             return variantRepository
                     .findStructuredVariantWithSizeOnly(product.getProductId(), item.getSizeValue())
-                    .orElseThrow(() -> new RuntimeException("Variant not found: productId=" + product.getProductId()
-                            + ", size=" + item.getSizeValue()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Biến thể sản phẩm không tồn tại"));
         }
-        throw new RuntimeException("Không thể xác định variant cho product: " + product.getProductId());
+        throw new ResourceNotFoundException("Không thể xác định biến thể sản phẩm");
     }
 
     /**
@@ -355,12 +355,12 @@ public class RequestSetServiceImpl implements RequestSetService {
         Long warehouseId = dto.getWarehouseId();
         if (warehouseId == null) {
             warehouseId = warehouseRepository.findByIsDefaultTrue()
-                    .orElseThrow(() -> new RuntimeException("Default warehouse not found"))
+                    .orElseThrow(() -> new ResourceNotFoundException("Kho mặc định không tồn tại"))
                     .getWarehouseId();
         }
 
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
+                .orElseThrow(() -> new ResourceNotFoundException("Sản phẩm không tồn tại"));
 
         for (InventoryRequestCreateDTO.ItemDTO item : dto.getItems()) {
             if (item.getQuantity() == null || item.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
@@ -403,7 +403,7 @@ public class RequestSetServiceImpl implements RequestSetService {
     @Transactional(readOnly = true)
     public List<RequestSetListDTO> getAllRequestSets(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         // USER hoặc PURCHASER (không phải ADMIN/STOCKKEEPER thuần túy): chỉ xem của mình
         if ((user.isUser() || user.isPurchaser()) && !user.isAdmin() && !user.isStockkeeper()) {
@@ -421,9 +421,18 @@ public class RequestSetServiceImpl implements RequestSetService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<RequestSetListDTO> getAllRequestSets(Long userId, Pageable pageable) {
+        List<RequestSetListDTO> all = getAllRequestSets(userId);
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start > all.size() ? List.of() : all.subList(start, end), pageable, all.size());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<RequestSetListDTO> getRequestSetsByStatus(String status, Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         // USER hoặc PURCHASER: chỉ xem của mình
         if ((user.isUser() || user.isPurchaser()) && !user.isAdmin() && !user.isStockkeeper()) {
@@ -441,9 +450,18 @@ public class RequestSetServiceImpl implements RequestSetService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<RequestSetListDTO> getRequestSetsByStatus(String status, Long userId, Pageable pageable) {
+        List<RequestSetListDTO> all = getRequestSetsByStatus(status, userId);
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start > all.size() ? List.of() : all.subList(start, end), pageable, all.size());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<RequestSetListDTO> getRequestSetsByStatuses(List<String> statuses, Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         // USER hoặc PURCHASER: chỉ xem của mình
         if ((user.isUser() || user.isPurchaser()) && !user.isAdmin() && !user.isStockkeeper()) {
@@ -461,9 +479,18 @@ public class RequestSetServiceImpl implements RequestSetService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<RequestSetListDTO> getRequestSetsByStatuses(List<String> statuses, Long userId, Pageable pageable) {
+        List<RequestSetListDTO> all = getRequestSetsByStatuses(statuses, userId);
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start > all.size() ? List.of() : all.subList(start, end), pageable, all.size());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public RequestSetDetailDTO getRequestSetDetail(Long setId) {
         RequestSet requestSet = requestSetRepository.findById(setId)
-                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + setId));
+                .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
         // Lấy danh sách request IDs thuộc set này
         List<InventoryRequest> requests = requestRepository.findBySetId(setId);
@@ -518,20 +545,20 @@ public class RequestSetServiceImpl implements RequestSetService {
     @Override
     public void updateRequestSet(Long setId, RequestSetUpdateDTO dto, Long userId) {
         RequestSet requestSet = requestSetRepository.findById(setId)
-                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + setId));
+                .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         // Kiểm tra quyền: chỉ chủ phiếu mới được cập nhật
         if (requestSet.getCreatedByUser() == null ||
                 !requestSet.getCreatedByUser().getUserId().equals(userId)) {
-            throw new RuntimeException("Chỉ chủ phiếu mới có quyền cập nhật bộ phiếu");
+            throw new BusinessException("Chỉ chủ phiếu mới có quyền cập nhật bộ phiếu");
         }
 
         // Kiểm tra trạng thái: chỉ REJECTED mới được cập nhật
         if (requestSet.getStatus() != RequestSetStatus.REJECTED) {
-            throw new RuntimeException("Chỉ có thể cập nhật bộ phiếu đã bị từ chối (REJECTED)");
+            throw new BusinessException("Chỉ có thể cập nhật bộ phiếu đã bị từ chối (REJECTED)");
         }
 
         // Validate request types theo role
@@ -577,20 +604,20 @@ public class RequestSetServiceImpl implements RequestSetService {
     @Override
     public void deleteRequestSet(Long setId, Long userId) {
         RequestSet set = requestSetRepository.findById(setId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ phiếu: " + setId));
+                .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
         // Chỉ xóa được PENDING hoặc REJECTED
         if (set.getStatus() != RequestSetStatus.PENDING && set.getStatus() != RequestSetStatus.REJECTED) {
-            throw new RuntimeException("Chỉ có thể xóa bộ phiếu ở trạng thái Chờ duyệt hoặc Từ chối");
+            throw new BusinessException("Chỉ có thể xóa bộ phiếu ở trạng thái Chờ duyệt hoặc Từ chối");
         }
 
         // Chỉ chủ phiếu hoặc ADMIN được xóa
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
         boolean isAdmin = user.getRoles().stream()
                 .anyMatch(r -> "ADMIN".equals(r.getRoleName()));
         if (!isAdmin && !set.getCreatedByUser().getUserId().equals(userId)) {
-            throw new RuntimeException("Bạn không có quyền xóa bộ phiếu này");
+            throw new BusinessException("Bạn không có quyền xóa bộ phiếu này");
         }
 
         // Lấy tất cả requests trong set
@@ -640,14 +667,14 @@ public class RequestSetServiceImpl implements RequestSetService {
     @Override
     public void submitForApproval(Long setId, Long userId) {
         RequestSet requestSet = requestSetRepository.findById(setId)
-                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + setId));
+                .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         // Chỉ REJECTED mới được submit lại (vì tạo mới đã là PENDING)
         if (requestSet.getStatus() != RequestSetStatus.REJECTED) {
-            throw new RuntimeException("Chỉ có thể submit lại bộ phiếu đã bị từ chối (REJECTED)");
+            throw new BusinessException("Chỉ có thể submit lại bộ phiếu đã bị từ chối (REJECTED)");
         }
 
         // Cập nhật trạng thái
@@ -670,25 +697,25 @@ public class RequestSetServiceImpl implements RequestSetService {
     @Override
     public void approve(Long setId, Long userId) {
         RequestSet requestSet = requestSetRepository.findById(setId)
-                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + setId));
+                .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         // Kiểm tra quyền ADMIN
         if (!user.isAdmin()) {
-            throw new RuntimeException("Chỉ ADMIN mới có quyền duyệt bộ phiếu");
+            throw new BusinessException("Chỉ ADMIN mới có quyền duyệt bộ phiếu");
         }
 
         // Kiểm tra người duyệt không phải người tạo
         if (requestSet.getCreatedByUser() != null
                 && requestSet.getCreatedByUser().getUserId().equals(userId)) {
-            throw new RuntimeException("Không thể tự duyệt bộ phiếu của chính mình");
+            throw new BusinessException("Không thể tự duyệt bộ phiếu của chính mình");
         }
 
         // Kiểm tra trạng thái
         if (requestSet.getStatus() != RequestSetStatus.PENDING) {
-            throw new RuntimeException("Chỉ có thể duyệt bộ phiếu đang chờ duyệt (PENDING)");
+            throw new BusinessException("Chỉ có thể duyệt bộ phiếu đang chờ duyệt (PENDING)");
         }
 
         // Cập nhật trạng thái
@@ -713,24 +740,24 @@ public class RequestSetServiceImpl implements RequestSetService {
     @Override
     public void reject(Long setId, Long userId, String reason) {
         RequestSet requestSet = requestSetRepository.findById(setId)
-                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + setId));
+                .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         // Kiểm tra quyền ADMIN
         if (!user.isAdmin()) {
-            throw new RuntimeException("Chỉ ADMIN mới có quyền từ chối bộ phiếu");
+            throw new BusinessException("Chỉ ADMIN mới có quyền từ chối bộ phiếu");
         }
 
         // Kiểm tra trạng thái
         if (requestSet.getStatus() != RequestSetStatus.PENDING) {
-            throw new RuntimeException("Chỉ có thể từ chối bộ phiếu đang chờ duyệt (PENDING)");
+            throw new BusinessException("Chỉ có thể từ chối bộ phiếu đang chờ duyệt (PENDING)");
         }
 
         // Kiểm tra lý do từ chối
         if (reason == null || reason.trim().isEmpty()) {
-            throw new RuntimeException("Phải có lý do khi từ chối bộ phiếu");
+            throw new BusinessException("Phải có lý do khi từ chối bộ phiếu");
         }
 
         // Cập nhật trạng thái
@@ -757,19 +784,19 @@ public class RequestSetServiceImpl implements RequestSetService {
     @Override
     public void execute(Long setId, Long userId) {
         RequestSet requestSet = requestSetRepository.findById(setId)
-                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + setId));
+                .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         // Kiểm tra quyền STOCKKEEPER
         if (!user.isStockkeeper()) {
-            throw new RuntimeException("Chỉ STOCKKEEPER mới có quyền xác nhận thực hiện bộ phiếu");
+            throw new BusinessException("Chỉ STOCKKEEPER mới có quyền xác nhận thực hiện bộ phiếu");
         }
 
         // Kiểm tra trạng thái - chỉ APPROVED mới được execute
         if (requestSet.getStatus() != RequestSetStatus.APPROVED) {
-            throw new RuntimeException("Chỉ có thể xác nhận thực hiện bộ phiếu đã được duyệt (APPROVED)");
+            throw new BusinessException("Chỉ có thể xác nhận thực hiện bộ phiếu đã được duyệt (APPROVED)");
         }
 
         // Validate tồn kho thực tế trước khi chuyển ADJUST_OUT → OUT
@@ -789,10 +816,7 @@ public class RequestSetServiceImpl implements RequestSetService {
                             request.getProductId(), item.getVariantId(), request.getWarehouseId());
                     if (actualQty == null) actualQty = BigDecimal.ZERO;
                     if (item.getQuantity().compareTo(actualQty) > 0) {
-                        throw new RuntimeException(
-                                "Không thể xuất kho: số lượng xuất (" + item.getQuantity() +
-                                ") vượt quá tồn kho thực tế (" + actualQty + "). " +
-                                "Hãy chờ hàng nhập kho thực tế trước khi xuất.");
+                        throw new BusinessException("Không thể xuất kho: số lượng vượt quá tồn kho thực tế");
                     }
                 }
             }
@@ -846,24 +870,22 @@ public class RequestSetServiceImpl implements RequestSetService {
     @Override
     public void editApprovedRequestSet(Long setId, RequestSetUpdateDTO dto, Long userId) {
         RequestSet requestSet = requestSetRepository.findById(setId)
-                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + setId));
+                .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         // Kiểm tra quyền: chỉ chủ phiếu (STOCKKEEPER dùng "Sửa SL & Nhận hàng")
         boolean isOwner = requestSet.getCreatedByUser() != null
                 && requestSet.getCreatedByUser().getUserId().equals(userId);
 
         if (!isOwner) {
-            throw new RuntimeException("Chỉ chủ phiếu mới có quyền sửa bộ phiếu đã duyệt");
+            throw new BusinessException("Chỉ chủ phiếu mới có quyền sửa bộ phiếu đã duyệt");
         }
 
         // Kiểm tra trạng thái: chỉ APPROVED
         if (requestSet.getStatus() != RequestSetStatus.APPROVED) {
-            throw new RuntimeException(
-                    "Chỉ có thể sửa bộ phiếu đã duyệt (APPROVED). " +
-                    "Bộ phiếu đang nhận hàng (RECEIVING) không thể sửa.");
+            throw new BusinessException("Chỉ có thể sửa bộ phiếu đã duyệt (APPROVED)");
         }
 
         // Validate request types theo role (nếu người sửa là chủ phiếu)
@@ -914,41 +936,23 @@ public class RequestSetServiceImpl implements RequestSetService {
     @Override
     public void editAndReceiveRequestSet(Long setId, EditAndReceiveDTO dto, Long userId) {
         RequestSet requestSet = requestSetRepository.findById(setId)
-                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + setId));
+                .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         // 1. Chỉ STOCKKEEPER
         if (!user.isStockkeeper()) {
-            throw new RuntimeException("Chỉ STOCKKEEPER mới có quyền sửa số lượng và nhận hàng");
+            throw new BusinessException("Chỉ STOCKKEEPER mới có quyền sửa số lượng và nhận hàng");
         }
 
         // 2. Chỉ khi APPROVED
         if (requestSet.getStatus() != RequestSetStatus.APPROVED) {
-            throw new RuntimeException(
-                    "Chỉ có thể sửa số lượng khi bộ phiếu đã duyệt (APPROVED). " +
-                    "Trạng thái hiện tại: " + requestSet.getStatus());
-        }
-
-        // 3. Cập nhật quantity cho từng item + ghi lại chi tiết thay đổi
-        List<String> changes = new ArrayList<>();
-        for (EditAndReceiveDTO.ItemQuantityUpdate itemUpdate : dto.getItems()) {
-            InventoryRequestItem item = itemRepository.findById(itemUpdate.getItemId())
-                    .orElseThrow(() -> new RuntimeException(
-                            "Item not found: " + itemUpdate.getItemId()));
-
-            // Kiểm tra item thuộc request set này
-            InventoryRequest request = requestRepository.findById(item.getRequestId())
-                    .orElseThrow(() -> new RuntimeException(
-                            "Request not found: " + item.getRequestId()));
-            if (!request.getSetId().equals(setId)) {
-                throw new RuntimeException(
-                        "Item " + itemUpdate.getItemId() + " không thuộc bộ phiếu này");
+            throw new BusinessException("Chỉ có thể sửa số lượng khi bộ phiếu đã duyệt (APPROVED)");
             }
 
             if (itemUpdate.getQuantity() == null || itemUpdate.getQuantity().compareTo(BigDecimal.ZERO) < 0) {
-                throw new RuntimeException("Số lượng không hợp lệ cho item " + itemUpdate.getItemId());
+                throw new BusinessException("Số lượng không hợp lệ");
             }
 
             BigDecimal oldQty = item.getQuantity();
@@ -1010,32 +1014,32 @@ public class RequestSetServiceImpl implements RequestSetService {
     @Override
     public RequestCompleteResponseDTO completeRequest(Long requestId, Long userId) {
         InventoryRequest request = requestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+                .orElseThrow(() -> new ResourceNotFoundException("Phiếu nhập xuất không tồn tại"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         if (!user.isStockkeeper()) {
-            throw new RuntimeException("Chỉ STOCKKEEPER mới có quyền đánh dấu hoàn thành");
+            throw new BusinessException("Chỉ STOCKKEEPER mới có quyền đánh dấu hoàn thành");
         }
 
         if (request.getSetId() == null) {
-            throw new RuntimeException("Request không thuộc bộ phiếu nào");
+            throw new BusinessException("Request không thuộc bộ phiếu nào");
         }
 
         // Pessimistic lock để tránh race condition khi complete đồng thời
         RequestSet requestSet = requestSetRepository.findByIdForUpdate(request.getSetId())
-                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + request.getSetId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
         // Set phải APPROVED hoặc RECEIVING
         if (requestSet.getStatus() != RequestSetStatus.APPROVED
                 && requestSet.getStatus() != RequestSetStatus.RECEIVING) {
-            throw new RuntimeException("Bộ phiếu phải ở trạng thái APPROVED hoặc RECEIVING");
+            throw new BusinessException("Bộ phiếu phải ở trạng thái APPROVED hoặc RECEIVING");
         }
 
         // Request chưa COMPLETED
         if ("COMPLETED".equals(request.getRequestStatus())) {
-            throw new RuntimeException("Request này đã hoàn thành rồi");
+            throw new BusinessException("Request này đã hoàn thành rồi");
         }
 
         // Validate tồn kho nếu là OUT hoặc ADJUST_OUT
@@ -1047,9 +1051,7 @@ public class RequestSetServiceImpl implements RequestSetService {
                         request.getProductId(), item.getVariantId(), request.getWarehouseId());
                 if (actualQty == null) actualQty = BigDecimal.ZERO;
                 if (item.getQuantity().compareTo(actualQty) > 0) {
-                    throw new RuntimeException(
-                            "Không thể xuất kho: số lượng xuất (" + item.getQuantity() +
-                            ") vượt quá tồn kho thực tế (" + actualQty + ")");
+                    throw new BusinessException("Không thể xuất kho: số lượng vượt quá tồn kho thực tế");
                 }
             }
         }

@@ -9,6 +9,9 @@ import manage.store.inventory.dto.UpdateExpectedDateDTO;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 public interface InventoryRequestService {
 
     // ===== TẠO REQUEST =====
@@ -22,6 +25,7 @@ public interface InventoryRequestService {
 
     // ===== LẤY DANH SÁCH TẤT CẢ REQUESTS =====
     List<InventoryRequestListDTO> getAllRequests();
+    Page<InventoryRequestListDTO> getAllRequests(Pageable pageable);
 
     // ===== XÓA REQUEST =====
     void deleteRequest(Long requestId);

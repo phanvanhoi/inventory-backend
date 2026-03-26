@@ -16,6 +16,8 @@ import manage.store.inventory.dto.SetReceiptProgressDTO;
 import manage.store.inventory.dto.InventoryRequestHeaderDTO;
 import manage.store.inventory.dto.ItemDetailDTO;
 import manage.store.inventory.entity.ApprovalHistory;
+import manage.store.inventory.exception.BusinessException;
+import manage.store.inventory.exception.ResourceNotFoundException;
 import manage.store.inventory.entity.InventoryRequest;
 import manage.store.inventory.entity.InventoryRequestItem;
 import manage.store.inventory.entity.ReceiptItem;
@@ -76,21 +78,20 @@ public class ReceiptServiceImpl implements ReceiptService {
     @Override
     public void recordReceipt(Long setId, ReceiptCreateDTO dto, Long userId) {
         RequestSet requestSet = requestSetRepository.findById(setId)
-                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + setId));
+                .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         // Kiểm tra quyền STOCKKEEPER
         if (!user.isStockkeeper()) {
-            throw new RuntimeException("Chỉ STOCKKEEPER mới có quyền ghi nhận nhận hàng");
+            throw new BusinessException("Chỉ STOCKKEEPER mới có quyền ghi nhận nhận hàng");
         }
 
         // Kiểm tra trạng thái: chỉ APPROVED hoặc RECEIVING
         if (requestSet.getStatus() != RequestSetStatus.APPROVED
                 && requestSet.getStatus() != RequestSetStatus.RECEIVING) {
-            throw new RuntimeException(
-                    "Chỉ có thể nhận hàng cho bộ phiếu đã duyệt (APPROVED) hoặc đang nhận (RECEIVING)");
+            throw new BusinessException("Chỉ có thể nhận hàng cho bộ phiếu đã duyệt (APPROVED) hoặc đang nhận (RECEIVING)");
         }
 
         // Validate: các item phải thuộc request set này
@@ -99,91 +100,19 @@ public class ReceiptServiceImpl implements ReceiptService {
             boolean validRequest = requests.stream()
                     .anyMatch(r -> r.getRequestId().equals(itemDTO.getRequestId()));
             if (!validRequest) {
-                throw new RuntimeException(
-                        "Request " + itemDTO.getRequestId() + " không thuộc bộ phiếu " + setId);
-            }
-
-            // Validate variant thuộc request này
-            List<InventoryRequestItem> requestItems = itemRepository.findByRequestId(itemDTO.getRequestId());
-            InventoryRequestItem matchedItem = requestItems.stream()
-                    .filter(ri -> ri.getVariantId().equals(itemDTO.getVariantId()))
-                    .findFirst()
-                    .orElse(null);
-            if (matchedItem == null) {
-                throw new RuntimeException(
-                        "Variant " + itemDTO.getVariantId()
-                                + " không thuộc request " + itemDTO.getRequestId());
-            }
-
-            // Validate: tổng đã nhận + lần này không vượt quá SL đề xuất
-            BigDecimal alreadyReceived = receiptItemRepository
-                    .getTotalReceivedByRequestAndVariant(setId, itemDTO.getRequestId(), itemDTO.getVariantId());
-            BigDecimal totalAfter = alreadyReceived.add(itemDTO.getReceivedQuantity());
-            if (totalAfter.compareTo(matchedItem.getQuantity()) > 0) {
-                throw new RuntimeException(
-                        "Vượt quá SL đề xuất: đã nhận " + alreadyReceived
-                                + ", nhận thêm " + itemDTO.getReceivedQuantity()
-                                + ", đề xuất " + matchedItem.getQuantity());
-            }
-        }
-
-        // 1. Tạo receipt record
-        ReceiptRecord record = new ReceiptRecord();
-        record.setSetId(setId);
-        record.setReceivedBy(user);
-        record.setReceivedAt(LocalDateTime.now());
-        record.setNote(dto.getNote());
-        record = receiptRecordRepository.save(record);
-
-        // 2. Tạo receipt items
-        for (ReceiptCreateDTO.ReceiptItemDTO itemDTO : dto.getItems()) {
-            ReceiptItem item = new ReceiptItem();
-            item.setReceiptId(record.getReceiptId());
-            item.setRequestId(itemDTO.getRequestId());
-            item.setVariantId(itemDTO.getVariantId());
-            item.setReceivedQuantity(itemDTO.getReceivedQuantity());
-            receiptItemRepository.save(item);
-        }
-
-        // 3. Chuyển status APPROVED → RECEIVING (lần đầu)
-        if (requestSet.getStatus() == RequestSetStatus.APPROVED) {
-            requestSet.setStatus(RequestSetStatus.RECEIVING);
-            requestSetRepository.save(requestSet);
-        }
-
-        // 4. Lưu lịch sử
-        ApprovalHistory history = new ApprovalHistory();
-        history.setRequestSet(requestSet);
-        history.setAction(ApprovalAction.RECEIVE);
-        history.setPerformedBy(user);
-        history.setReason(dto.getNote());
-        history.setCreatedAt(LocalDateTime.now());
-        approvalHistoryRepository.save(history);
-    }
-
-    // =====================================================
-    // COMPLETE RECEIPT - Hoàn tất nhận hàng (Case 3)
-    // RECEIVING → EXECUTED
-    // Cập nhật inventory_request_items.quantity = tổng receipt_items
-    // Chuyển ADJUST_IN → IN, ADJUST_OUT → OUT
-    // =====================================================
-    @Override
-    public void completeReceipt(Long setId, Long userId) {
-        RequestSet requestSet = requestSetRepository.findById(setId)
-                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + setId));
+                throw new BusinessException("Request không thuộc bộ phiếu này"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         // Kiểm tra quyền STOCKKEEPER
         if (!user.isStockkeeper()) {
-            throw new RuntimeException("Chỉ STOCKKEEPER mới có quyền hoàn tất nhận hàng");
+            throw new BusinessException("Chỉ STOCKKEEPER mới có quyền hoàn tất nhận hàng");
         }
 
         // Kiểm tra trạng thái: chỉ RECEIVING
         if (requestSet.getStatus() != RequestSetStatus.RECEIVING) {
-            throw new RuntimeException(
-                    "Chỉ có thể hoàn tất bộ phiếu đang trong trạng thái nhận hàng (RECEIVING)");
+            throw new BusinessException("Chỉ có thể hoàn tất bộ phiếu đang trong trạng thái nhận hàng (RECEIVING)");
         }
 
         // Giữ nguyên items.quantity — không ghi đè bằng receipt totals.
@@ -205,9 +134,7 @@ public class ReceiptServiceImpl implements ReceiptService {
                                 request.getProductId(), outItem.getVariantId(), request.getWarehouseId());
                         if (actualQty == null) actualQty = BigDecimal.ZERO;
                         if (outItem.getQuantity().compareTo(actualQty) > 0) {
-                            throw new RuntimeException(
-                                    "Không thể hoàn tất: số lượng xuất (" + outItem.getQuantity() +
-                                    ") vượt quá tồn kho thực tế (" + actualQty + "). " +
+                            throw new BusinessException("Không thể hoàn tất: số lượng xuất vượt quá tồn kho thực tế") vượt quá tồn kho thực tế (" + actualQty + "). " +
                                     "Hãy chờ hàng nhập kho thực tế trước khi hoàn tất.");
                         }
                     }
@@ -243,7 +170,7 @@ public class ReceiptServiceImpl implements ReceiptService {
     public List<ReceiptDetailDTO> getReceipts(Long setId) {
         // Verify set exists
         requestSetRepository.findById(setId)
-                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + setId));
+                .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
         List<ReceiptRecord> records = receiptRecordRepository.findBySetIdOrderByReceivedAtDesc(setId);
         List<ReceiptDetailDTO> result = new ArrayList<>();
@@ -284,7 +211,7 @@ public class ReceiptServiceImpl implements ReceiptService {
     @Transactional(readOnly = true)
     public SetReceiptProgressDTO getProgress(Long setId) {
         RequestSet requestSet = requestSetRepository.findById(setId)
-                .orElseThrow(() -> new RuntimeException("RequestSet not found: " + setId));
+                .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
         SetReceiptProgressDTO result = new SetReceiptProgressDTO();
         result.setSetId(setId);

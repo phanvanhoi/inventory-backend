@@ -2,6 +2,9 @@ package manage.store.inventory.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,20 +35,18 @@ public class ProductController {
         this.productRepository = productRepository;
     }
 
-    // Lấy tất cả sản phẩm
+    // Lấy tất cả sản phẩm (có phân trang)
     @GetMapping
-    public List<Product> getAllProducts() {
-        return productService.getAllProducts();
+    public Page<Product> getAllProducts(
+            @PageableDefault(size = 20, sort = "productId") Pageable pageable
+    ) {
+        return productService.getAllProducts(pageable);
     }
 
     // Lấy sản phẩm theo ID
     @GetMapping("/{id}")
     public ResponseEntity<Product> getProductById(@PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(productService.getProductById(id));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.ok(productService.getProductById(id));
     }
 
     // Lấy danh sách child products của parent
@@ -91,5 +92,13 @@ public class ProductController {
                     return ResponseEntity.ok(productRepository.save(product));
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // Xóa sản phẩm (soft delete)
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        productService.deleteProduct(id);
+        return ResponseEntity.noContent().build();
     }
 }

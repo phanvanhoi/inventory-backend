@@ -13,6 +13,9 @@ import manage.store.inventory.dto.auth.LoginRequestDTO;
 import manage.store.inventory.dto.auth.RegisterRequestDTO;
 import manage.store.inventory.entity.Role;
 import manage.store.inventory.entity.User;
+import manage.store.inventory.exception.BusinessException;
+import manage.store.inventory.exception.ConflictException;
+import manage.store.inventory.exception.ResourceNotFoundException;
 import manage.store.inventory.repository.RoleRepository;
 import manage.store.inventory.repository.UserRepository;
 import manage.store.inventory.security.JwtUtil;
@@ -39,10 +42,10 @@ public class AuthService {
 
     public AuthResponseDTO login(LoginRequestDTO request) {
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("Sai tên đăng nhập hoặc mật khẩu"));
+                .orElseThrow(() -> new BusinessException("Sai tên đăng nhập hoặc mật khẩu"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Sai tên đăng nhập hoặc mật khẩu");
+            throw new BusinessException("Sai tên đăng nhập hoặc mật khẩu");
         }
 
         String token = jwtUtil.generateToken(user);
@@ -63,7 +66,7 @@ public class AuthService {
     @Transactional
     public AuthResponseDTO register(RegisterRequestDTO request) {
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new RuntimeException("Username đã tồn tại");
+            throw new ConflictException("Username đã tồn tại");
         }
 
         User user = new User();
@@ -75,7 +78,7 @@ public class AuthService {
 
         // Gán role mặc định là USER
         Role userRole = roleRepository.findByRoleName("USER")
-                .orElseThrow(() -> new RuntimeException("Role USER không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("Role USER không tồn tại"));
         user.getRoles().add(userRole);
 
         user = userRepository.save(user);
@@ -99,10 +102,10 @@ public class AuthService {
     @Transactional
     public void changePassword(Long userId, String oldPassword, String newPassword) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
-            throw new RuntimeException("Mật khẩu cũ không đúng");
+            throw new BusinessException("Mật khẩu cũ không đúng");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -113,7 +116,7 @@ public class AuthService {
     @Transactional
     public void resetPassword(Long targetUserId, String newPassword) {
         User user = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);

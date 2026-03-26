@@ -3,6 +3,8 @@ package manage.store.inventory.repository;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -63,6 +65,28 @@ public interface InventoryRequestRepository
             nativeQuery = true
     )
     List<InventoryRequestListDTO> findAllRequests();
+
+    @Query(
+            value = """
+    SELECT
+      r.request_id      AS requestId,
+      u.unit_name       AS unitName,
+      pos.position_code AS positionCode,
+      p.product_name    AS productName,
+      r.request_type    AS requestType,
+      r.expected_date   AS expectedDate,
+      r.note            AS note,
+      r.created_at      AS createdAt
+    FROM inventory_requests r
+    LEFT JOIN units u ON u.unit_id = r.unit_id
+    LEFT JOIN positions pos ON pos.position_id = r.position_id
+    LEFT JOIN products p ON p.product_id = r.product_id
+    ORDER BY r.created_at DESC
+  """,
+            countQuery = "SELECT COUNT(*) FROM inventory_requests",
+            nativeQuery = true
+    )
+    Page<InventoryRequestListDTO> findAllRequestsPageable(Pageable pageable);
 
     List<InventoryRequest> findBySetId(Long setId);
 }

@@ -12,9 +12,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 import manage.store.inventory.entity.enums.VariantType;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "products")
+@SQLRestriction("deleted_at IS NULL")
 @Data
 public class Product {
 
@@ -41,4 +43,7 @@ public class Product {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

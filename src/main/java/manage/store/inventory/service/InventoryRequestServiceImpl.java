@@ -22,7 +22,11 @@ import manage.store.inventory.entity.enums.Gender;
 import manage.store.inventory.entity.enums.RequestSetStatus;
 import manage.store.inventory.entity.enums.VariantType;
 import manage.store.inventory.entity.Position;
+import manage.store.inventory.exception.BusinessException;
+import manage.store.inventory.exception.ResourceNotFoundException;
 import manage.store.inventory.repository.InventoryRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import manage.store.inventory.repository.InventoryRequestItemRepository;
 import manage.store.inventory.repository.InventoryRequestRepository;
 import manage.store.inventory.repository.PositionRepository;
@@ -86,7 +90,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
         }
 
         Product product = productRepository.findById(dto.getProductId())
-                .orElseThrow(() -> new RuntimeException("Product not found: " + dto.getProductId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Sản phẩm không tồn tại"));
 
         for (InventoryRequestCreateDTO.ItemDTO item : dto.getItems()) {
 
@@ -121,10 +125,10 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
         if (product.getVariantType() == VariantType.ITEM_BASED || item.getVariantId() != null) {
             Long variantId = item.getVariantId();
             if (variantId == null) {
-                throw new RuntimeException("ITEM_BASED product yêu cầu variantId");
+                throw new BusinessException("ITEM_BASED product yêu cầu variantId");
             }
             return variantRepository.findById(variantId)
-                    .orElseThrow(() -> new RuntimeException("Variant not found: id=" + variantId));
+                    .orElseThrow(() -> new ResourceNotFoundException("Biến thể sản phẩm không tồn tại"));
         }
 
         // STRUCTURED: có style (Sơ mi nam) — by ID
@@ -136,12 +140,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
                             item.getSizeValue(),
                             item.getLengthCode()
                     )
-                    .orElseThrow(() -> new RuntimeException(
-                            "Variant not found: productId=" + product.getProductId()
-                            + ", styleId=" + item.getStyleId()
-                            + ", size=" + item.getSizeValue()
-                            + ", length=" + item.getLengthCode()
-                    ));
+                    .orElseThrow(() -> new ResourceNotFoundException("Biến thể sản phẩm không tồn tại"));
         }
 
         // STRUCTURED: có style (Sơ mi nam) — by name
@@ -153,12 +152,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
                             item.getSizeValue(),
                             item.getLengthCode()
                     )
-                    .orElseThrow(() -> new RuntimeException(
-                            "Variant not found: productId=" + product.getProductId()
-                            + ", styleName=" + item.getStyleName()
-                            + ", size=" + item.getSizeValue()
-                            + ", length=" + item.getLengthCode()
-                    ));
+                    .orElseThrow(() -> new ResourceNotFoundException("Biến thể sản phẩm không tồn tại"));
         }
 
         // STRUCTURED: có gender + length (Áo phông)
@@ -171,12 +165,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
                             item.getLengthCode(),
                             gender
                     )
-                    .orElseThrow(() -> new RuntimeException(
-                            "Variant not found: productId=" + product.getProductId()
-                            + ", size=" + item.getSizeValue()
-                            + ", length=" + item.getLengthCode()
-                            + ", gender=" + item.getGender()
-                    ));
+                    .orElseThrow(() -> new ResourceNotFoundException("Biến thể sản phẩm không tồn tại"));
         }
 
         // STRUCTURED: chỉ size + gender (Áo khoác, Áo len, Gile BH)
@@ -187,11 +176,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
                             item.getSizeValue(),
                             gender
                     )
-                    .orElseThrow(() -> new RuntimeException(
-                            "Variant not found: productId=" + product.getProductId()
-                            + ", size=" + item.getSizeValue()
-                            + ", gender=" + item.getGender()
-                    ));
+                    .orElseThrow(() -> new ResourceNotFoundException("Biến thể sản phẩm không tồn tại"));
         }
 
         // STRUCTURED: chỉ size (Giày BH, Bộ áo mưa — no gender, no length, no style)
@@ -201,13 +186,10 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
                             product.getProductId(),
                             item.getSizeValue()
                     )
-                    .orElseThrow(() -> new RuntimeException(
-                            "Variant not found: productId=" + product.getProductId()
-                            + ", size=" + item.getSizeValue()
-                    ));
+                    .orElseThrow(() -> new ResourceNotFoundException("Biến thể sản phẩm không tồn tại"));
         }
 
-        throw new RuntimeException("Không thể xác định variant cho product: " + product.getProductId());
+        throw new ResourceNotFoundException("Không thể xác định variant cho sản phẩm");
     }
 
     // =====================================================
@@ -229,7 +211,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
         InventoryRequestHeaderDTO header
                 = requestRepository.findHeaderByRequestId(requestId)
                         .orElseThrow(()
-                                -> new RuntimeException("Request not found: " + requestId)
+                                -> new ResourceNotFoundException("Phiếu nhập xuất không tồn tại")
                         );
 
         List<InventoryRequestItemDTO> items
@@ -247,13 +229,19 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
         return requestRepository.findAllRequests();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<InventoryRequestListDTO> getAllRequests(Pageable pageable) {
+        return requestRepository.findAllRequestsPageable(pageable);
+    }
+
     // =====================================================
     // DELETE REQUEST
     // =====================================================
     @Override
     public void deleteRequest(Long requestId) {
         if (!requestRepository.existsById(requestId)) {
-            throw new RuntimeException("Request not found: " + requestId);
+            throw new ResourceNotFoundException("Phiếu nhập xuất không tồn tại");
         }
         // Xóa items trước
         itemRepository.deleteByRequestId(requestId);
@@ -279,7 +267,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
     @Override
     public void updateRequestType(Long requestId, String newRequestType) {
         InventoryRequest request = requestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+                .orElseThrow(() -> new ResourceNotFoundException("Phiếu nhập xuất không tồn tại"));
 
         InventoryRequest.RequestType currentType = request.getRequestType();
         InventoryRequest.RequestType targetType;
@@ -329,7 +317,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
     @Transactional(readOnly = true)
     public int countDependentAdjustOut(Long requestId) {
         InventoryRequest request = requestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+                .orElseThrow(() -> new ResourceNotFoundException("Phiếu nhập xuất không tồn tại"));
 
         // Chỉ áp dụng cho ADJUST_IN
         if (request.getRequestType() != InventoryRequest.RequestType.ADJUST_IN) {
@@ -355,7 +343,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
     @Override
     public void updateExpectedDate(Long requestId, LocalDate newExpectedDate, Long userId) {
         InventoryRequest request = requestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+                .orElseThrow(() -> new ResourceNotFoundException("Phiếu nhập xuất không tồn tại"));
 
         // 1. Validate: Chỉ ADJUST_IN và ADJUST_OUT mới có expected_date
         InventoryRequest.RequestType requestType = request.getRequestType();
@@ -376,7 +364,7 @@ public class InventoryRequestServiceImpl implements InventoryRequestService {
         // 3. Validate: Request set phải ở trạng thái PENDING hoặc APPROVED
         if (request.getSetId() != null) {
             RequestSet requestSet = requestSetRepository.findById(request.getSetId())
-                    .orElseThrow(() -> new RuntimeException("Request set not found: " + request.getSetId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
             if (requestSet.getStatus() == RequestSetStatus.REJECTED) {
                 throw new IllegalArgumentException(

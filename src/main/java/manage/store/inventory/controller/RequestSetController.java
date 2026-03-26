@@ -5,6 +5,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -94,19 +98,19 @@ public class RequestSetController {
     // - STOCKKEEPER: xem tất cả
     // Hỗ trợ: ?status=APPROVED hoặc ?status=APPROVED,EXECUTED
     @GetMapping
-    public List<RequestSetListDTO> getAllRequestSets(
-            @RequestParam(required = false) String status
+    public Page<RequestSetListDTO> getAllRequestSets(
+            @RequestParam(required = false) String status,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
         Long userId = currentUser.getUserId();
         if (status != null && !status.isEmpty()) {
-            // Kiểm tra nếu có nhiều status (phân cách bằng dấu phẩy)
             if (status.contains(",")) {
                 List<String> statuses = Arrays.asList(status.split(","));
-                return requestSetService.getRequestSetsByStatuses(statuses, userId);
+                return requestSetService.getRequestSetsByStatuses(statuses, userId, pageable);
             }
-            return requestSetService.getRequestSetsByStatus(status, userId);
+            return requestSetService.getRequestSetsByStatus(status, userId, pageable);
         }
-        return requestSetService.getAllRequestSets(userId);
+        return requestSetService.getAllRequestSets(userId, pageable);
     }
 
     // Lấy chi tiết bộ phiếu

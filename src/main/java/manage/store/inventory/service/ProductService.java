@@ -3,10 +3,13 @@ package manage.store.inventory.service;
 import java.util.List;
 
 import manage.store.inventory.entity.Product;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface ProductService {
 
     List<Product> getAllProducts();
+    Page<Product> getAllProducts(Pageable pageable);
 
     Product getProductById(Long id);
 
@@ -15,4 +18,6 @@ public interface ProductService {
     boolean isParentProduct(Long productId);
 
     Product createChildProduct(Long parentId, String productName, String note);
+
+    void deleteProduct(Long id);
 }

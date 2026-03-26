@@ -20,6 +20,8 @@ import manage.store.inventory.dto.ContractReportHistoryDTO;
 import manage.store.inventory.dto.ContractReportListDTO;
 import manage.store.inventory.dto.ContractReportUpdateDTO;
 import manage.store.inventory.entity.ContractReport;
+import manage.store.inventory.exception.BusinessException;
+import manage.store.inventory.exception.ResourceNotFoundException;
 import manage.store.inventory.entity.ContractReportHistory;
 import manage.store.inventory.entity.Unit;
 import manage.store.inventory.entity.User;
@@ -52,9 +54,9 @@ public class ContractReportServiceImpl implements ContractReportService {
     @Override
     public Long createReport(ContractReportCreateDTO dto, Long userId) {
         Unit unit = unitRepository.findById(dto.getUnitId())
-                .orElseThrow(() -> new RuntimeException("Đơn vị không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("Đơn vị không tồn tại"));
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         ContractReport report = new ContractReport();
         report.setCurrentPhase(ReportPhase.SALES_INPUT);
@@ -80,7 +82,7 @@ public class ContractReportServiceImpl implements ContractReportService {
     public ContractReportListDTO getReportById(Long id) {
         ContractReport report = reportRepository.findByIdWithRelations(id);
         if (report == null) {
-            throw new RuntimeException("Báo cáo không tồn tại");
+            throw new ResourceNotFoundException("Báo cáo không tồn tại");
         }
         return toListDTO(report);
     }
@@ -88,9 +90,9 @@ public class ContractReportServiceImpl implements ContractReportService {
     @Override
     public void updateReport(Long id, ContractReportUpdateDTO dto, Long userId, Set<String> userRoles) {
         ContractReport report = reportRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Báo cáo không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("Báo cáo không tồn tại"));
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         boolean isAdmin = userRoles.contains("ADMIN");
         ReportPhase phase = report.getCurrentPhase();
@@ -107,7 +109,7 @@ public class ContractReportServiceImpl implements ContractReportService {
         } else if (userRoles.contains("STOCKKEEPER") && phase == ReportPhase.STOCKKEEPER_INPUT) {
             updateStockkeeperFields(report, dto, user);
         } else {
-            throw new RuntimeException("Bạn không có quyền sửa báo cáo ở giai đoạn này");
+            throw new BusinessException("Bạn không có quyền sửa báo cáo ở giai đoạn này");
         }
 
         reportRepository.save(report);
@@ -116,7 +118,7 @@ public class ContractReportServiceImpl implements ContractReportService {
     @Override
     public void deleteReport(Long id) {
         if (!reportRepository.existsById(id)) {
-            throw new RuntimeException("Báo cáo không tồn tại");
+            throw new ResourceNotFoundException("Báo cáo không tồn tại");
         }
         reportRepository.deleteById(id);
     }
@@ -124,18 +126,18 @@ public class ContractReportServiceImpl implements ContractReportService {
     @Override
     public void advancePhase(Long id, Long userId, Set<String> userRoles) {
         ContractReport report = reportRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Báo cáo không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("Báo cáo không tồn tại"));
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         ReportPhase currentPhase = report.getCurrentPhase();
         if (currentPhase == ReportPhase.COMPLETED) {
-            throw new RuntimeException("Báo cáo đã hoàn tất");
+            throw new BusinessException("Báo cáo đã hoàn tất");
         }
 
         String ownerRole = currentPhase.ownerRole();
         if (!userRoles.contains(ownerRole)) {
-            throw new RuntimeException("Chỉ " + ownerRole + " mới được chuyển giai đoạn này");
+            throw new BusinessException("Chỉ " + ownerRole + " mới được chuyển giai đoạn này");
         }
 
         ReportPhase nextPhase = currentPhase.next();
@@ -149,21 +151,21 @@ public class ContractReportServiceImpl implements ContractReportService {
     @Override
     public void returnPhase(Long id, String reason, Long userId, Set<String> userRoles) {
         ContractReport report = reportRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Báo cáo không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("Báo cáo không tồn tại"));
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
         ReportPhase currentPhase = report.getCurrentPhase();
         if (currentPhase == ReportPhase.SALES_INPUT) {
-            throw new RuntimeException("Không thể trả lại từ giai đoạn đầu tiên");
+            throw new BusinessException("Không thể trả lại từ giai đoạn đầu tiên");
         }
         if (currentPhase == ReportPhase.COMPLETED) {
-            throw new RuntimeException("Báo cáo đã hoàn tất, không thể trả lại");
+            throw new BusinessException("Báo cáo đã hoàn tất, không thể trả lại");
         }
 
         String ownerRole = currentPhase.ownerRole();
         if (!userRoles.contains(ownerRole)) {
-            throw new RuntimeException("Chỉ " + ownerRole + " mới được trả lại giai đoạn này");
+            throw new BusinessException("Chỉ " + ownerRole + " mới được trả lại giai đoạn này");
         }
 
         ReportPhase prevPhase = currentPhase.previous();
@@ -178,7 +180,7 @@ public class ContractReportServiceImpl implements ContractReportService {
     @Transactional(readOnly = true)
     public List<ContractReportHistoryDTO> getHistory(Long id) {
         if (!reportRepository.existsById(id)) {
-            throw new RuntimeException("Báo cáo không tồn tại");
+            throw new ResourceNotFoundException("Báo cáo không tồn tại");
         }
         return historyRepository.findByReportIdWithUser(id).stream()
                 .map(h -> new ContractReportHistoryDTO(
@@ -271,7 +273,7 @@ public class ContractReportServiceImpl implements ContractReportService {
                 String.valueOf(report.getUnit().getUnitId()), String.valueOf(dto.getUnitId()));
         if (!report.getUnit().getUnitId().equals(dto.getUnitId())) {
             Unit unit = unitRepository.findById(dto.getUnitId())
-                    .orElseThrow(() -> new RuntimeException("Đơn vị không tồn tại"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Đơn vị không tồn tại"));
             report.setUnit(unit);
         }
         logAndSet(report, user, "unitType", report.getUnitType(), dto.getUnitType(),

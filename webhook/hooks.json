@@ -1,0 +1,32 @@
+[
+  {
+    "id": "deploy-backend",
+    "execute-command": "/opt/hangfashion/webhook/deploy-backend.sh",
+    "command-working-directory": "/opt/hangfashion",
+    "trigger-rule": {
+      "match": {
+        "type": "value",
+        "value": "DEPLOY_TOKEN_PLACEHOLDER",
+        "parameter": {
+          "source": "header",
+          "name": "X-Deploy-Token"
+        }
+      }
+    }
+  },
+  {
+    "id": "deploy-frontend",
+    "execute-command": "/opt/hangfashion/webhook/deploy-frontend.sh",
+    "command-working-directory": "/opt/hangfashion",
+    "trigger-rule": {
+      "match": {
+        "type": "value",
+        "value": "DEPLOY_TOKEN_PLACEHOLDER",
+        "parameter": {
+          "source": "header",
+          "name": "X-Deploy-Token"
+        }
+      }
+    }
+  }
+]
