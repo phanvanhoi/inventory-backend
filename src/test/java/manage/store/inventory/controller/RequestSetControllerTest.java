@@ -94,7 +94,7 @@ class RequestSetControllerTest {
     @Test
     @DisplayName("GET /api/request-sets/{setId} - chi tiết")
     void getRequestSetDetail_returns200() throws Exception {
-        RequestSetDetailDTO detail = new RequestSetDetailDTO(1L, "Test", null, "PENDING",
+        RequestSetDetailDTO detail = new RequestSetDetailDTO(1L, "Test", null, null, "PENDING",
                 1L, "User", null, null, List.of(), List.of());
         when(requestSetService.getRequestSetDetail(1L)).thenReturn(detail);
 
