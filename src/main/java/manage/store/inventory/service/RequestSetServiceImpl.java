@@ -949,7 +949,13 @@ public class RequestSetServiceImpl implements RequestSetService {
         // 2. Chỉ khi APPROVED
         if (requestSet.getStatus() != RequestSetStatus.APPROVED) {
             throw new BusinessException("Chỉ có thể sửa số lượng khi bộ phiếu đã duyệt (APPROVED)");
-            }
+        }
+
+        // 3. Cập nhật quantity cho từng item + ghi lại chi tiết thay đổi
+        List<String> changes = new ArrayList<>();
+        for (EditAndReceiveDTO.ItemQuantityUpdate itemUpdate : dto.getItems()) {
+            InventoryRequestItem item = itemRepository.findById(itemUpdate.getItemId())
+                    .orElseThrow(() -> new BusinessException("Item không tồn tại"));
 
             if (itemUpdate.getQuantity() == null || itemUpdate.getQuantity().compareTo(BigDecimal.ZERO) < 0) {
                 throw new BusinessException("Số lượng không hợp lệ");

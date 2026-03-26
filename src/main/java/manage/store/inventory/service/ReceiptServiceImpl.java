@@ -100,7 +100,71 @@ public class ReceiptServiceImpl implements ReceiptService {
             boolean validRequest = requests.stream()
                     .anyMatch(r -> r.getRequestId().equals(itemDTO.getRequestId()));
             if (!validRequest) {
-                throw new BusinessException("Request không thuộc bộ phiếu này"));
+                throw new BusinessException("Request không thuộc bộ phiếu này");
+            }
+
+            // Validate variant thuộc request này
+            List<InventoryRequestItem> requestItems = itemRepository.findByRequestId(itemDTO.getRequestId());
+            InventoryRequestItem matchedItem = requestItems.stream()
+                    .filter(ri -> ri.getVariantId().equals(itemDTO.getVariantId()))
+                    .findFirst()
+                    .orElse(null);
+            if (matchedItem == null) {
+                throw new BusinessException("Variant không thuộc request này");
+            }
+
+            // Validate: tổng đã nhận + lần này không vượt quá SL đề xuất
+            BigDecimal alreadyReceived = receiptItemRepository
+                    .getTotalReceivedByRequestAndVariant(setId, itemDTO.getRequestId(), itemDTO.getVariantId());
+            BigDecimal totalAfter = alreadyReceived.add(itemDTO.getReceivedQuantity());
+            if (totalAfter.compareTo(matchedItem.getQuantity()) > 0) {
+                throw new BusinessException("Vượt quá số lượng đề xuất");
+            }
+        }
+
+        // 1. Tạo receipt record
+        ReceiptRecord record = new ReceiptRecord();
+        record.setSetId(setId);
+        record.setReceivedBy(user);
+        record.setReceivedAt(LocalDateTime.now());
+        record.setNote(dto.getNote());
+        record = receiptRecordRepository.save(record);
+
+        // 2. Tạo receipt items
+        for (ReceiptCreateDTO.ReceiptItemDTO itemDTO : dto.getItems()) {
+            ReceiptItem item = new ReceiptItem();
+            item.setReceiptId(record.getReceiptId());
+            item.setRequestId(itemDTO.getRequestId());
+            item.setVariantId(itemDTO.getVariantId());
+            item.setReceivedQuantity(itemDTO.getReceivedQuantity());
+            receiptItemRepository.save(item);
+        }
+
+        // 3. Chuyển status APPROVED → RECEIVING (lần đầu)
+        if (requestSet.getStatus() == RequestSetStatus.APPROVED) {
+            requestSet.setStatus(RequestSetStatus.RECEIVING);
+            requestSetRepository.save(requestSet);
+        }
+
+        // 4. Lưu lịch sử
+        ApprovalHistory history = new ApprovalHistory();
+        history.setRequestSet(requestSet);
+        history.setAction(ApprovalAction.RECEIVE);
+        history.setPerformedBy(user);
+        history.setReason(dto.getNote());
+        history.setCreatedAt(LocalDateTime.now());
+        approvalHistoryRepository.save(history);
+    }
+
+    // =====================================================
+    // COMPLETE RECEIPT - Hoàn tất nhận hàng (Case 3)
+    // RECEIVING → EXECUTED
+    // Chuyển ADJUST_IN → IN, ADJUST_OUT → OUT
+    // =====================================================
+    @Override
+    public void completeReceipt(Long setId, Long userId) {
+        RequestSet requestSet = requestSetRepository.findById(setId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bộ phiếu không tồn tại"));
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
@@ -134,7 +198,8 @@ public class ReceiptServiceImpl implements ReceiptService {
                                 request.getProductId(), outItem.getVariantId(), request.getWarehouseId());
                         if (actualQty == null) actualQty = BigDecimal.ZERO;
                         if (outItem.getQuantity().compareTo(actualQty) > 0) {
-                            throw new BusinessException("Không thể hoàn tất: số lượng xuất vượt quá tồn kho thực tế") vượt quá tồn kho thực tế (" + actualQty + "). " +
+                            throw new BusinessException("Không thể hoàn tất: số lượng xuất (" + outItem.getQuantity() +
+                                    ") vượt quá tồn kho thực tế (" + actualQty + "). " +
                                     "Hãy chờ hàng nhập kho thực tế trước khi hoàn tất.");
                         }
                     }
