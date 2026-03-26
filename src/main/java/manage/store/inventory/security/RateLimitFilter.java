@@ -1,6 +1,5 @@
 package manage.store.inventory.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import jakarta.servlet.FilterChain;
@@ -14,7 +13,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -24,7 +22,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final int MAX_REQUESTS_PER_MINUTE = 5;
 
     private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -44,12 +41,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
-            Map<String, Object> body = Map.of(
-                "status", 429,
-                "error", "Too Many Requests",
-                "message", "Quá nhiều lần đăng nhập. Vui lòng thử lại sau 1 phút."
+            response.getWriter().write(
+                "{\"status\":429,\"error\":\"Too Many Requests\",\"message\":\"Quá nhiều lần đăng nhập. Vui lòng thử lại sau 1 phút.\"}"
             );
-            objectMapper.writeValue(response.getWriter(), body);
         }
     }
 
