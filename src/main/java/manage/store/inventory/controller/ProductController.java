@@ -18,7 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 import manage.store.inventory.dto.ChildProductCreateDTO;
+import manage.store.inventory.dto.ItemVariantCreateDTO;
 import manage.store.inventory.entity.Product;
+import manage.store.inventory.entity.ProductVariant;
 import manage.store.inventory.repository.ProductRepository;
 import manage.store.inventory.service.ProductService;
 
@@ -67,7 +69,7 @@ public class ProductController {
 
     // Tạo child product (clone variants từ sibling)
     @PostMapping("/{parentId}/children")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER') or hasRole('PURCHASER')")
     public ResponseEntity<Product> createChildProduct(
             @PathVariable Long parentId,
             @RequestBody ChildProductCreateDTO dto) {
@@ -78,6 +80,15 @@ public class ProductController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
+    }
+
+    // Thêm mã hàng mới vào sản phẩm ITEM_BASED
+    @PostMapping("/{productId}/variants")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER') or hasRole('PURCHASER')")
+    public ResponseEntity<ProductVariant> createItemVariant(
+            @PathVariable Long productId,
+            @RequestBody ItemVariantCreateDTO dto) {
+        return ResponseEntity.ok(productService.createItemVariant(productId, dto));
     }
 
     // Cập nhật sản phẩm

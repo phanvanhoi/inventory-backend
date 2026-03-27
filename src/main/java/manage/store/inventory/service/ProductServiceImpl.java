@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import manage.store.inventory.dto.ItemVariantCreateDTO;
 import manage.store.inventory.entity.Product;
 import manage.store.inventory.entity.ProductVariant;
 import manage.store.inventory.entity.enums.VariantType;
@@ -91,6 +92,28 @@ public class ProductServiceImpl implements ProductService {
         }
 
         return child;
+    }
+
+    @Override
+    @Transactional
+    public ProductVariant createItemVariant(Long productId, ItemVariantCreateDTO dto) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sản phẩm không tồn tại"));
+        if (product.getVariantType() != VariantType.ITEM_BASED) {
+            throw new BusinessException("Chỉ hỗ trợ thêm mã hàng cho sản phẩm ITEM_BASED");
+        }
+        if (dto.getItemCode() == null || dto.getItemCode().isBlank()) {
+            throw new BusinessException("Mã hàng không được để trống");
+        }
+        if (dto.getItemName() == null || dto.getItemName().isBlank()) {
+            throw new BusinessException("Tên hàng không được để trống");
+        }
+        ProductVariant variant = new ProductVariant();
+        variant.setProductId(productId);
+        variant.setItemCode(dto.getItemCode().trim().toUpperCase());
+        variant.setItemName(dto.getItemName().trim());
+        variant.setUnit(dto.getUnit() != null ? dto.getUnit().trim() : null);
+        return variantRepository.save(variant);
     }
 
     @Override
