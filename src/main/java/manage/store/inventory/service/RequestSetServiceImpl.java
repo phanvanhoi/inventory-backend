@@ -958,6 +958,14 @@ public class RequestSetServiceImpl implements RequestSetService {
             throw new BusinessException("Chỉ có thể sửa số lượng khi bộ phiếu đã duyệt (APPROVED)");
         }
 
+        // 2b. Không cho phép sửa số lượng nếu có phiếu XUẤT KHO (OUT)
+        List<InventoryRequest> setRequests = requestRepository.findBySetId(setId);
+        boolean hasOutRequest = setRequests.stream()
+                .anyMatch(r -> r.getRequestType() == InventoryRequest.RequestType.OUT);
+        if (hasOutRequest) {
+            throw new BusinessException("Không thể sửa số lượng cho phiếu xuất kho");
+        }
+
         // 3. Cập nhật quantity cho từng item + ghi lại chi tiết thay đổi
         List<String> changes = new ArrayList<>();
         for (EditAndReceiveDTO.ItemQuantityUpdate itemUpdate : dto.getItems()) {
