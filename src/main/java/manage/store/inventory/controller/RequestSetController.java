@@ -49,12 +49,14 @@ public class RequestSetController {
 
     private static final Map<String, String> CATEGORY_LABELS = new HashMap<>();
     static {
-        CATEGORY_LABELS.put("VAI_GIAO_THO",     "ĐX VẢI GIAO THỢ");
+        CATEGORY_LABELS.put("VAI_NHAP_KHO",     "ĐX VẢI NHẬP KHO");
         CATEGORY_LABELS.put("VAI_NHAP_KHO_THO", "ĐX VẢI NHẬP KHO THỢ");
-        CATEGORY_LABELS.put("VAI_TRA_KHACH",     "ĐX VẢI TRẢ KHÁCH");
-        CATEGORY_LABELS.put("PHU_LIEU",          "ĐX PHỤ LIỆU");
-        CATEGORY_LABELS.put("PHU_KIEN",          "ĐX PHỤ KIỆN");
-        CATEGORY_LABELS.put("HANG_MAY_SAN",      "ĐX HÀNG MAY SẴN");
+        CATEGORY_LABELS.put("VAI_GIAO_THO",     "ĐX VẢI GIAO THỢ");
+        CATEGORY_LABELS.put("VAI_TRA_KHACH",    "ĐX VẢI TRẢ KHÁCH");
+        CATEGORY_LABELS.put("PHU_LIEU",         "ĐX PHỤ LIỆU");
+        CATEGORY_LABELS.put("PHU_LIEU_KHO_THO", "ĐX PHỤ LIỆU KHO THỢ");
+        CATEGORY_LABELS.put("PHU_KIEN",         "ĐX PHỤ KIỆN");
+        CATEGORY_LABELS.put("HANG_MAY_SAN",     "ĐX HÀNG MAY SẴN");
     }
 
     private final RequestSetService requestSetService;
