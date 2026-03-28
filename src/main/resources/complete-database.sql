@@ -254,6 +254,7 @@ CREATE TABLE inventory_request_items (
     fabric_note VARCHAR(200) NULL,
     employee_id BIGINT NULL,
     garment_quantity VARCHAR(10) NULL,
+    rate DECIMAL(10,4) NULL,
     FOREIGN KEY (request_id) REFERENCES inventory_requests(request_id) ON DELETE CASCADE,
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id),
     FOREIGN KEY (employee_id) REFERENCES unit_employees(employee_id),
@@ -358,6 +359,30 @@ CREATE TABLE refresh_tokens (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     INDEX idx_refresh_token (token),
     INDEX idx_refresh_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.20 Bảng accessory_templates (BOM template phụ liệu)
+CREATE TABLE accessory_templates (
+    id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name       VARCHAR(255) NOT NULL,
+    created_by BIGINT       NULL,
+    created_at DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME     NULL,
+    FOREIGN KEY (created_by) REFERENCES users(user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.21 Bảng accessory_template_items (Chi tiết từng mặt hàng trong template)
+CREATE TABLE accessory_template_items (
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    template_id BIGINT        NOT NULL,
+    variant_id  BIGINT        NULL,
+    item_code   VARCHAR(50)   NULL,
+    item_name   VARCHAR(255)  NOT NULL,
+    rate        DECIMAL(10,4) NOT NULL,
+    unit        VARCHAR(50)   NULL,
+    sort_order  INT           DEFAULT 0,
+    FOREIGN KEY (template_id) REFERENCES accessory_templates(id),
+    FOREIGN KEY (variant_id)  REFERENCES product_variants(variant_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
@@ -1858,7 +1883,68 @@ WHERE pv.product_id = 8
 UPDATE request_sets SET status = 'EXECUTED', submitted_at = created_at WHERE set_id = @truong_set_id;
 
 -- =====================================================
--- PHẦN 10: CLEANUP - XÓA PROCEDURE SAU KHI IMPORT
+-- PHẦN 10: ACCESSORY TEMPLATES (V15)
+-- =====================================================
+
+-- Bổ sung variants còn thiếu (INSERT IGNORE: bỏ qua nếu đã có)
+INSERT IGNORE INTO product_variants (product_id, item_code, item_name, unit)
+VALUES
+    (10, 'TUIBONG1', 'Túi bóng kính', 'chiếc');
+
+-- 3 accessory templates
+INSERT INTO accessory_templates (name, created_by, created_at)
+VALUES
+    ('Quần BH nam',      NULL, NOW()),
+    ('Áo budong nam NT', NULL, NOW()),
+    ('Quần NT nam',      NULL, NOW());
+
+-- Template items: Quần BH nam
+INSERT INTO accessory_template_items (template_id, variant_id, item_code, item_name, rate, unit, sort_order)
+SELECT t.id, pv.variant_id, pv.item_code, v.item_name, v.rate, v.unit, v.sort_order
+FROM accessory_templates t
+JOIN (
+    SELECT 'KHOA4' AS code, 'Khóa quần ghi'                           AS item_name, 1.0000 AS rate, 'chiếc' AS unit, 0 AS sort_order
+    UNION ALL SELECT 'MEX5',     'Mex mè đen (Khổ 1m)',               0.0100, 'mét', 1
+    UNION ALL SELECT 'MEX6',     'Mex cạp quần nam',                  0.0350, 'mét', 2
+    UNION ALL SELECT 'LOT10',    'Lót túi kate đen (Làm BH) (khổ 1.5m)', 0.3500, 'mét', 3
+    UNION ALL SELECT 'NHAM1',    'Nhám dính ghi',                     0.0600, 'mét', 4
+    UNION ALL SELECT 'K3',       'Dây phản quang 2cm không in',       0.3600, 'mét', 5
+    UNION ALL SELECT 'K5',       'Chun 3F',                           0.1800, 'mét', 6
+) v ON TRUE
+JOIN product_variants pv ON pv.product_id = 10 AND pv.item_code = v.code
+WHERE t.name = 'Quần BH nam';
+
+-- Template items: Áo budong nam NT
+INSERT INTO accessory_template_items (template_id, variant_id, item_code, item_name, rate, unit, sort_order)
+SELECT t.id, pv.variant_id, pv.item_code, v.item_name, v.rate, v.unit, v.sort_order
+FROM accessory_templates t
+JOIN (
+    SELECT 'MAC1'      AS code, 'Mác sơ mi nam Hằng'        AS item_name, 1.0000  AS rate, 'chiếc' AS unit, 0 AS sort_order
+    UNION ALL SELECT 'KHUY1',   'Khuy áo ngoài trời',        19.0000, 'chiếc', 1
+    UNION ALL SELECT 'K4',      'Dây phản quang có in VNPT',  1.1000, 'mét',   2
+    UNION ALL SELECT 'TUIBONG1','Túi bóng kính',              1.0000, 'chiếc', 3
+) v ON TRUE
+JOIN product_variants pv ON pv.product_id = 10 AND pv.item_code = v.code
+WHERE t.name = 'Áo budong nam NT';
+
+-- Template items: Quần NT nam
+INSERT INTO accessory_template_items (template_id, variant_id, item_code, item_name, rate, unit, sort_order)
+SELECT t.id, pv.variant_id, pv.item_code, v.item_name, v.rate, v.unit, v.sort_order
+FROM accessory_templates t
+JOIN (
+    SELECT 'KHOA3' AS code, 'Khóa quần xanh tươi'                        AS item_name, 1.0000 AS rate, 'chiếc' AS unit, 0 AS sort_order
+    UNION ALL SELECT 'MEX6',     'Mex cạp quần nam',                      0.0350, 'mét', 1
+    UNION ALL SELECT 'MEX5',     'Mex mè đen',                            0.0100, 'mét', 2
+    UNION ALL SELECT 'LOT13',    'Lót túi kate trắng (cắt sẵn) - NT nam', 1.0000, 'bộ',  3
+    UNION ALL SELECT 'K4',       'Dây phản quang có in VNPT',             0.4000, 'mét', 4
+    UNION ALL SELECT 'K5',       'Chun 3F',                               0.1800, 'mét', 5
+    UNION ALL SELECT 'NHAM3',    'Nhám dính xanh tươi',                   0.0600, 'mét', 6
+) v ON TRUE
+JOIN product_variants pv ON pv.product_id = 10 AND pv.item_code = v.code
+WHERE t.name = 'Quần NT nam';
+
+-- =====================================================
+-- PHẦN 11: CLEANUP - XÓA PROCEDURE SAU KHI IMPORT
 -- =====================================================
 DROP PROCEDURE IF EXISTS insert_item_by_variant;
 DROP PROCEDURE IF EXISTS insert_item_by_gender;
