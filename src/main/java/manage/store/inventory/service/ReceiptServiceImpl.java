@@ -103,13 +103,14 @@ public class ReceiptServiceImpl implements ReceiptService {
                 throw new BusinessException("Request không thuộc bộ phiếu này");
             }
 
-            // Validate variant thuộc request này
+            // Validate variant thuộc request này — sum tất cả items cùng variantId
+            // (VAI_GIAO_THO có thể có nhiều thợ cùng dùng 1 loại vải → nhiều rows cùng variantId)
             List<InventoryRequestItem> requestItems = itemRepository.findByRequestId(itemDTO.getRequestId());
-            InventoryRequestItem matchedItem = requestItems.stream()
+            BigDecimal proposedQty = requestItems.stream()
                     .filter(ri -> ri.getVariantId().equals(itemDTO.getVariantId()))
-                    .findFirst()
-                    .orElse(null);
-            if (matchedItem == null) {
+                    .map(InventoryRequestItem::getQuantity)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (proposedQty.compareTo(BigDecimal.ZERO) == 0) {
                 throw new BusinessException("Variant không thuộc request này");
             }
 
@@ -117,7 +118,7 @@ public class ReceiptServiceImpl implements ReceiptService {
             BigDecimal alreadyReceived = receiptItemRepository
                     .getTotalReceivedByRequestAndVariant(setId, itemDTO.getRequestId(), itemDTO.getVariantId());
             BigDecimal totalAfter = alreadyReceived.add(itemDTO.getReceivedQuantity());
-            if (totalAfter.compareTo(matchedItem.getQuantity()) > 0) {
+            if (totalAfter.compareTo(proposedQty) > 0) {
                 throw new BusinessException("Vượt quá số lượng đề xuất");
             }
         }
