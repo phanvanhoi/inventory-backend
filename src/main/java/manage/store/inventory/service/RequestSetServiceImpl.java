@@ -299,6 +299,7 @@ public class RequestSetServiceImpl implements RequestSetService {
             requestItem.setFabricNote(item.getFabricNote());
             requestItem.setEmployeeId(item.getEmployeeId());
             requestItem.setGarmentQuantity(item.getGarmentQuantity());
+            requestItem.setRate(item.getRate());
 
             itemRepository.save(requestItem);
             log.info("[createRequestInSet]   Item: requestId={}, variantId={}, qty={}",

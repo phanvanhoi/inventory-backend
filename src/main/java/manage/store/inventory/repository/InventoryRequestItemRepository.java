@@ -33,7 +33,8 @@ public interface InventoryRequestItemRepository
             i.employeeId,
             i.garmentQuantity,
             ue.fullName,
-            pos.positionCode
+            pos.positionCode,
+            i.rate
         )
         FROM InventoryRequestItem i
         JOIN ProductVariant pv ON pv.variantId = i.variantId

@@ -112,7 +112,10 @@ public class InventoryRequestCreateDTO {
         private String workerNote;       // Tên thợ (Mẫu 1)
         private String fabricNote;       // Ghi chú cây vải
         private Long employeeId;         // FK → unit_employees (Mẫu 2)
-        private String garmentQuantity;  // "1D", "1Q" (Mẫu 2)
+        private String garmentQuantity;  // "1D", "1Q" (Mẫu 2) / Số lượng SP (PHU_LIEU)
+
+        // Accessory template fields
+        private BigDecimal rate;         // Định mức (PHU_LIEU)
 
         public ItemDTO() {
         }
@@ -149,5 +152,8 @@ public class InventoryRequestCreateDTO {
 
         public String getGarmentQuantity() { return garmentQuantity; }
         public void setGarmentQuantity(String garmentQuantity) { this.garmentQuantity = garmentQuantity; }
+
+        public BigDecimal getRate() { return rate; }
+        public void setRate(BigDecimal rate) { this.rate = rate; }
     }
 }

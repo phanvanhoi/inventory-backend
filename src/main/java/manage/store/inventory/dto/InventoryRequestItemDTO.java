@@ -21,6 +21,9 @@ public class InventoryRequestItemDTO {
     private Long employeeId;
     private String garmentQuantity;
 
+    // Accessory template fields
+    private BigDecimal rate;
+
     // Employee info (joined from unit_employees + positions)
     private String employeeName;
     private String positionCode;
@@ -90,6 +93,32 @@ public class InventoryRequestItemDTO {
         this.positionCode = positionCode;
     }
 
+    // Full constructor including rate (accessory template)
+    public InventoryRequestItemDTO(
+            Long itemId,
+            Long variantId,
+            String styleName,
+            String sizeValue,
+            String lengthCode,
+            String gender,
+            String itemCode,
+            String itemName,
+            String unit,
+            BigDecimal quantity,
+            String workerNote,
+            String fabricNote,
+            Long employeeId,
+            String garmentQuantity,
+            String employeeName,
+            String positionCode,
+            BigDecimal rate
+    ) {
+        this(itemId, variantId, styleName, sizeValue, lengthCode, gender,
+             itemCode, itemName, unit, quantity, workerNote, fabricNote,
+             employeeId, garmentQuantity, employeeName, positionCode);
+        this.rate = rate;
+    }
+
     public Long getItemId() { return itemId; }
     public void setItemId(Long itemId) { this.itemId = itemId; }
 
@@ -137,4 +166,7 @@ public class InventoryRequestItemDTO {
 
     public String getPositionCode() { return positionCode; }
     public void setPositionCode(String positionCode) { this.positionCode = positionCode; }
+
+    public BigDecimal getRate() { return rate; }
+    public void setRate(BigDecimal rate) { this.rate = rate; }
 }

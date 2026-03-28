@@ -29,6 +29,9 @@ public class InventoryRequestItem {
     @Column(name = "garment_quantity")
     private String garmentQuantity;
 
+    @Column(precision = 10, scale = 4)
+    private BigDecimal rate;
+
     public Long getItemId() { return itemId; }
     public void setItemId(Long itemId) { this.itemId = itemId; }
 
@@ -52,4 +55,7 @@ public class InventoryRequestItem {
 
     public String getGarmentQuantity() { return garmentQuantity; }
     public void setGarmentQuantity(String garmentQuantity) { this.garmentQuantity = garmentQuantity; }
+
+    public BigDecimal getRate() { return rate; }
+    public void setRate(BigDecimal rate) { this.rate = rate; }
 }
