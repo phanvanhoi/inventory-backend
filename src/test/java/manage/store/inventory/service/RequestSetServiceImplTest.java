@@ -40,6 +40,8 @@ import manage.store.inventory.repository.ProductVariantRepository;
 import manage.store.inventory.repository.RequestSetRepository;
 import manage.store.inventory.repository.UserRepository;
 import manage.store.inventory.repository.WarehouseRepository;
+import manage.store.inventory.dto.RequestSetCreateDTO;
+import manage.store.inventory.dto.EditAndReceiveDTO;
 
 @ExtendWith(MockitoExtension.class)
 class RequestSetServiceImplTest {
@@ -443,5 +445,186 @@ class RequestSetServiceImplTest {
         verify(itemRepository).deleteByRequestId(10L);
         verify(requestRepository).deleteAll(List.of(request));
         verify(requestSetRepository).deleteById(1L);
+    }
+
+    // ==================== CREATE REQUEST SET ====================
+
+    @Nested
+    @DisplayName("Create Request Set")
+    class CreateRequestSetTests {
+
+        @Test
+        @DisplayName("USER tạo bộ phiếu thành công")
+        void createRequestSet_regularUser_success() {
+            RequestSetCreateDTO dto = new RequestSetCreateDTO();
+            dto.setSetName("ĐX 1 - Hội");
+            dto.setCategory("VAI_GIAO_THO");
+
+            RequestSet savedSet = new RequestSet();
+            savedSet.setSetId(10L);
+
+            when(userRepository.findById(2L)).thenReturn(Optional.of(regularUser));
+            when(requestSetRepository.existsBySetName("ĐX 1 - Hội")).thenReturn(false);
+            when(requestSetRepository.save(any(RequestSet.class))).thenReturn(savedSet);
+
+            Long resultId = requestSetService.createRequestSet(dto, 2L);
+
+            assertEquals(10L, resultId);
+            verify(requestSetRepository).save(any(RequestSet.class));
+            verify(notificationService).notifyAdminsOfPendingApproval(any(RequestSet.class), eq(regularUser));
+        }
+
+        @Test
+        @DisplayName("Tên trùng → tự động đổi tên (không throw)")
+        void createRequestSet_duplicateName_autoRename() {
+            RequestSetCreateDTO dto = new RequestSetCreateDTO();
+            dto.setSetName("ĐX 1 - Hội");
+
+            RequestSet savedSet = new RequestSet();
+            savedSet.setSetId(11L);
+
+            when(userRepository.findById(2L)).thenReturn(Optional.of(regularUser));
+            // Tên "ĐX 1 - Hội" đã tồn tại, "ĐX 2 - Hội" chưa
+            when(requestSetRepository.existsBySetName("ĐX 1 - Hội")).thenReturn(true);
+            when(requestSetRepository.existsBySetName("ĐX 2 - Hội")).thenReturn(false);
+            when(requestSetRepository.save(any(RequestSet.class))).thenReturn(savedSet);
+
+            // Không throw — tên tự động tăng
+            assertDoesNotThrow(() -> requestSetService.createRequestSet(dto, 2L));
+            verify(requestSetRepository).save(any(RequestSet.class));
+        }
+
+        @Test
+        @DisplayName("ADMIN-only (không có USER/PURCHASER role) không được tạo")
+        void createRequestSet_adminOnly_throwsException() {
+            RequestSetCreateDTO dto = new RequestSetCreateDTO();
+            dto.setSetName("ĐX Admin");
+
+            when(userRepository.findById(1L)).thenReturn(Optional.of(adminUser));
+
+            RuntimeException ex = assertThrows(RuntimeException.class,
+                    () -> requestSetService.createRequestSet(dto, 1L));
+            assertTrue(ex.getMessage().contains("ADMIN không có quyền tạo bộ phiếu"));
+        }
+
+        @Test
+        @DisplayName("STOCKKEEPER-only (không có USER/PURCHASER role) không được tạo")
+        void createRequestSet_stockkeeperOnly_throwsException() {
+            RequestSetCreateDTO dto = new RequestSetCreateDTO();
+            dto.setSetName("ĐX SK");
+
+            when(userRepository.findById(3L)).thenReturn(Optional.of(stockkeeperUser));
+
+            RuntimeException ex = assertThrows(RuntimeException.class,
+                    () -> requestSetService.createRequestSet(dto, 3L));
+            assertTrue(ex.getMessage().contains("STOCKKEEPER không có quyền tạo bộ phiếu"));
+        }
+    }
+
+    // ==================== EDIT AND RECEIVE ====================
+
+    @Nested
+    @DisplayName("Edit And Receive Request Set")
+    class EditAndReceiveTests {
+
+        @Test
+        @DisplayName("STOCKKEEPER sửa SL và chuyển RECEIVING thành công")
+        void editAndReceive_success() {
+            InventoryRequestItem item = new InventoryRequestItem();
+            item.setItemId(1L);
+            item.setVariantId(100L);
+            item.setQuantity(new BigDecimal("30"));
+
+            InventoryRequest inRequest = new InventoryRequest();
+            inRequest.setRequestId(10L);
+            inRequest.setRequestType(InventoryRequest.RequestType.IN);
+
+            EditAndReceiveDTO dto = new EditAndReceiveDTO();
+            dto.setReason("Nhận hàng thực tế");
+            EditAndReceiveDTO.ItemQuantityUpdate update = new EditAndReceiveDTO.ItemQuantityUpdate();
+            update.setItemId(1L);
+            update.setQuantity(new BigDecimal("32"));
+            dto.setItems(List.of(update));
+
+            when(requestSetRepository.findById(2L)).thenReturn(Optional.of(approvedSet));
+            when(userRepository.findById(3L)).thenReturn(Optional.of(stockkeeperUser));
+            when(requestRepository.findBySetId(2L)).thenReturn(List.of(inRequest));
+            when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
+            when(variantRepository.findById(100L)).thenReturn(Optional.empty());
+
+            requestSetService.editAndReceiveRequestSet(2L, dto, 3L);
+
+            assertEquals(RequestSetStatus.RECEIVING, approvedSet.getStatus());
+            assertEquals(new BigDecimal("32"), item.getQuantity());
+            verify(itemRepository).save(item);
+            verify(requestSetRepository).save(approvedSet);
+        }
+
+        @Test
+        @DisplayName("Không phải STOCKKEEPER → thất bại")
+        void editAndReceive_notStockkeeper_throwsException() {
+            when(requestSetRepository.findById(2L)).thenReturn(Optional.of(approvedSet));
+            when(userRepository.findById(2L)).thenReturn(Optional.of(regularUser));
+
+            RuntimeException ex = assertThrows(RuntimeException.class,
+                    () -> requestSetService.editAndReceiveRequestSet(2L, new EditAndReceiveDTO(), 2L));
+            assertTrue(ex.getMessage().contains("Chỉ STOCKKEEPER mới có quyền"));
+        }
+
+        @Test
+        @DisplayName("Status không phải APPROVED → thất bại")
+        void editAndReceive_notApproved_throwsException() {
+            when(requestSetRepository.findById(1L)).thenReturn(Optional.of(pendingSet));
+            when(userRepository.findById(3L)).thenReturn(Optional.of(stockkeeperUser));
+
+            RuntimeException ex = assertThrows(RuntimeException.class,
+                    () -> requestSetService.editAndReceiveRequestSet(1L, new EditAndReceiveDTO(), 3L));
+            assertTrue(ex.getMessage().contains("Chỉ có thể sửa số lượng khi bộ phiếu đã duyệt"));
+        }
+
+        @Test
+        @DisplayName("Bộ phiếu có request XUẤT KHO → thất bại")
+        void editAndReceive_hasOutRequest_throwsException() {
+            InventoryRequest outRequest = new InventoryRequest();
+            outRequest.setRequestId(20L);
+            outRequest.setRequestType(InventoryRequest.RequestType.OUT);
+
+            when(requestSetRepository.findById(2L)).thenReturn(Optional.of(approvedSet));
+            when(userRepository.findById(3L)).thenReturn(Optional.of(stockkeeperUser));
+            when(requestRepository.findBySetId(2L)).thenReturn(List.of(outRequest));
+
+            RuntimeException ex = assertThrows(RuntimeException.class,
+                    () -> requestSetService.editAndReceiveRequestSet(2L, new EditAndReceiveDTO(), 3L));
+            assertTrue(ex.getMessage().contains("Không thể sửa số lượng cho phiếu xuất kho"));
+        }
+
+        @Test
+        @DisplayName("Số lượng âm → thất bại")
+        void editAndReceive_negativeQuantity_throwsException() {
+            InventoryRequestItem item = new InventoryRequestItem();
+            item.setItemId(1L);
+            item.setVariantId(100L);
+            item.setQuantity(new BigDecimal("30"));
+
+            InventoryRequest inRequest = new InventoryRequest();
+            inRequest.setRequestId(10L);
+            inRequest.setRequestType(InventoryRequest.RequestType.IN);
+
+            EditAndReceiveDTO dto = new EditAndReceiveDTO();
+            dto.setReason("Test");
+            EditAndReceiveDTO.ItemQuantityUpdate update = new EditAndReceiveDTO.ItemQuantityUpdate();
+            update.setItemId(1L);
+            update.setQuantity(new BigDecimal("-1"));
+            dto.setItems(List.of(update));
+
+            when(requestSetRepository.findById(2L)).thenReturn(Optional.of(approvedSet));
+            when(userRepository.findById(3L)).thenReturn(Optional.of(stockkeeperUser));
+            when(requestRepository.findBySetId(2L)).thenReturn(List.of(inRequest));
+            when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
+
+            RuntimeException ex = assertThrows(RuntimeException.class,
+                    () -> requestSetService.editAndReceiveRequestSet(2L, dto, 3L));
+            assertTrue(ex.getMessage().contains("Số lượng không hợp lệ"));
+        }
     }
 }
