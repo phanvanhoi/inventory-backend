@@ -215,13 +215,18 @@ public class NotificationService {
 
     private void saveAndPush(Notification notification) {
         notificationRepository.save(notification);
+        Long userId = notification.getUser().getUserId();
+        String title = notification.getTitle();
+        String message = notification.getMessage();
         Long setId = notification.getRelatedSet() != null ? notification.getRelatedSet().getSetId() : null;
-        pushService.sendToUser(
-                notification.getUser().getUserId(),
-                notification.getTitle(),
-                notification.getMessage(),
-                setId
-        );
+        // Send push after transaction commits to avoid notifying for rolled-back data
+        org.springframework.transaction.support.TransactionSynchronizationManager
+                .registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        pushService.sendToUser(userId, title, message, setId);
+                    }
+                });
     }
 
     public List<NotificationDTO> getNotifications(Long userId) {

@@ -12,5 +12,5 @@ public interface DeviceTokenRepository extends JpaRepository<DeviceToken, Long> 
 
     void deleteByPushToken(String pushToken);
 
-    boolean existsByPushToken(String pushToken);
+    void deleteByPushTokenAndUserId(String pushToken, Long userId);
 }

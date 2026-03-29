@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
+import manage.store.inventory.dto.DeviceRegisterDTO;
 import manage.store.inventory.entity.DeviceToken;
 import manage.store.inventory.repository.DeviceTokenRepository;
 import manage.store.inventory.security.UserPrincipal;
@@ -25,30 +27,14 @@ public class DeviceController {
         this.deviceTokenRepository = deviceTokenRepository;
     }
 
-    public static class RegisterDTO {
-        private String pushToken;
-        private String platform;
-
-        public String getPushToken() { return pushToken; }
-        public void setPushToken(String pushToken) { this.pushToken = pushToken; }
-        public String getPlatform() { return platform; }
-        public void setPlatform(String platform) { this.platform = platform; }
-    }
-
     @PostMapping("/register")
     @Transactional
     public ResponseEntity<Void> register(
-            @RequestBody RegisterDTO dto,
+            @Valid @RequestBody DeviceRegisterDTO dto,
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        if (dto.getPushToken() == null || dto.getPushToken().isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        // Upsert: delete old entry if exists, then insert
-        if (deviceTokenRepository.existsByPushToken(dto.getPushToken())) {
-            deviceTokenRepository.deleteByPushToken(dto.getPushToken());
-        }
+        // Upsert: delete old entry if exists, then insert with current user
+        deviceTokenRepository.deleteByPushToken(dto.getPushToken());
 
         DeviceToken token = new DeviceToken();
         token.setUserId(principal.getUserId());
@@ -63,11 +49,11 @@ public class DeviceController {
     @DeleteMapping("/unregister")
     @Transactional
     public ResponseEntity<Void> unregister(
-            @RequestBody RegisterDTO dto
+            @Valid @RequestBody DeviceRegisterDTO dto,
+            @AuthenticationPrincipal UserPrincipal principal
     ) {
-        if (dto.getPushToken() != null) {
-            deviceTokenRepository.deleteByPushToken(dto.getPushToken());
-        }
+        // Only delete tokens owned by the authenticated user
+        deviceTokenRepository.deleteByPushTokenAndUserId(dto.getPushToken(), principal.getUserId());
         return ResponseEntity.ok().build();
     }
 }
