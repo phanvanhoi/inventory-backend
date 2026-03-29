@@ -3,7 +3,9 @@ package manage.store.inventory.service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -309,16 +311,32 @@ public class ReceiptServiceImpl implements ReceiptService {
             List<ItemDetailDTO> itemDetails = itemRepository
                     .findItemDetailsByRequestId(request.getRequestId());
 
+            // Group by variantId để tránh double-count totalReceived khi cùng variantId
+            // xuất hiện nhiều lần trong 1 request (VD: VAI_GIAO_THO có nhiều thợ cùng loại vải)
+            Map<Long, List<ItemDetailDTO>> byVariant = new LinkedHashMap<>();
+            for (ItemDetailDTO d : itemDetails) {
+                byVariant.computeIfAbsent(d.getVariantId(), k -> new ArrayList<>()).add(d);
+            }
+
             List<SetReceiptProgressDTO.ItemProgress> itemProgressList = new ArrayList<>();
             BigDecimal requestTotalProposed = BigDecimal.ZERO;
             BigDecimal requestTotalReceived = BigDecimal.ZERO;
 
-            for (ItemDetailDTO itemDetail : itemDetails) {
+            for (Map.Entry<Long, List<ItemDetailDTO>> entry : byVariant.entrySet()) {
+                Long variantId = entry.getKey();
+                List<ItemDetailDTO> variantItems = entry.getValue();
+                ItemDetailDTO first = variantItems.get(0); // metadata từ item đầu tiên
+
+                // Tổng proposed = cộng tất cả items cùng variantId (mỗi thợ một dòng)
+                BigDecimal proposed = variantItems.stream()
+                        .map(d -> d.getQuantity() != null ? d.getQuantity() : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                // Chỉ gọi 1 lần cho (setId, requestId, variantId) — không nhân đôi
                 BigDecimal totalReceived = receiptItemRepository.getTotalReceivedByRequestAndVariant(
-                        setId, request.getRequestId(), itemDetail.getVariantId());
+                        setId, request.getRequestId(), variantId);
                 if (totalReceived == null) totalReceived = BigDecimal.ZERO;
 
-                BigDecimal proposed = itemDetail.getQuantity() != null ? itemDetail.getQuantity() : BigDecimal.ZERO;
                 BigDecimal remaining = proposed.subtract(totalReceived).max(BigDecimal.ZERO);
                 double pct = proposed.compareTo(BigDecimal.ZERO) > 0
                         ? Math.round(totalReceived.doubleValue() / proposed.doubleValue() * 100.0 * 100.0) / 100.0
@@ -326,26 +344,26 @@ public class ReceiptServiceImpl implements ReceiptService {
 
                 // Lịch sử nhận cho variant này
                 List<ReceiptEntryProjection> entries = receiptItemRepository
-                        .findReceiptHistoryByVariant(setId, request.getRequestId(), itemDetail.getVariantId());
+                        .findReceiptHistoryByVariant(setId, request.getRequestId(), variantId);
                 List<SetReceiptProgressDTO.ReceiptEntry> receiptHistory = new ArrayList<>();
-                for (ReceiptEntryProjection entry : entries) {
+                for (ReceiptEntryProjection e : entries) {
                     SetReceiptProgressDTO.ReceiptEntry re = new SetReceiptProgressDTO.ReceiptEntry();
-                    re.setReceiptId(entry.getReceiptId());
-                    re.setReceivedAt(entry.getReceivedAt());
-                    re.setReceivedByName(entry.getReceivedByName());
-                    re.setReceivedQuantity(entry.getReceivedQuantity());
+                    re.setReceiptId(e.getReceiptId());
+                    re.setReceivedAt(e.getReceivedAt());
+                    re.setReceivedByName(e.getReceivedByName());
+                    re.setReceivedQuantity(e.getReceivedQuantity());
                     receiptHistory.add(re);
                 }
 
                 SetReceiptProgressDTO.ItemProgress ip = new SetReceiptProgressDTO.ItemProgress();
-                ip.setVariantId(itemDetail.getVariantId());
-                ip.setStyleName(itemDetail.getStyleName());
-                ip.setSizeValue(itemDetail.getSizeValue());
-                ip.setLengthCode(itemDetail.getLengthCode());
-                ip.setGender(itemDetail.getGender());
-                ip.setItemCode(itemDetail.getItemCode());
-                ip.setItemName(itemDetail.getItemName());
-                ip.setUnit(itemDetail.getUnit());
+                ip.setVariantId(variantId);
+                ip.setStyleName(first.getStyleName());
+                ip.setSizeValue(first.getSizeValue());
+                ip.setLengthCode(first.getLengthCode());
+                ip.setGender(first.getGender());
+                ip.setItemCode(first.getItemCode());
+                ip.setItemName(first.getItemName());
+                ip.setUnit(first.getUnit());
                 ip.setProposedQuantity(proposed);
                 ip.setTotalReceived(totalReceived);
                 ip.setRemainingQuantity(remaining);
