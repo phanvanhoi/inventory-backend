@@ -19,13 +19,16 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final PushNotificationService pushService;
 
     public NotificationService(
             NotificationRepository notificationRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            PushNotificationService pushService
     ) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
+        this.pushService = pushService;
     }
 
     @Transactional
@@ -46,7 +49,7 @@ public class NotificationService {
                 notification.setCreatedAt(LocalDateTime.now());
                 notification.setIsRead(false);
 
-                notificationRepository.save(notification);
+                saveAndPush(notification);
             }
         }
     }
@@ -70,7 +73,7 @@ public class NotificationService {
         notification.setCreatedAt(LocalDateTime.now());
         notification.setIsRead(false);
 
-        notificationRepository.save(notification);
+        saveAndPush(notification);
     }
 
     @Transactional
@@ -93,7 +96,7 @@ public class NotificationService {
         notification.setCreatedAt(LocalDateTime.now());
         notification.setIsRead(false);
 
-        notificationRepository.save(notification);
+        saveAndPush(notification);
     }
 
     @Transactional
@@ -115,7 +118,7 @@ public class NotificationService {
         notification.setCreatedAt(LocalDateTime.now());
         notification.setIsRead(false);
 
-        notificationRepository.save(notification);
+        saveAndPush(notification);
     }
 
     @Transactional
@@ -135,7 +138,7 @@ public class NotificationService {
             notification.setCreatedAt(LocalDateTime.now());
             notification.setIsRead(false);
 
-            notificationRepository.save(notification);
+            saveAndPush(notification);
         }
     }
 
@@ -158,7 +161,7 @@ public class NotificationService {
             notiCreator.setRelatedSet(requestSet);
             notiCreator.setCreatedAt(LocalDateTime.now());
             notiCreator.setIsRead(false);
-            notificationRepository.save(notiCreator);
+            saveAndPush(notiCreator);
         }
 
         // Thông báo cho tất cả ADMIN
@@ -172,7 +175,7 @@ public class NotificationService {
                 notiAdmin.setRelatedSet(requestSet);
                 notiAdmin.setCreatedAt(LocalDateTime.now());
                 notiAdmin.setIsRead(false);
-                notificationRepository.save(notiAdmin);
+                saveAndPush(notiAdmin);
             }
         }
     }
@@ -205,9 +208,20 @@ public class NotificationService {
         List<User> admins = userRepository.findByRoleName("ADMIN");
         for (User admin : admins) {
             if (!admin.getUserId().equals(excluded.getUserId())) {
-                notificationRepository.save(buildNotification(admin, title, message, relatedSet, urgent));
+                saveAndPush(buildNotification(admin, title, message, relatedSet, urgent));
             }
         }
+    }
+
+    private void saveAndPush(Notification notification) {
+        notificationRepository.save(notification);
+        Long setId = notification.getRelatedSet() != null ? notification.getRelatedSet().getSetId() : null;
+        pushService.sendToUser(
+                notification.getUser().getUserId(),
+                notification.getTitle(),
+                notification.getMessage(),
+                setId
+        );
     }
 
     public List<NotificationDTO> getNotifications(Long userId) {
