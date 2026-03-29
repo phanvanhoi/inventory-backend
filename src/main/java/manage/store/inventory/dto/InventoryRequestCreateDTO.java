@@ -116,6 +116,7 @@ public class InventoryRequestCreateDTO {
 
         // Accessory template fields
         private BigDecimal rate;         // Định mức (PHU_LIEU)
+        private BigDecimal defaultRate;  // Định mức gốc từ template (null nếu thêm tay)
 
         public ItemDTO() {
         }
@@ -155,5 +156,8 @@ public class InventoryRequestCreateDTO {
 
         public BigDecimal getRate() { return rate; }
         public void setRate(BigDecimal rate) { this.rate = rate; }
+
+        public BigDecimal getDefaultRate() { return defaultRate; }
+        public void setDefaultRate(BigDecimal defaultRate) { this.defaultRate = defaultRate; }
     }
 }

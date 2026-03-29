@@ -177,6 +177,39 @@ public class NotificationService {
         }
     }
 
+    @Transactional
+    public void notifyAdminsOfRateChange(RequestSet requestSet, User submitter, List<String> modifiedItems) {
+        String itemList = String.join("; ", modifiedItems);
+        notifyAdminsExcluding(submitter,
+                "[KHẨN] Định mức phụ liệu bị thay đổi",
+                String.format("Bộ phiếu '%s' do %s tạo có định mức phụ liệu bị thay đổi so với template: %s",
+                        requestSet.getSetName(), submitter.getFullName(), itemList),
+                requestSet, true);
+    }
+
+    private Notification buildNotification(User recipient, String title, String message,
+                                           RequestSet relatedSet, boolean urgent) {
+        Notification n = new Notification();
+        n.setUser(recipient);
+        n.setTitle(title);
+        n.setMessage(message);
+        n.setRelatedSet(relatedSet);
+        n.setCreatedAt(LocalDateTime.now());
+        n.setIsRead(false);
+        n.setIsUrgent(urgent);
+        return n;
+    }
+
+    private void notifyAdminsExcluding(User excluded, String title, String message,
+                                        RequestSet relatedSet, boolean urgent) {
+        List<User> admins = userRepository.findByRoleName("ADMIN");
+        for (User admin : admins) {
+            if (!admin.getUserId().equals(excluded.getUserId())) {
+                notificationRepository.save(buildNotification(admin, title, message, relatedSet, urgent));
+            }
+        }
+    }
+
     public List<NotificationDTO> getNotifications(Long userId) {
         return notificationRepository.findByUserUserIdOrderByCreatedAtDesc(userId)
                 .stream()
@@ -222,6 +255,7 @@ public class NotificationService {
                 n.getTitle(),
                 n.getMessage(),
                 n.getIsRead(),
+                n.getIsUrgent(),
                 n.getRelatedSet() != null ? n.getRelatedSet().getSetId() : null,
                 n.getCreatedAt()
         );

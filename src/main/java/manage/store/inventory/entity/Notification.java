@@ -35,6 +35,9 @@ public class Notification {
     @Column(name = "is_read")
     private Boolean isRead = false;
 
+    @Column(name = "is_urgent")
+    private Boolean isUrgent = false;
+
     @ManyToOne
     @JoinColumn(name = "related_set_id")
     private RequestSet relatedSet;

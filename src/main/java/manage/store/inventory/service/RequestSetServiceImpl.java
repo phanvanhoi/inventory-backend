@@ -173,6 +173,36 @@ public class RequestSetServiceImpl implements RequestSetService {
         // Thông báo cho ADMIN về phiếu mới cần duyệt
         notificationService.notifyAdminsOfPendingApproval(requestSet, creator);
 
+        // Kiểm tra định mức phụ liệu bị thay đổi so với template
+        if (dto.getRequests() != null) {
+            // Collect variant IDs that have rate changes (batch lookup — avoid N+1)
+            List<InventoryRequestCreateDTO.ItemDTO> changedItems = new ArrayList<>();
+            java.util.Set<Long> variantIds = new java.util.HashSet<>();
+            for (InventoryRequestCreateDTO reqDto : dto.getRequests()) {
+                if (reqDto.getItems() == null) continue;
+                for (InventoryRequestCreateDTO.ItemDTO item : reqDto.getItems()) {
+                    if (item.getDefaultRate() != null && item.getRate() != null
+                            && item.getDefaultRate().compareTo(item.getRate()) != 0) {
+                        changedItems.add(item);
+                        if (item.getVariantId() != null) variantIds.add(item.getVariantId());
+                    }
+                }
+            }
+            if (!changedItems.isEmpty()) {
+                java.util.Map<Long, String> nameMap = variantRepository.findAllById(variantIds).stream()
+                        .collect(Collectors.toMap(
+                                manage.store.inventory.entity.ProductVariant::getVariantId,
+                                manage.store.inventory.entity.ProductVariant::getItemName));
+                List<String> rateChanges = changedItems.stream()
+                        .map(item -> String.format("%s (%s → %s)",
+                                nameMap.getOrDefault(item.getVariantId(), "ID:" + item.getVariantId()),
+                                item.getDefaultRate().stripTrailingZeros().toPlainString(),
+                                item.getRate().stripTrailingZeros().toPlainString()))
+                        .collect(Collectors.toList());
+                notificationService.notifyAdminsOfRateChange(requestSet, creator, rateChanges);
+            }
+        }
+
         return requestSet.getSetId();
     }
 

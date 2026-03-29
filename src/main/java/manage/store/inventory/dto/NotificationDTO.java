@@ -15,6 +15,7 @@ public class NotificationDTO {
     private String title;
     private String message;
     private Boolean isRead;
+    private Boolean isUrgent;
     private Long relatedSetId;
     private LocalDateTime createdAt;
 }
