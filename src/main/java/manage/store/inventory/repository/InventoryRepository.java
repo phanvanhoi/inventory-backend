@@ -60,6 +60,7 @@ public interface InventoryRepository
             WHERE ri2.variant_id = pv.variant_id
               AND r2.product_id = :productId
               AND rs2.status = 'RECEIVING'
+              AND COALESCE(r2.request_status, '') != 'COMPLETED'
           ), 0) AS actualQuantity,
           COALESCE((
             SELECT SUM(CASE
@@ -160,6 +161,7 @@ public interface InventoryRepository
               AND r2.product_id = :productId
               AND r2.warehouse_id = :warehouseId
               AND rs2.status = 'RECEIVING'
+              AND COALESCE(r2.request_status, '') != 'COMPLETED'
           ), 0) AS actualQuantity,
           COALESCE((
             SELECT SUM(CASE
@@ -614,6 +616,7 @@ public interface InventoryRepository
             WHERE ri.variant_id = :variantId
               AND r.product_id = :productId
               AND rs.status = 'RECEIVING'
+              AND COALESCE(r.request_status, '') != 'COMPLETED'
           ), 0)
         """,
             nativeQuery = true
@@ -659,6 +662,7 @@ public interface InventoryRepository
               AND r.product_id = :productId
               AND r.warehouse_id = :warehouseId
               AND rs.status = 'RECEIVING'
+              AND COALESCE(r.request_status, '') != 'COMPLETED'
           ), 0)
         """,
             nativeQuery = true
