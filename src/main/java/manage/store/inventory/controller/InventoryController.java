@@ -290,9 +290,9 @@ public class InventoryController {
                 rowMap.put(key, row);
             }
 
-            // Set quantity for this size
+            // Add quantity for this size (sum khi có nhiều receipts cùng requestId)
             if (item.getSizeValue() != null && item.getQuantity() != null) {
-                row.getSizes().put(item.getSizeValue(), item.getQuantity());
+                row.getSizes().merge(item.getSizeValue(), item.getQuantity(), BigDecimal::add);
             }
         }
 
