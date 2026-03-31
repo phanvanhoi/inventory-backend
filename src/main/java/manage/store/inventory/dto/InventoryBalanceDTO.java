@@ -1,5 +1,7 @@
 package manage.store.inventory.dto;
 
+import java.math.BigDecimal;
+
 public interface InventoryBalanceDTO {
 
     Long getVariantId();
@@ -10,6 +12,6 @@ public interface InventoryBalanceDTO {
     String getItemCode();
     String getItemName();
     String getUnit();
-    Integer getActualQuantity();
-    Integer getExpectedQuantity();
+    BigDecimal getActualQuantity();
+    BigDecimal getExpectedQuantity();
 }

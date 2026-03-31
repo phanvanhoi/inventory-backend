@@ -1,5 +1,7 @@
 package manage.store.inventory.dto;
 
+import java.math.BigDecimal;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,6 +19,6 @@ public class InventoryBalanceViewDTO {
     private String itemCode;
     private String itemName;
     private String unit;
-    private Integer actualQuantity;
-    private Integer expectedQuantity; // null nếu user không có quyền xem
+    private BigDecimal actualQuantity;
+    private BigDecimal expectedQuantity; // null nếu user không có quyền xem
 }
