@@ -40,6 +40,9 @@ public class ApprovalHistory {
     @Column(name = "reason")
     private String reason;
 
+    @Column(name = "metadata")
+    private String metadata;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 }

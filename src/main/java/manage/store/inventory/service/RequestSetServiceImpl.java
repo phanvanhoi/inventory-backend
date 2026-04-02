@@ -783,9 +783,11 @@ public class RequestSetServiceImpl implements RequestSetService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
-        // Kiểm tra quyền ADMIN
-        if (!user.isAdmin()) {
-            throw new BusinessException("Chỉ ADMIN mới có quyền từ chối bộ phiếu");
+        // Kiểm tra quyền: ADMIN hoặc người tạo phiếu
+        boolean isCreator = requestSet.getCreatedByUser() != null
+                && requestSet.getCreatedByUser().getUserId().equals(userId);
+        if (!user.isAdmin() && !isCreator) {
+            throw new BusinessException("Chỉ ADMIN hoặc người tạo phiếu mới có quyền từ chối");
         }
 
         // Kiểm tra trạng thái
@@ -798,21 +800,55 @@ public class RequestSetServiceImpl implements RequestSetService {
             throw new BusinessException("Phải có lý do khi từ chối bộ phiếu");
         }
 
-        // Cập nhật trạng thái
-        requestSet.setStatus(RequestSetStatus.REJECTED);
-        requestSetRepository.save(requestSet);
+        // Kiểm tra: nếu phiếu PENDING do thủ kho sửa SL → rollback về APPROVED
+        var lastEditAction = approvalHistoryRepository
+                .findTopByRequestSetSetIdAndActionOrderByCreatedAtDesc(setId, ApprovalAction.EDIT_AND_RECEIVE);
+        boolean isRollback = lastEditAction.isPresent() && lastEditAction.get().getMetadata() != null;
+
+        if (isRollback) {
+            // Rollback quantities từ metadata
+            String metadata = lastEditAction.get().getMetadata();
+            try {
+                // Parse JSON: [{"itemId":542,"oldQuantity":100},...]
+                var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                var nodes = mapper.readTree(metadata);
+                for (var node : nodes) {
+                    Long itemId = node.get("itemId").asLong();
+                    BigDecimal oldQty = new BigDecimal(node.get("oldQuantity").asText());
+                    itemRepository.findById(itemId).ifPresent(item -> {
+                        item.setQuantity(oldQty);
+                        itemRepository.save(item);
+                    });
+                }
+            } catch (Exception e) {
+                log.warn("[reject] Không thể rollback SL: {}", e.getMessage());
+            }
+
+            // Quay về APPROVED (không phải REJECTED)
+            requestSet.setStatus(RequestSetStatus.APPROVED);
+            requestSetRepository.save(requestSet);
+        } else {
+            // Reject thông thường → REJECTED
+            requestSet.setStatus(RequestSetStatus.REJECTED);
+            requestSetRepository.save(requestSet);
+        }
 
         // Lưu lịch sử
         ApprovalHistory history = new ApprovalHistory();
         history.setRequestSet(requestSet);
         history.setAction(ApprovalAction.REJECT);
         history.setPerformedBy(user);
-        history.setReason(reason);
+        history.setReason(reason + (isRollback ? "\n(Đã khôi phục số lượng ban đầu)" : ""));
         history.setCreatedAt(LocalDateTime.now());
         approvalHistoryRepository.save(history);
 
-        // Thông báo cho người tạo
-        notificationService.notifyCreatorOfRejection(requestSet, user, reason);
+        // Thông báo
+        if (isRollback) {
+            notificationService.notifyCreatorOfRejection(requestSet, user,
+                    "Từ chối thay đổi SL của thủ kho. Phiếu quay về APPROVED với SL ban đầu. Lý do: " + reason);
+        } else {
+            notificationService.notifyCreatorOfRejection(requestSet, user, reason);
+        }
     }
 
     // =====================================================
@@ -997,8 +1033,9 @@ public class RequestSetServiceImpl implements RequestSetService {
             throw new BusinessException("Không thể sửa số lượng cho phiếu xuất kho");
         }
 
-        // 3. Cập nhật quantity cho từng item + ghi lại chi tiết thay đổi
+        // 3. Cập nhật quantity cho từng item + ghi lại chi tiết thay đổi + rollback data
         List<String> changes = new ArrayList<>();
+        List<String> rollbackEntries = new ArrayList<>();
         for (EditAndReceiveDTO.ItemQuantityUpdate itemUpdate : dto.getItems()) {
             InventoryRequestItem item = itemRepository.findById(itemUpdate.getItemId())
                     .orElseThrow(() -> new BusinessException("Item không tồn tại"));
@@ -1009,6 +1046,9 @@ public class RequestSetServiceImpl implements RequestSetService {
 
             BigDecimal oldQty = item.getQuantity();
             BigDecimal newQty = itemUpdate.getQuantity();
+            // Lưu rollback data cho mỗi item thay đổi
+            rollbackEntries.add(String.format("{\"itemId\":%d,\"oldQuantity\":%s}",
+                    item.getItemId(), oldQty.stripTrailingZeros().toPlainString()));
             if (oldQty.compareTo(newQty) != 0) {
                 // Build label chi tiết: [Thợ] Mã hàng - Tên hàng (chi tiết): 30 → 32
                 ProductVariant pv = variantRepository.findById(item.getVariantId()).orElse(null);
@@ -1053,6 +1093,7 @@ public class RequestSetServiceImpl implements RequestSetService {
         history.setAction(ApprovalAction.EDIT_AND_RECEIVE);
         history.setPerformedBy(user);
         history.setReason(reason);
+        history.setMetadata("[" + String.join(",", rollbackEntries) + "]");
         history.setCreatedAt(LocalDateTime.now());
         approvalHistoryRepository.save(history);
 
