@@ -1038,8 +1038,9 @@ public class RequestSetServiceImpl implements RequestSetService {
         //    User có thể: (a) nhận từng phần, hoặc (b) bấm Hoàn tất ngay.
         //    completeReceipt sẽ xử lý cả 2 case.
 
-        // 5. Chuyển status → RECEIVING
-        requestSet.setStatus(RequestSetStatus.RECEIVING);
+        // 5. Chuyển status → PENDING (cần Admin duyệt lại sau khi thủ kho sửa SL)
+        requestSet.setStatus(RequestSetStatus.PENDING);
+        requestSet.setSubmittedAt(LocalDateTime.now());
         requestSetRepository.save(requestSet);
 
         // 6. Lưu lịch sử (EDIT_AND_RECEIVE) với chi tiết thay đổi

@@ -145,9 +145,9 @@ public class NotificationService {
     @Transactional
     public void notifyOfEditAndReceive(RequestSet requestSet, User stockkeeper, String reason) {
         String message = String.format(
-                "Bộ phiếu '%s' đã được sửa số lượng bởi %s và chuyển sang nhận hàng. Lý do: %s",
-                requestSet.getSetName(),
+                "Thủ kho %s đã sửa số lượng bộ phiếu '%s' và gửi lại để duyệt. Lý do: %s",
                 stockkeeper.getFullName(),
+                requestSet.getSetName(),
                 reason
         );
 
@@ -156,25 +156,27 @@ public class NotificationService {
         if (creator != null && !creator.getUserId().equals(stockkeeper.getUserId())) {
             Notification notiCreator = new Notification();
             notiCreator.setUser(creator);
-            notiCreator.setTitle("Bộ phiếu đã bị sửa số lượng");
+            notiCreator.setTitle("Bộ phiếu đã bị sửa SL — cần duyệt lại");
             notiCreator.setMessage(message);
             notiCreator.setRelatedSet(requestSet);
             notiCreator.setCreatedAt(LocalDateTime.now());
             notiCreator.setIsRead(false);
+            notiCreator.setIsUrgent(true);
             saveAndPush(notiCreator);
         }
 
-        // Thông báo cho tất cả ADMIN
+        // Thông báo cho tất cả ADMIN (cần duyệt lại)
         List<User> admins = userRepository.findByRoleName("ADMIN");
         for (User admin : admins) {
             if (!admin.getUserId().equals(stockkeeper.getUserId())) {
                 Notification notiAdmin = new Notification();
                 notiAdmin.setUser(admin);
-                notiAdmin.setTitle("Bộ phiếu đã bị sửa số lượng");
+                notiAdmin.setTitle("Bộ phiếu đã bị sửa SL — cần duyệt lại");
                 notiAdmin.setMessage(message);
                 notiAdmin.setRelatedSet(requestSet);
                 notiAdmin.setCreatedAt(LocalDateTime.now());
                 notiAdmin.setIsRead(false);
+                notiAdmin.setIsUrgent(true);
                 saveAndPush(notiAdmin);
             }
         }
