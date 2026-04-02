@@ -76,7 +76,7 @@ public class RequestSetServiceImpl implements RequestSetService {
     private final WarehouseRepository warehouseRepository;
     private final ReceiptRecordRepository receiptRecordRepository;
     private final ReceiptItemRepository receiptItemRepository;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public RequestSetServiceImpl(
             RequestSetRepository requestSetRepository,
@@ -92,8 +92,7 @@ public class RequestSetServiceImpl implements RequestSetService {
             ProductRepository productRepository,
             WarehouseRepository warehouseRepository,
             ReceiptRecordRepository receiptRecordRepository,
-            ReceiptItemRepository receiptItemRepository,
-            ObjectMapper objectMapper
+            ReceiptItemRepository receiptItemRepository
     ) {
         this.requestSetRepository = requestSetRepository;
         this.requestRepository = requestRepository;
@@ -109,7 +108,6 @@ public class RequestSetServiceImpl implements RequestSetService {
         this.warehouseRepository = warehouseRepository;
         this.receiptRecordRepository = receiptRecordRepository;
         this.receiptItemRepository = receiptItemRepository;
-        this.objectMapper = objectMapper;
     }
 
     @Override
