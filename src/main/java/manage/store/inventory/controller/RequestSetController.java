@@ -179,9 +179,9 @@ public class RequestSetController {
         return ResponseEntity.ok().build();
     }
 
-    // Từ chối bộ phiếu (chỉ ADMIN)
+    // Từ chối bộ phiếu (ADMIN hoặc người tạo phiếu)
     @PostMapping("/{setId:\\d+}/reject")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> reject(
             @PathVariable Long setId,
             @Valid @RequestBody RejectReasonDTO dto
