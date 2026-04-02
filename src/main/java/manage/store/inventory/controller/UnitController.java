@@ -43,7 +43,7 @@ public class UnitController {
 
     // Tạo đơn vị mới
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public Unit createUnit(@RequestBody Unit unit) {
         return unitRepository.save(unit);
     }
