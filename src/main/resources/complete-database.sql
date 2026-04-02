@@ -174,6 +174,7 @@ CREATE TABLE approval_history (
     action ENUM('SUBMIT', 'APPROVE', 'REJECT', 'EXECUTE', 'RECEIVE', 'COMPLETE', 'EDIT', 'EDIT_AND_RECEIVE') NOT NULL,
     performed_by BIGINT NOT NULL,
     reason TEXT,
+    metadata TEXT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (set_id) REFERENCES request_sets(set_id) ON DELETE CASCADE,
     FOREIGN KEY (performed_by) REFERENCES users(user_id),
