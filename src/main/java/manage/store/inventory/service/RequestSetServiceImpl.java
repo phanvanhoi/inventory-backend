@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -74,6 +76,7 @@ public class RequestSetServiceImpl implements RequestSetService {
     private final WarehouseRepository warehouseRepository;
     private final ReceiptRecordRepository receiptRecordRepository;
     private final ReceiptItemRepository receiptItemRepository;
+    private final ObjectMapper objectMapper;
 
     public RequestSetServiceImpl(
             RequestSetRepository requestSetRepository,
@@ -89,7 +92,8 @@ public class RequestSetServiceImpl implements RequestSetService {
             ProductRepository productRepository,
             WarehouseRepository warehouseRepository,
             ReceiptRecordRepository receiptRecordRepository,
-            ReceiptItemRepository receiptItemRepository
+            ReceiptItemRepository receiptItemRepository,
+            ObjectMapper objectMapper
     ) {
         this.requestSetRepository = requestSetRepository;
         this.requestRepository = requestRepository;
@@ -105,6 +109,7 @@ public class RequestSetServiceImpl implements RequestSetService {
         this.warehouseRepository = warehouseRepository;
         this.receiptRecordRepository = receiptRecordRepository;
         this.receiptItemRepository = receiptItemRepository;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -810,8 +815,7 @@ public class RequestSetServiceImpl implements RequestSetService {
             String metadata = lastEditAction.get().getMetadata();
             try {
                 // Parse JSON: [{"itemId":542,"oldQuantity":100},...]
-                var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                var nodes = mapper.readTree(metadata);
+                var nodes = objectMapper.readTree(metadata);
                 for (var node : nodes) {
                     Long itemId = node.get("itemId").asLong();
                     BigDecimal oldQty = new BigDecimal(node.get("oldQuantity").asText());
@@ -1035,7 +1039,7 @@ public class RequestSetServiceImpl implements RequestSetService {
 
         // 3. Cập nhật quantity cho từng item + ghi lại chi tiết thay đổi + rollback data
         List<String> changes = new ArrayList<>();
-        List<String> rollbackEntries = new ArrayList<>();
+        List<java.util.Map<String, Object>> rollbackEntries = new ArrayList<>();
         for (EditAndReceiveDTO.ItemQuantityUpdate itemUpdate : dto.getItems()) {
             InventoryRequestItem item = itemRepository.findById(itemUpdate.getItemId())
                     .orElseThrow(() -> new BusinessException("Item không tồn tại"));
@@ -1046,9 +1050,7 @@ public class RequestSetServiceImpl implements RequestSetService {
 
             BigDecimal oldQty = item.getQuantity();
             BigDecimal newQty = itemUpdate.getQuantity();
-            // Lưu rollback data cho mỗi item thay đổi
-            rollbackEntries.add(String.format("{\"itemId\":%d,\"oldQuantity\":%s}",
-                    item.getItemId(), oldQty.stripTrailingZeros().toPlainString()));
+            rollbackEntries.add(java.util.Map.of("itemId", item.getItemId(), "oldQuantity", oldQty));
             if (oldQty.compareTo(newQty) != 0) {
                 // Build label chi tiết: [Thợ] Mã hàng - Tên hàng (chi tiết): 30 → 32
                 ProductVariant pv = variantRepository.findById(item.getVariantId()).orElse(null);
@@ -1093,7 +1095,8 @@ public class RequestSetServiceImpl implements RequestSetService {
         history.setAction(ApprovalAction.EDIT_AND_RECEIVE);
         history.setPerformedBy(user);
         history.setReason(reason);
-        history.setMetadata("[" + String.join(",", rollbackEntries) + "]");
+        try { history.setMetadata(objectMapper.writeValueAsString(rollbackEntries)); }
+        catch (Exception e) { log.warn("[editAndReceive] Không thể serialize rollback data: {}", e.getMessage()); }
         history.setCreatedAt(LocalDateTime.now());
         approvalHistoryRepository.save(history);
 
