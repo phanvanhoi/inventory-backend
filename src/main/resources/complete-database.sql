@@ -561,6 +561,49 @@ CREATE TABLE invoices (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
+-- DESIGN PHASE (V22, G4, W11-12): Samples per item + Documents per order
+-- Ref: docs/lark-integration-roadmap.md §G4
+-- Auto design_ready flag when all items have APPROVED sample.
+-- =====================================================
+
+-- 2.27 Bảng design_samples (Mẫu thiết kế per OrderItem)
+CREATE TABLE design_samples (
+    design_sample_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_item_id      BIGINT NOT NULL,
+    sample_image_url   VARCHAR(500),
+    fabric_code        VARCHAR(100),
+    designer_user_id   BIGINT NULL,
+    status             ENUM('DRAFT','PREPARING','APPROVED','REJECTED')
+                       NOT NULL DEFAULT 'DRAFT',
+    note               TEXT,
+    seed_source        VARCHAR(50) NULL,
+    created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at         DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_item_id) REFERENCES order_items(order_item_id) ON DELETE CASCADE,
+    FOREIGN KEY (designer_user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+    INDEX idx_ds_order_item (order_item_id),
+    INDEX idx_ds_status (status),
+    INDEX idx_ds_designer (designer_user_id),
+    INDEX idx_ds_seed (seed_source)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.28 Bảng design_documents (Tài liệu thiết kế cấp đơn)
+CREATE TABLE design_documents (
+    design_doc_id        BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id             BIGINT NOT NULL,
+    file_url             VARCHAR(500) NOT NULL,
+    file_name            VARCHAR(255),
+    uploaded_by_user_id  BIGINT NULL,
+    uploaded_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    note                 TEXT,
+    seed_source          VARCHAR(50) NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+    FOREIGN KEY (uploaded_by_user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+    INDEX idx_dd_order (order_id),
+    INDEX idx_dd_seed (seed_source)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
 -- PHẦN 3: MASTER DATA
 -- =====================================================
 
