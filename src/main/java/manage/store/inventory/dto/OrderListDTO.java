@@ -65,6 +65,9 @@ public class OrderListDTO {
     private String liquidationRecordUrl;
     private String customerMeasurementFileUrl;
 
+    // G5, V23 — Bản đề xuất NPL cấp đơn
+    private String nplProposalUrl;
+
     // PRODUCTION
     private LocalDate tailorStartDate;
     private LocalDate tailorExpectedReturn;
@@ -157,6 +160,7 @@ public class OrderListDTO {
         dto.setHandoverRecordUrl(o.getHandoverRecordUrl());
         dto.setLiquidationRecordUrl(o.getLiquidationRecordUrl());
         dto.setCustomerMeasurementFileUrl(o.getCustomerMeasurementFileUrl());
+        dto.setNplProposalUrl(o.getNplProposalUrl());
 
         dto.setTailorStartDate(o.getTailorStartDate());
         dto.setTailorExpectedReturn(o.getTailorExpectedReturn());

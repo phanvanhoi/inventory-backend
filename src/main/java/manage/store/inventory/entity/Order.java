@@ -148,6 +148,10 @@ public class Order {
     @Column(name = "customer_measurement_file_url")
     private String customerMeasurementFileUrl;
 
+    // === NPL proposal (G5, V23) — Bản đề xuất phụ liệu cấp đơn ===
+    @Column(name = "npl_proposal_url")
+    private String nplProposalUrl;
+
     // === PRODUCTION phase ===
     @Column(name = "tailor_start_date")
     private LocalDate tailorStartDate;

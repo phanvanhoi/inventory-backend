@@ -382,6 +382,8 @@ CREATE TABLE orders (
     handover_record_url           VARCHAR(500),
     liquidation_record_url        VARCHAR(500),
     customer_measurement_file_url VARCHAR(500),
+    -- NPL proposal (V23, G5) — Bản đề xuất phụ liệu cấp đơn
+    npl_proposal_url              VARCHAR(500),
     -- Phase: PRODUCTION
     tailor_start_date         DATE,
     tailor_expected_return    DATE,
@@ -601,6 +603,55 @@ CREATE TABLE design_documents (
     FOREIGN KEY (uploaded_by_user_id) REFERENCES users(user_id) ON DELETE SET NULL,
     INDEX idx_dd_order (order_id),
     INDEX idx_dd_seed (seed_source)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- TAILOR MODULE (V23, G5, W13-14)
+-- Ref: docs/lark-integration-roadmap.md §G5
+-- =====================================================
+
+-- 2.29 Bảng tailors (Thợ may — master data)
+CREATE TABLE tailors (
+    tailor_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name         VARCHAR(255) NOT NULL,
+    type         ENUM('CUT_SEW','FINISHING','TAILOR_FULL') NULL,
+    phone        VARCHAR(20),
+    location     VARCHAR(255),
+    active       BOOLEAN NOT NULL DEFAULT TRUE,
+    note         TEXT,
+    seed_source  VARCHAR(50) NULL,
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at   DATETIME NULL,
+    INDEX idx_tailor_active (active),
+    INDEX idx_tailor_type (type),
+    INDEX idx_tailor_seed (seed_source)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.30 Bảng tailor_assignments (Giao thợ per OrderItem)
+CREATE TABLE tailor_assignments (
+    assignment_id      BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_item_id      BIGINT NOT NULL,
+    tailor_id          BIGINT NOT NULL,
+    qty_assigned       INT NOT NULL DEFAULT 0,
+    qty_from_stock     INT NOT NULL DEFAULT 0,
+    qty_returned       INT NOT NULL DEFAULT 0,
+    appointment_date   DATE,
+    returned_date      DATE,
+    tailor_type        ENUM('CUT_SEW','FINISHING') NULL,
+    npl_proposal_url   VARCHAR(500),
+    status             ENUM('PLANNED','IN_PROGRESS','COMPLETED') NOT NULL DEFAULT 'PLANNED',
+    note               TEXT,
+    seed_source        VARCHAR(50) NULL,
+    created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at         DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_item_id) REFERENCES order_items(order_item_id) ON DELETE CASCADE,
+    FOREIGN KEY (tailor_id)     REFERENCES tailors(tailor_id),
+    INDEX idx_ta_order_item (order_item_id),
+    INDEX idx_ta_tailor (tailor_id),
+    INDEX idx_ta_status (status),
+    INDEX idx_ta_appointment (appointment_date),
+    INDEX idx_ta_seed (seed_source)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================

@@ -53,6 +53,9 @@ public class OrderUpdateDTO {
     private String liquidationRecordUrl;
     private String customerMeasurementFileUrl;
 
+    // G5, V23
+    private String nplProposalUrl;
+
     // PRODUCTION
     private LocalDate tailorStartDate;
     private LocalDate tailorExpectedReturn;

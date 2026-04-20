@@ -363,6 +363,9 @@ public class OrderServiceImpl implements OrderService {
         if (dto.getLiquidationRecordUrl() != null) order.setLiquidationRecordUrl(dto.getLiquidationRecordUrl());
         if (dto.getCustomerMeasurementFileUrl() != null) order.setCustomerMeasurementFileUrl(dto.getCustomerMeasurementFileUrl());
 
+        // G5, V23
+        if (dto.getNplProposalUrl() != null) order.setNplProposalUrl(dto.getNplProposalUrl());
+
         // PRODUCTION
         if (dto.getTailorStartDate() != null) order.setTailorStartDate(dto.getTailorStartDate());
         if (dto.getTailorExpectedReturn() != null) order.setTailorExpectedReturn(dto.getTailorExpectedReturn());
