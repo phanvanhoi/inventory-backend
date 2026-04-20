@@ -17,16 +17,20 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import manage.store.inventory.dto.CustomerCreateDTO;
 import manage.store.inventory.dto.CustomerDTO;
+import manage.store.inventory.dto.CustomerRollupDTO;
 import manage.store.inventory.service.CustomerService;
+import manage.store.inventory.service.DashboardService;
 
 @RestController
 @RequestMapping("/api/customers")
 public class CustomerController {
 
     private final CustomerService customerService;
+    private final DashboardService dashboardService;
 
-    public CustomerController(CustomerService customerService) {
+    public CustomerController(CustomerService customerService, DashboardService dashboardService) {
         this.customerService = customerService;
+        this.dashboardService = dashboardService;
     }
 
     @PostMapping
@@ -67,5 +71,13 @@ public class CustomerController {
     @GetMapping("/{id}/children")
     public List<CustomerDTO> getChildren(@PathVariable Long id) {
         return customerService.getChildrenOf(id);
+    }
+
+    // G11, W22 — Roll-up parent customer metrics (A4 decision)
+    @GetMapping("/{id}/rollup")
+    public CustomerRollupDTO getRollup(
+            @PathVariable Long id,
+            @RequestParam(required = false) Integer year) {
+        return dashboardService.getCustomerRollup(id, year);
     }
 }
