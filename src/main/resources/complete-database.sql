@@ -447,7 +447,7 @@ CREATE TABLE order_history (
     INDEX idx_oh_changed_at (changed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2.19 Bảng refresh_tokens (Refresh token cho gia hạn session)
+-- 2.21 Bảng refresh_tokens (Refresh token cho gia hạn session)
 CREATE TABLE refresh_tokens (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     token VARCHAR(36) NOT NULL UNIQUE,
@@ -460,7 +460,7 @@ CREATE TABLE refresh_tokens (
     INDEX idx_refresh_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2.20 Bảng accessory_templates (BOM template phụ liệu)
+-- 2.22 Bảng accessory_templates (BOM template phụ liệu)
 CREATE TABLE accessory_templates (
     id         BIGINT AUTO_INCREMENT PRIMARY KEY,
     name       VARCHAR(255) NOT NULL,
@@ -470,7 +470,7 @@ CREATE TABLE accessory_templates (
     FOREIGN KEY (created_by) REFERENCES users(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2.21 Bảng accessory_template_items (Chi tiết từng mặt hàng trong template)
+-- 2.23 Bảng accessory_template_items (Chi tiết từng mặt hàng trong template)
 CREATE TABLE accessory_template_items (
     id          BIGINT AUTO_INCREMENT PRIMARY KEY,
     template_id BIGINT        NOT NULL,
@@ -482,6 +482,66 @@ CREATE TABLE accessory_template_items (
     sort_order  INT           DEFAULT 0,
     FOREIGN KEY (template_id) REFERENCES accessory_templates(id),
     FOREIGN KEY (variant_id)  REFERENCES product_variants(variant_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- FINANCIAL (V20, G2a, W6): Advance + Payment + Invoice
+-- Ref: docs/lark-integration-roadmap.md §G2a
+-- Guarantees (G2b) hoãn đến V28 / W21
+-- =====================================================
+
+-- 2.24 Bảng advances (Tạm ứng)
+CREATE TABLE advances (
+    advance_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id     BIGINT NOT NULL,
+    amount       DECIMAL(18,2) NOT NULL DEFAULT 0,
+    advance_date DATE,
+    bank         VARCHAR(100),
+    note         TEXT,
+    seed_source  VARCHAR(50) NULL,
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+    INDEX idx_adv_order (order_id),
+    INDEX idx_adv_date (advance_date),
+    INDEX idx_adv_seed (seed_source)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.25 Bảng payments (Thanh toán)
+CREATE TABLE payments (
+    payment_id     BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id       BIGINT NOT NULL,
+    amount         DECIMAL(18,2) NOT NULL DEFAULT 0,
+    scheduled_date DATE,
+    actual_date    DATE,
+    bank           VARCHAR(100),
+    status         ENUM('PENDING','PAID','CONFIRMED') NOT NULL DEFAULT 'PENDING',
+    note           TEXT,
+    seed_source    VARCHAR(50) NULL,
+    created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+    INDEX idx_pay_order (order_id),
+    INDEX idx_pay_status (status),
+    INDEX idx_pay_scheduled (scheduled_date),
+    INDEX idx_pay_seed (seed_source)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.26 Bảng invoices (Hoá đơn)
+CREATE TABLE invoices (
+    invoice_id     BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id       BIGINT NOT NULL,
+    status         ENUM('NOT_ISSUED','ISSUED') NOT NULL DEFAULT 'NOT_ISSUED',
+    issued_date    DATE,
+    invoice_number VARCHAR(100),
+    note           TEXT,
+    seed_source    VARCHAR(50) NULL,
+    created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+    INDEX idx_inv_order (order_id),
+    INDEX idx_inv_status (status),
+    INDEX idx_inv_seed (seed_source)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
