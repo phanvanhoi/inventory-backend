@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import manage.store.inventory.dto.AdvanceCreateDTO;
 import manage.store.inventory.dto.AdvanceDTO;
+import manage.store.inventory.dto.GuaranteeCreateDTO;
+import manage.store.inventory.dto.GuaranteeDTO;
 import manage.store.inventory.dto.InvoiceCreateDTO;
 import manage.store.inventory.dto.InvoiceDTO;
 import manage.store.inventory.dto.OrderFinancialDTO;
@@ -141,5 +143,47 @@ public class FinancialController {
     public ResponseEntity<Void> deleteInvoice(@PathVariable Long invoiceId) {
         financialService.deleteInvoice(invoiceId);
         return ResponseEntity.ok().build();
+    }
+
+    // ===== Guarantees (G2b, V28) =====
+
+    @GetMapping("/orders/{orderId}/guarantees")
+    public List<GuaranteeDTO> getGuarantees(@PathVariable Long orderId) {
+        return financialService.getGuaranteesByOrder(orderId);
+    }
+
+    @PostMapping("/orders/{orderId}/guarantees")
+    @PreAuthorize("hasAnyRole('SALES','ADMIN')")
+    public ResponseEntity<Long> addGuarantee(
+            @PathVariable Long orderId,
+            @Valid @RequestBody GuaranteeCreateDTO dto) {
+        return ResponseEntity.ok(financialService.addGuarantee(orderId, dto));
+    }
+
+    @PutMapping("/guarantees/{guaranteeId}")
+    @PreAuthorize("hasAnyRole('SALES','ADMIN')")
+    public ResponseEntity<Void> updateGuarantee(
+            @PathVariable Long guaranteeId,
+            @Valid @RequestBody GuaranteeCreateDTO dto) {
+        financialService.updateGuarantee(guaranteeId, dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/guarantees/{guaranteeId}")
+    @PreAuthorize("hasAnyRole('SALES','ADMIN')")
+    public ResponseEntity<Void> deleteGuarantee(@PathVariable Long guaranteeId) {
+        financialService.deleteGuarantee(guaranteeId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/guarantees/expiring")
+    public List<GuaranteeDTO> getExpiring(
+            @RequestParam(defaultValue = "30") int daysAhead) {
+        return financialService.getExpiringGuarantees(daysAhead);
+    }
+
+    @GetMapping("/guarantees/expired")
+    public List<GuaranteeDTO> getExpired() {
+        return financialService.getExpiredGuarantees();
     }
 }

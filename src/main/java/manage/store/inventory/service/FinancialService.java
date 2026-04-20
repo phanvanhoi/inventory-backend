@@ -5,6 +5,8 @@ import java.util.List;
 
 import manage.store.inventory.dto.AdvanceCreateDTO;
 import manage.store.inventory.dto.AdvanceDTO;
+import manage.store.inventory.dto.GuaranteeCreateDTO;
+import manage.store.inventory.dto.GuaranteeDTO;
 import manage.store.inventory.dto.InvoiceCreateDTO;
 import manage.store.inventory.dto.InvoiceDTO;
 import manage.store.inventory.dto.OrderFinancialDTO;
@@ -34,4 +36,12 @@ public interface FinancialService {
     void updateInvoice(Long invoiceId, InvoiceCreateDTO dto);
     void deleteInvoice(Long invoiceId);
     List<InvoiceDTO> getInvoicesByOrder(Long orderId);
+
+    // Guarantees (G2b, V28)
+    Long addGuarantee(Long orderId, GuaranteeCreateDTO dto);
+    void updateGuarantee(Long guaranteeId, GuaranteeCreateDTO dto);
+    void deleteGuarantee(Long guaranteeId);
+    List<GuaranteeDTO> getGuaranteesByOrder(Long orderId);
+    List<GuaranteeDTO> getExpiringGuarantees(int daysAhead);
+    List<GuaranteeDTO> getExpiredGuarantees();
 }

@@ -11,17 +11,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 import manage.store.inventory.dto.AdvanceCreateDTO;
 import manage.store.inventory.dto.AdvanceDTO;
+import manage.store.inventory.dto.GuaranteeCreateDTO;
+import manage.store.inventory.dto.GuaranteeDTO;
 import manage.store.inventory.dto.InvoiceCreateDTO;
 import manage.store.inventory.dto.InvoiceDTO;
 import manage.store.inventory.dto.OrderFinancialDTO;
 import manage.store.inventory.dto.PaymentCreateDTO;
 import manage.store.inventory.dto.PaymentDTO;
 import manage.store.inventory.entity.Advance;
+import manage.store.inventory.entity.Guarantee;
 import manage.store.inventory.entity.Invoice;
 import manage.store.inventory.entity.Order;
 import manage.store.inventory.entity.Payment;
 import manage.store.inventory.exception.ResourceNotFoundException;
 import manage.store.inventory.repository.AdvanceRepository;
+import manage.store.inventory.repository.GuaranteeRepository;
 import manage.store.inventory.repository.InvoiceRepository;
 import manage.store.inventory.repository.OrderRepository;
 import manage.store.inventory.repository.PaymentRepository;
@@ -34,16 +38,19 @@ public class FinancialServiceImpl implements FinancialService {
     private final AdvanceRepository advanceRepository;
     private final PaymentRepository paymentRepository;
     private final InvoiceRepository invoiceRepository;
+    private final GuaranteeRepository guaranteeRepository;
 
     public FinancialServiceImpl(
             OrderRepository orderRepository,
             AdvanceRepository advanceRepository,
             PaymentRepository paymentRepository,
-            InvoiceRepository invoiceRepository) {
+            InvoiceRepository invoiceRepository,
+            GuaranteeRepository guaranteeRepository) {
         this.orderRepository = orderRepository;
         this.advanceRepository = advanceRepository;
         this.paymentRepository = paymentRepository;
         this.invoiceRepository = invoiceRepository;
+        this.guaranteeRepository = guaranteeRepository;
     }
 
     // ===== Aggregate =====
@@ -68,6 +75,7 @@ public class FinancialServiceImpl implements FinancialService {
         dto.setAdvances(getAdvancesByOrder(orderId));
         dto.setPayments(getPaymentsByOrder(orderId));
         dto.setInvoices(getInvoicesByOrder(orderId));
+        dto.setGuarantees(getGuaranteesByOrder(orderId));
         return dto;
     }
 
@@ -190,6 +198,61 @@ public class FinancialServiceImpl implements FinancialService {
                 .collect(Collectors.toList());
     }
 
+    // ===== Guarantees (G2b, V28) =====
+
+    @Override
+    public Long addGuarantee(Long orderId, GuaranteeCreateDTO dto) {
+        Order order = requireOrder(orderId);
+        Guarantee g = new Guarantee();
+        g.setOrder(order);
+        applyGuarantee(dto, g);
+        g.setCreatedAt(java.time.LocalDateTime.now());
+        guaranteeRepository.save(g);
+        return g.getGuaranteeId();
+    }
+
+    @Override
+    public void updateGuarantee(Long guaranteeId, GuaranteeCreateDTO dto) {
+        Guarantee g = guaranteeRepository.findById(guaranteeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bảo lãnh không tồn tại"));
+        applyGuarantee(dto, g);
+        guaranteeRepository.save(g);
+    }
+
+    @Override
+    public void deleteGuarantee(Long guaranteeId) {
+        if (!guaranteeRepository.existsById(guaranteeId)) {
+            throw new ResourceNotFoundException("Bảo lãnh không tồn tại");
+        }
+        guaranteeRepository.deleteById(guaranteeId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<GuaranteeDTO> getGuaranteesByOrder(Long orderId) {
+        return guaranteeRepository.findByOrderOrderIdOrderByTypeAsc(orderId).stream()
+                .map(GuaranteeDTO::from)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<GuaranteeDTO> getExpiringGuarantees(int daysAhead) {
+        LocalDate today = LocalDate.now();
+        LocalDate deadline = today.plusDays(daysAhead);
+        return guaranteeRepository.findExpiringBetween(today, deadline).stream()
+                .map(GuaranteeDTO::from)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<GuaranteeDTO> getExpiredGuarantees() {
+        return guaranteeRepository.findExpired(LocalDate.now()).stream()
+                .map(GuaranteeDTO::from)
+                .collect(Collectors.toList());
+    }
+
     // ===== helpers =====
 
     private Order requireOrder(Long orderId) {
@@ -218,5 +281,14 @@ public class FinancialServiceImpl implements FinancialService {
         i.setIssuedDate(dto.getIssuedDate());
         i.setInvoiceNumber(dto.getInvoiceNumber());
         i.setNote(dto.getNote());
+    }
+
+    private void applyGuarantee(GuaranteeCreateDTO dto, Guarantee g) {
+        if (dto.getType() != null) g.setType(dto.getType());
+        if (dto.getForm() != null) g.setForm(dto.getForm());
+        if (dto.getAmount() != null) g.setAmount(dto.getAmount());
+        g.setExpiryDate(dto.getExpiryDate());
+        g.setBank(dto.getBank());
+        g.setNote(dto.getNote());
     }
 }

@@ -19,4 +19,5 @@ public class OrderFinancialDTO {
     private List<AdvanceDTO> advances;
     private List<PaymentDTO> payments;
     private List<InvoiceDTO> invoices;
+    private List<GuaranteeDTO> guarantees;    // G2b, V28 — optional (khách đặc biệt)
 }
