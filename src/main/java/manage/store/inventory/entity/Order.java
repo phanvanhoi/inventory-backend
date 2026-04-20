@@ -108,6 +108,46 @@ public class Order {
     @Column(name = "production_handover_date")
     private LocalDate productionHandoverDate;
 
+    // === MEASUREMENT detail (G3, V21) — 6 mốc ngày chi tiết ===
+    @Column(name = "customer_registration_sent_date")
+    private LocalDate customerRegistrationSentDate;
+
+    @Column(name = "tech_book_return_date")
+    private LocalDate techBookReturnDate;
+
+    @Column(name = "measurement_received_from_tech_date")
+    private LocalDate measurementReceivedFromTechDate;
+
+    @Column(name = "list_sent_to_customer_date")
+    private LocalDate listSentToCustomerDate;
+
+    @Column(name = "list_finalized_date")
+    private LocalDate listFinalizedDate;
+
+    @Column(name = "measurement_handover_date_v2")
+    private LocalDate measurementHandoverDateV2;
+
+    @ManyToOne
+    @JoinColumn(name = "measurement_taker_user_id")
+    private User measurementTakerUser;
+
+    @ManyToOne
+    @JoinColumn(name = "measurement_composer_user_id")
+    private User measurementComposerUser;
+
+    // === Files (G3, V21) ===
+    @Column(name = "contract_file_url")
+    private String contractFileUrl;
+
+    @Column(name = "handover_record_url")
+    private String handoverRecordUrl;
+
+    @Column(name = "liquidation_record_url")
+    private String liquidationRecordUrl;
+
+    @Column(name = "customer_measurement_file_url")
+    private String customerMeasurementFileUrl;
+
     // === PRODUCTION phase ===
     @Column(name = "tailor_start_date")
     private LocalDate tailorStartDate;

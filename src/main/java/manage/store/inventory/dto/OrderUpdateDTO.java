@@ -37,6 +37,22 @@ public class OrderUpdateDTO {
     private Boolean skipMeasurement;
     private LocalDate productionHandoverDate;
 
+    // MEASUREMENT detail (G3, V21)
+    private LocalDate customerRegistrationSentDate;
+    private LocalDate techBookReturnDate;
+    private LocalDate measurementReceivedFromTechDate;
+    private LocalDate listSentToCustomerDate;
+    private LocalDate listFinalizedDate;
+    private LocalDate measurementHandoverDateV2;
+    private Long measurementTakerUserId;
+    private Long measurementComposerUserId;
+
+    // Files (G3, V21) — URL sau khi upload qua StorageService
+    private String contractFileUrl;
+    private String handoverRecordUrl;
+    private String liquidationRecordUrl;
+    private String customerMeasurementFileUrl;
+
     // PRODUCTION
     private LocalDate tailorStartDate;
     private LocalDate tailorExpectedReturn;

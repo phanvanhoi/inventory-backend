@@ -339,6 +339,30 @@ public class OrderServiceImpl implements OrderService {
         if (dto.getSkipMeasurement() != null) order.setSkipMeasurement(dto.getSkipMeasurement());
         if (dto.getProductionHandoverDate() != null) order.setProductionHandoverDate(dto.getProductionHandoverDate());
 
+        // MEASUREMENT detail (G3, V21)
+        if (dto.getCustomerRegistrationSentDate() != null) order.setCustomerRegistrationSentDate(dto.getCustomerRegistrationSentDate());
+        if (dto.getTechBookReturnDate() != null) order.setTechBookReturnDate(dto.getTechBookReturnDate());
+        if (dto.getMeasurementReceivedFromTechDate() != null) order.setMeasurementReceivedFromTechDate(dto.getMeasurementReceivedFromTechDate());
+        if (dto.getListSentToCustomerDate() != null) order.setListSentToCustomerDate(dto.getListSentToCustomerDate());
+        if (dto.getListFinalizedDate() != null) order.setListFinalizedDate(dto.getListFinalizedDate());
+        if (dto.getMeasurementHandoverDateV2() != null) order.setMeasurementHandoverDateV2(dto.getMeasurementHandoverDateV2());
+        if (dto.getMeasurementTakerUserId() != null) {
+            User taker = userRepository.findById(dto.getMeasurementTakerUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Người đi đo không tồn tại"));
+            order.setMeasurementTakerUser(taker);
+        }
+        if (dto.getMeasurementComposerUserId() != null) {
+            User composer = userRepository.findById(dto.getMeasurementComposerUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Người soạn số đo không tồn tại"));
+            order.setMeasurementComposerUser(composer);
+        }
+
+        // Files (G3, V21)
+        if (dto.getContractFileUrl() != null) order.setContractFileUrl(dto.getContractFileUrl());
+        if (dto.getHandoverRecordUrl() != null) order.setHandoverRecordUrl(dto.getHandoverRecordUrl());
+        if (dto.getLiquidationRecordUrl() != null) order.setLiquidationRecordUrl(dto.getLiquidationRecordUrl());
+        if (dto.getCustomerMeasurementFileUrl() != null) order.setCustomerMeasurementFileUrl(dto.getCustomerMeasurementFileUrl());
+
         // PRODUCTION
         if (dto.getTailorStartDate() != null) order.setTailorStartDate(dto.getTailorStartDate());
         if (dto.getTailorExpectedReturn() != null) order.setTailorExpectedReturn(dto.getTailorExpectedReturn());

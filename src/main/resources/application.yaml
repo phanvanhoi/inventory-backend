@@ -14,6 +14,18 @@ spring:
       hibernate:
         format_sql: true
 
+  # File upload (G3, W7-9): Lark integration StorageService
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+# Storage (LocalStorageService)
+storage:
+  local:
+    root: ${STORAGE_LOCAL_ROOT:/var/hoi/uploads}
+
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:dev_secret_key_min_32_characters_here}

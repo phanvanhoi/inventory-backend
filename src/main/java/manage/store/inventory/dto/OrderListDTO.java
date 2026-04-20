@@ -47,6 +47,24 @@ public class OrderListDTO {
     private Boolean skipMeasurement;
     private LocalDate productionHandoverDate;
 
+    // MEASUREMENT detail (G3, V21)
+    private LocalDate customerRegistrationSentDate;
+    private LocalDate techBookReturnDate;
+    private LocalDate measurementReceivedFromTechDate;
+    private LocalDate listSentToCustomerDate;
+    private LocalDate listFinalizedDate;
+    private LocalDate measurementHandoverDateV2;
+    private Long measurementTakerUserId;
+    private String measurementTakerName;
+    private Long measurementComposerUserId;
+    private String measurementComposerName;
+
+    // Files (G3, V21)
+    private String contractFileUrl;
+    private String handoverRecordUrl;
+    private String liquidationRecordUrl;
+    private String customerMeasurementFileUrl;
+
     // PRODUCTION
     private LocalDate tailorStartDate;
     private LocalDate tailorExpectedReturn;
@@ -119,6 +137,26 @@ public class OrderListDTO {
         dto.setMeasurementHandler(o.getMeasurementHandler());
         dto.setSkipMeasurement(o.getSkipMeasurement());
         dto.setProductionHandoverDate(o.getProductionHandoverDate());
+
+        // G3, V21 fields
+        dto.setCustomerRegistrationSentDate(o.getCustomerRegistrationSentDate());
+        dto.setTechBookReturnDate(o.getTechBookReturnDate());
+        dto.setMeasurementReceivedFromTechDate(o.getMeasurementReceivedFromTechDate());
+        dto.setListSentToCustomerDate(o.getListSentToCustomerDate());
+        dto.setListFinalizedDate(o.getListFinalizedDate());
+        dto.setMeasurementHandoverDateV2(o.getMeasurementHandoverDateV2());
+        if (o.getMeasurementTakerUser() != null) {
+            dto.setMeasurementTakerUserId(o.getMeasurementTakerUser().getUserId());
+            dto.setMeasurementTakerName(o.getMeasurementTakerUser().getFullName());
+        }
+        if (o.getMeasurementComposerUser() != null) {
+            dto.setMeasurementComposerUserId(o.getMeasurementComposerUser().getUserId());
+            dto.setMeasurementComposerName(o.getMeasurementComposerUser().getFullName());
+        }
+        dto.setContractFileUrl(o.getContractFileUrl());
+        dto.setHandoverRecordUrl(o.getHandoverRecordUrl());
+        dto.setLiquidationRecordUrl(o.getLiquidationRecordUrl());
+        dto.setCustomerMeasurementFileUrl(o.getCustomerMeasurementFileUrl());
 
         dto.setTailorStartDate(o.getTailorStartDate());
         dto.setTailorExpectedReturn(o.getTailorExpectedReturn());
