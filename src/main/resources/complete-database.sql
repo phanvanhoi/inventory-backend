@@ -304,61 +304,147 @@ CREATE TABLE receipt_items (
     INDEX idx_ri_variant (variant_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2.17 Bảng contract_reports (Báo cáo hợp đồng - workflow theo role)
-CREATE TABLE contract_reports (
-    report_id               BIGINT AUTO_INCREMENT PRIMARY KEY,
-    current_phase ENUM('SALES_INPUT','MEASUREMENT_INPUT','PRODUCTION_INPUT','STOCKKEEPER_INPUT','COMPLETED')
-                  NOT NULL DEFAULT 'SALES_INPUT',
-    -- SALES fields
-    unit_id                 BIGINT NOT NULL,
-    unit_type               VARCHAR(30),
-    contract_year           INT,
-    sales_person            VARCHAR(100),
-    expected_delivery_date  DATE,
-    finalized_list_sent_date     DATE,
-    finalized_list_received_date DATE,
-    delivery_method          VARCHAR(50),
-    extra_payment_date       DATE,
-    extra_payment_amount     DECIMAL(15,0) DEFAULT 0,
-    note                     TEXT,
-    -- MEASUREMENT fields
-    measurement_start         DATE,
-    measurement_end           DATE,
-    technician_name           VARCHAR(100),
-    measurement_received_date DATE,
-    measurement_handler       VARCHAR(100),
-    skip_measurement          BOOLEAN DEFAULT FALSE,
-    production_handover_date  DATE,
-    -- PRODUCTION fields
-    packing_return_date      DATE,
-    tailor_start_date        DATE,
-    tailor_expected_return    DATE,
-    tailor_actual_return      DATE,
-    -- STOCKKEEPER fields
-    actual_shipping_date     DATE,
-    -- Metadata
-    created_by  BIGINT,
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME ON UPDATE CURRENT_TIMESTAMP,
+-- =====================================================
+-- LARK INTEGRATION (V19, 2026-04-19): Order + Customer + OrderItem + OrderHistory
+-- Thay thế cho contract_reports + contract_report_history cũ.
+-- Ref: docs/lark-integration-roadmap.md §G1
+-- =====================================================
+
+-- 2.17 Bảng customers (Khách hàng - mở rộng từ Unit với MST, người ký HĐ)
+CREATE TABLE customers (
+    customer_id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    unit_id             BIGINT NOT NULL,
+    parent_customer_id  BIGINT NULL,                  -- Parent/child (VT Bắc Ninh → TT VT Tiên Du...)
+    tax_code            VARCHAR(20),
+    signer_name         VARCHAR(255),
+    customer_type       ENUM('TRADITIONAL','NEW') NOT NULL DEFAULT 'NEW',
+    province            VARCHAR(100),
+    contract_year       INT,
+    note                TEXT,
+    seed_source         VARCHAR(50) NULL,             -- LARK_TEST | MIGRATED_FROM_CR | NULL
+    lark_legacy_id      VARCHAR(50) NULL,
+    created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at          DATETIME NULL,
     FOREIGN KEY (unit_id) REFERENCES units(unit_id),
-    FOREIGN KEY (created_by) REFERENCES users(user_id)
+    FOREIGN KEY (parent_customer_id) REFERENCES customers(customer_id) ON DELETE SET NULL,
+    INDEX idx_cust_unit (unit_id),
+    INDEX idx_cust_year (contract_year),
+    INDEX idx_cust_seed (seed_source),
+    INDEX idx_cust_parent (parent_customer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2.18 Bảng contract_report_history (Lịch sử chỉnh sửa)
-CREATE TABLE contract_report_history (
+-- 2.18 Bảng orders (Đơn hàng - entity root, thay thế contract_reports)
+CREATE TABLE orders (
+    order_id               BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_code             VARCHAR(100) UNIQUE,
+    customer_id            BIGINT NOT NULL,
+    status ENUM('NEW','NEGOTIATION','CONTRACT_SIGNED','DESIGNING',
+                'MEASURING','PRODUCING','QC','PACKING',
+                'DELIVERED','SUCCESS','LIQUIDATED','CANCELLED')
+           NOT NULL DEFAULT 'NEW',
+    current_phase ENUM('SALES_INPUT','MEASUREMENT_INPUT','PRODUCTION_INPUT',
+                       'STOCKKEEPER_INPUT','COMPLETED')
+           NOT NULL DEFAULT 'SALES_INPUT',
+    sales_person_user_id   BIGINT NULL,
+    sales_person_name      VARCHAR(100) NULL,
+    unit_type              VARCHAR(30),
+    contract_year          INT,
+    total_before_vat       DECIMAL(18,2) DEFAULT 0,
+    vat_amount             DECIMAL(18,2) DEFAULT 0,
+    total_after_vat        DECIMAL(18,2) DEFAULT 0,
+    -- Phase: SALES
+    expected_delivery_date       DATE,
+    finalized_list_sent_date     DATE,
+    finalized_list_received_date DATE,
+    delivery_method              VARCHAR(50),
+    extra_payment_date           DATE,
+    extra_payment_amount         DECIMAL(15,0) DEFAULT 0,
+    -- Phase: MEASUREMENT
+    measurement_start              DATE,
+    measurement_end                DATE,
+    technician_name                VARCHAR(100),
+    measurement_received_date      DATE,
+    measurement_handler            VARCHAR(100),
+    skip_measurement               BOOLEAN DEFAULT FALSE,
+    production_handover_date       DATE,
+    -- Phase: PRODUCTION
+    tailor_start_date         DATE,
+    tailor_expected_return    DATE,
+    tailor_actual_return      DATE,
+    packing_return_date       DATE,
+    -- Phase: STOCKKEEPER
+    actual_shipping_date      DATE,
+    -- Flags (G4, G7+)
+    skip_design               BOOLEAN DEFAULT TRUE,
+    design_ready              BOOLEAN DEFAULT FALSE,
+    skip_kcs                  BOOLEAN DEFAULT TRUE,
+    qc_passed                 BOOLEAN DEFAULT FALSE,
+    has_repair                BOOLEAN DEFAULT FALSE,
+    cancelled                 BOOLEAN DEFAULT FALSE,
+    note                      TEXT,
+    -- Migration tracking
+    legacy_report_id  BIGINT NULL,
+    seed_source       VARCHAR(50) NULL,
+    lark_legacy_id    VARCHAR(50) NULL,
+    -- Metadata
+    created_by   BIGINT,
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at   DATETIME NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+    FOREIGN KEY (sales_person_user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
+    INDEX idx_order_customer (customer_id),
+    INDEX idx_order_status (status),
+    INDEX idx_order_phase (current_phase),
+    INDEX idx_order_legacy (legacy_report_id),
+    INDEX idx_order_seed (seed_source),
+    INDEX idx_order_sales_person (sales_person_user_id),
+    UNIQUE KEY uk_legacy_report (legacy_report_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.19 Bảng order_items (Mặt hàng trong đơn)
+CREATE TABLE order_items (
+    order_item_id      BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id           BIGINT NOT NULL,
+    product_id         BIGINT NULL,
+    product_name       VARCHAR(255),
+    qty_contract       INT NOT NULL DEFAULT 0,
+    qty_settlement     INT NULL,
+    unit_price         DECIMAL(18,2) DEFAULT 0,
+    amount_contract    DECIMAL(18,2) GENERATED ALWAYS AS (qty_contract * unit_price) STORED,
+    amount_settlement  DECIMAL(18,2) GENERATED ALWAYS AS (COALESCE(qty_settlement, 0) * unit_price) STORED,
+    note               TEXT,
+    seed_source        VARCHAR(50) NULL,
+    lark_legacy_id     VARCHAR(50) NULL,
+    created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at         DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at         DATETIME NULL,
+    FOREIGN KEY (order_id)   REFERENCES orders(order_id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE SET NULL,
+    INDEX idx_oi_order (order_id),
+    INDEX idx_oi_product (product_id),
+    INDEX idx_oi_seed (seed_source)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.20 Bảng order_history (Audit trail, thay thế contract_report_history)
+CREATE TABLE order_history (
     history_id  BIGINT AUTO_INCREMENT PRIMARY KEY,
-    report_id   BIGINT NOT NULL,
+    order_id    BIGINT NOT NULL,
     changed_by  BIGINT NOT NULL,
     changed_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    action      VARCHAR(30) NOT NULL,
-    field_name  VARCHAR(50),
+    action      VARCHAR(30) NOT NULL,           -- EDIT | ADVANCE | RETURN | STATUS_CHANGE
+    field_name  VARCHAR(100),
     old_value   TEXT,
     new_value   TEXT,
     reason      TEXT,
-    FOREIGN KEY (report_id) REFERENCES contract_reports(report_id) ON DELETE CASCADE,
+    FOREIGN KEY (order_id)   REFERENCES orders(order_id) ON DELETE CASCADE,
     FOREIGN KEY (changed_by) REFERENCES users(user_id),
-    INDEX idx_crh_report (report_id),
-    INDEX idx_crh_changed_by (changed_by)
+    INDEX idx_oh_order (order_id),
+    INDEX idx_oh_changed_by (changed_by),
+    INDEX idx_oh_action (action),
+    INDEX idx_oh_changed_at (changed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 2.19 Bảng refresh_tokens (Refresh token cho gia hạn session)
@@ -402,7 +488,7 @@ CREATE TABLE accessory_template_items (
 -- PHẦN 3: MASTER DATA
 -- =====================================================
 
--- 3.1 Roles (7 vai trò)
+-- 3.1 Roles (11 vai trò - thêm 4 role mới cho Lark integration G1+)
 INSERT INTO roles (role_name, description) VALUES
 ('ADMIN', 'Quản trị viên - duyệt/từ chối bộ phiếu, xem/sửa tất cả báo cáo HĐ'),
 ('USER', 'Người dùng thông thường - chỉ tạo được phiếu IN/OUT (ảnh hưởng tồn kho thực tế)'),
@@ -410,7 +496,11 @@ INSERT INTO roles (role_name, description) VALUES
 ('PURCHASER', 'Thu mua - tạo được cả 4 loại phiếu (ADJUST_IN/OUT ảnh hưởng dự kiến, IN/OUT ảnh hưởng thực tế)'),
 ('SALES', 'Kinh doanh - tạo và quản lý hợp đồng, nhập thông tin HĐ'),
 ('MEASUREMENT', 'Phụ trách số đo - nhập thông tin đo và bàn giao SX'),
-('PRODUCTION', 'Quản lý kế hoạch SX - nhập thông tin sản xuất, thợ triển khai');
+('PRODUCTION', 'Quản lý kế hoạch SX - nhập thông tin sản xuất, thợ triển khai'),
+('DESIGNER', 'Phòng thiết kế - duyệt hàng mẫu, mã vải, tài liệu thiết kế (G4)'),
+('KCS', 'Kiểm tra chất lượng - kiểm tra thành phẩm trước đóng hàng (G7)'),
+('PACKER', 'Đóng hàng - đóng gói, tích hàng, giao hàng (G8)'),
+('REPAIRER', 'Sửa chữa - xử lý hàng quay đầu (G9)');
 
 -- 3.2 Styles (4 kiểu dáng)
 INSERT INTO styles (style_name) VALUES
@@ -1773,24 +1863,20 @@ CALL insert_item_by_code(10, 'K25', 200);
 CALL insert_item_by_code(10, 'K26', 2);
 
 -- =====================================================
--- PHẦN 8: CONTRACT REPORTS (Dữ liệu mẫu báo cáo hợp đồng)
+-- PHẦN 8: ORDERS (Dữ liệu mẫu - Lark integration G1+)
 -- =====================================================
--- created_by = 4 (Thúy - PURCHASER, PRODUCTION)
-INSERT INTO contract_reports (current_phase, unit_id, unit_type, contract_year, sales_person, expected_delivery_date, finalized_list_sent_date, finalized_list_received_date, delivery_method, extra_payment_date, extra_payment_amount, note, measurement_start, measurement_end, technician_name, measurement_received_date, measurement_handler, skip_measurement, production_handover_date, packing_return_date, tailor_start_date, tailor_expected_return, tailor_actual_return, actual_shipping_date, created_by, created_at) VALUES
--- 1. COMPLETED - Đã giao hàng hoàn tất
-('COMPLETED', 1, 'BUU_DIEN', 2025, 'Thúy', '2026-01-15', '2025-10-10', '2025-10-12', 'POST_OFFICE', '2026-01-12', 500000, 'Đã hoàn tất', '2025-10-01', '2025-10-03', 'Trần Thị B', '2025-10-08', 'Hương', FALSE, '2025-10-15', '2025-10-20', '2025-10-25', '2025-12-15', '2025-12-20', '2026-01-10', 4, '2025-09-20 08:00:00'),
--- 2. PRODUCTION_INPUT - Đang sản xuất, sắp đến hạn
-('PRODUCTION_INPUT', 2, 'VIEN_THONG', 2026, 'Thúy', '2026-03-15', '2025-12-20', '2025-12-22', NULL, NULL, 0, 'Đang chờ thợ triển khai', '2025-12-10', '2025-12-12', 'Nguyễn Văn D', '2025-12-18', 'Hương', FALSE, '2025-12-28', NULL, NULL, NULL, NULL, NULL, 4, '2025-12-01 09:00:00'),
--- 3. STOCKKEEPER_INPUT - Chờ giao hàng, trễ hạn
-('STOCKKEEPER_INPUT', 3, 'BUU_DIEN', 2025, 'Thúy', '2026-02-20', '2025-11-15', '2025-11-17', 'DIRECT', NULL, 0, 'Chờ giao hàng - đã trễ hạn', '2025-11-05', '2025-11-07', 'Trần Thị B', '2025-11-12', 'Hương', FALSE, '2025-11-20', '2025-11-25', '2025-12-01', '2026-01-30', '2026-02-10', NULL, 4, '2025-10-25 10:00:00'),
--- 4. PRODUCTION_INPUT - Bỏ qua số đo, chờ sản xuất
-('PRODUCTION_INPUT', 4, 'KHAC', 2026, 'Thúy', '2026-04-30', '2026-01-10', '2026-01-12', NULL, NULL, 0, 'Bỏ qua đo, dùng số đo cũ', NULL, NULL, NULL, NULL, NULL, TRUE, '2026-01-15', NULL, NULL, NULL, NULL, NULL, 4, '2026-01-05 14:00:00'),
--- 5. SALES_INPUT - Mới tạo
-('SALES_INPUT', 5, 'BUU_DIEN', 2026, 'Thúy', '2026-06-30', NULL, NULL, NULL, NULL, 0, 'Hợp đồng mới', NULL, NULL, NULL, NULL, NULL, FALSE, NULL, NULL, NULL, NULL, NULL, NULL, 4, '2026-03-01 08:30:00'),
--- 6. MEASUREMENT_INPUT - Đang đo khách
-('MEASUREMENT_INPUT', 6, 'VIEN_THONG', 2026, 'Thúy', '2026-05-15', NULL, NULL, NULL, NULL, 0, NULL, '2026-03-01', '2026-03-05', 'Nguyễn Văn D', NULL, NULL, FALSE, NULL, NULL, NULL, NULL, NULL, NULL, 4, '2026-02-20 11:00:00'),
--- 7. PRODUCTION_INPUT - Thợ trả trễ (đã nhập SX nhưng chưa xong)
-('PRODUCTION_INPUT', 7, 'BUU_DIEN', 2025, 'Thúy', '2026-04-10', '2025-12-25', '2025-12-27', NULL, NULL, 0, 'Thợ đang trễ hạn trả', '2025-12-15', '2025-12-17', 'Trần Thị B', '2025-12-22', 'Hương', FALSE, '2026-01-02', '2026-01-08', '2026-01-15', '2026-02-28', NULL, NULL, 4, '2025-12-10 09:00:00');
+-- 7 seed orders cũ (contract_reports) đã được thay bằng Lark Excel import data.
+--
+-- Để import 19 đơn hàng test từ Lark Excel:
+--   cd scripts/lark-import
+--   npm install
+--   node generate-import-sql.js
+--   mysql -u root -p hangfashion_inventory < lark-test-data.sql
+--
+-- Sau import: 25 customers + 19 orders + 237 order_items với seed_source='LARK_TEST'.
+-- Rollback: mysql ... < lark-test-rollback.sql
+--
+-- Tham khảo: scripts/lark-import/README.md
 
 -- =====================================================
 -- PHẦN 9: STORED PROCEDURE - TẠO CHILD PRODUCT
@@ -1978,6 +2064,8 @@ SELECT COUNT(*) AS total_users FROM users;
 SELECT COUNT(*) AS total_request_sets FROM request_sets;
 SELECT COUNT(*) AS total_requests FROM inventory_requests;
 SELECT COUNT(*) AS total_items FROM inventory_request_items;
-SELECT COUNT(*) AS total_contract_reports FROM contract_reports;
+SELECT COUNT(*) AS total_customers FROM customers;
+SELECT COUNT(*) AS total_orders FROM orders;
+SELECT COUNT(*) AS total_order_items FROM order_items;
 
 -- END OF FILE

@@ -15,26 +15,42 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
+import manage.store.inventory.entity.enums.OrderStatus;
 import manage.store.inventory.entity.enums.ReportPhase;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
-@Table(name = "contract_reports")
+@Table(name = "orders")
+@SQLRestriction("deleted_at IS NULL")
 @Data
-public class ContractReport {
+public class Order {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "report_id")
-    private Long reportId;
+    @Column(name = "order_id")
+    private Long orderId;
+
+    @Column(name = "order_code", unique = true)
+    private String orderCode;
+
+    @ManyToOne
+    @JoinColumn(name = "customer_id", nullable = false)
+    private Customer customer;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private OrderStatus status = OrderStatus.NEW;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "current_phase", nullable = false)
     private ReportPhase currentPhase = ReportPhase.SALES_INPUT;
 
-    // === SALES fields ===
     @ManyToOne
-    @JoinColumn(name = "unit_id", nullable = false)
-    private Unit unit;
+    @JoinColumn(name = "sales_person_user_id")
+    private User salesPersonUser;
+
+    @Column(name = "sales_person_name")
+    private String salesPersonName;
 
     @Column(name = "unit_type")
     private String unitType;
@@ -42,9 +58,16 @@ public class ContractReport {
     @Column(name = "contract_year")
     private Integer contractYear;
 
-    @Column(name = "sales_person")
-    private String salesPerson;
+    @Column(name = "total_before_vat")
+    private BigDecimal totalBeforeVat = BigDecimal.ZERO;
 
+    @Column(name = "vat_amount")
+    private BigDecimal vatAmount = BigDecimal.ZERO;
+
+    @Column(name = "total_after_vat")
+    private BigDecimal totalAfterVat = BigDecimal.ZERO;
+
+    // === SALES phase ===
     @Column(name = "expected_delivery_date")
     private LocalDate expectedDeliveryDate;
 
@@ -63,10 +86,7 @@ public class ContractReport {
     @Column(name = "extra_payment_amount")
     private BigDecimal extraPaymentAmount = BigDecimal.ZERO;
 
-    @Column(name = "note")
-    private String note;
-
-    // === MEASUREMENT fields ===
+    // === MEASUREMENT phase ===
     @Column(name = "measurement_start")
     private LocalDate measurementStart;
 
@@ -88,10 +108,7 @@ public class ContractReport {
     @Column(name = "production_handover_date")
     private LocalDate productionHandoverDate;
 
-    // === PRODUCTION fields ===
-    @Column(name = "packing_return_date")
-    private LocalDate packingReturnDate;
-
+    // === PRODUCTION phase ===
     @Column(name = "tailor_start_date")
     private LocalDate tailorStartDate;
 
@@ -101,9 +118,44 @@ public class ContractReport {
     @Column(name = "tailor_actual_return")
     private LocalDate tailorActualReturn;
 
-    // === STOCKKEEPER fields ===
+    @Column(name = "packing_return_date")
+    private LocalDate packingReturnDate;
+
+    // === STOCKKEEPER phase ===
     @Column(name = "actual_shipping_date")
     private LocalDate actualShippingDate;
+
+    // === Flags ===
+    @Column(name = "skip_design")
+    private Boolean skipDesign = true;
+
+    @Column(name = "design_ready")
+    private Boolean designReady = false;
+
+    @Column(name = "skip_kcs")
+    private Boolean skipKcs = true;
+
+    @Column(name = "qc_passed")
+    private Boolean qcPassed = false;
+
+    @Column(name = "has_repair")
+    private Boolean hasRepair = false;
+
+    @Column(name = "cancelled")
+    private Boolean cancelled = false;
+
+    @Column(name = "note")
+    private String note;
+
+    // === Migration tracking ===
+    @Column(name = "legacy_report_id")
+    private Long legacyReportId;
+
+    @Column(name = "seed_source")
+    private String seedSource;
+
+    @Column(name = "lark_legacy_id")
+    private String larkLegacyId;
 
     // === Metadata ===
     @ManyToOne
@@ -115,4 +167,7 @@ public class ContractReport {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }
