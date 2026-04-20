@@ -687,6 +687,61 @@ CREATE TABLE quality_checks (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
+-- PACKING PHASE (V26, G8, W19)
+-- Ref: docs/lark-integration-roadmap.md §G8
+-- =====================================================
+
+-- 2.32 Bảng packing_batches (Đóng hàng per Order)
+CREATE TABLE packing_batches (
+    packing_batch_id        BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id                BIGINT NOT NULL,
+    packer_user_id          BIGINT NULL,
+    documents_received_date DATE,
+    packing_started_date    DATE,
+    packing_completed_date  DATE,
+    expected_delivery_date  DATE,
+    contract_delivery_date  DATE,
+    actual_delivery_date    DATE,
+    delivery_status         ENUM('NOT_DELIVERED','DELIVERED','PARTIAL')
+                            NOT NULL DEFAULT 'NOT_DELIVERED',
+    tick_file_url           VARCHAR(500),
+    status                  ENUM('PREPARING','PACKED','SHIPPED','RETURNED')
+                            NOT NULL DEFAULT 'PREPARING',
+    note                    TEXT,
+    seed_source             VARCHAR(50) NULL,
+    created_at              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at              DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id)       REFERENCES orders(order_id) ON DELETE CASCADE,
+    FOREIGN KEY (packer_user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+    INDEX idx_pb_order (order_id),
+    INDEX idx_pb_packer (packer_user_id),
+    INDEX idx_pb_status (status),
+    INDEX idx_pb_delivery (delivery_status),
+    INDEX idx_pb_actual_delivery (actual_delivery_date),
+    INDEX idx_pb_seed (seed_source)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.33 Bảng missing_items (Hàng thiếu per batch)
+CREATE TABLE missing_items (
+    missing_id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+    packing_batch_id      BIGINT NOT NULL,
+    order_item_id         BIGINT NOT NULL,
+    missing_quantity      INT NOT NULL DEFAULT 0,
+    missing_list_file_url VARCHAR(500),
+    resolved              BOOLEAN NOT NULL DEFAULT FALSE,
+    note                  TEXT,
+    seed_source           VARCHAR(50) NULL,
+    created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at            DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (packing_batch_id) REFERENCES packing_batches(packing_batch_id) ON DELETE CASCADE,
+    FOREIGN KEY (order_item_id)    REFERENCES order_items(order_item_id),
+    INDEX idx_mi_batch (packing_batch_id),
+    INDEX idx_mi_order_item (order_item_id),
+    INDEX idx_mi_resolved (resolved),
+    INDEX idx_mi_seed (seed_source)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
 -- WAREHOUSE LINK (V24, G6, W15) — DANGER ZONE
 -- Nullable FK từ receipt_records → orders.order_items, receipt_items → tailor_assignments.
 -- Phải ALTER sau khi order_items + tailor_assignments đã create.
