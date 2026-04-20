@@ -15,6 +15,13 @@ public interface ReceiptRecordRepository extends JpaRepository<ReceiptRecord, Lo
 
     List<ReceiptRecord> findBySetId(Long setId);
 
+    // G6, V24 — find receipts tied to a specific OrderItem (for Order detail view)
+    @Query("SELECT rr FROM ReceiptRecord rr " +
+           "LEFT JOIN FETCH rr.receivedBy " +
+           "WHERE rr.orderItem.orderItemId = :orderItemId " +
+           "ORDER BY rr.receivedAt DESC")
+    List<ReceiptRecord> findByOrderItemId(@Param("orderItemId") Long orderItemId);
+
     /**
      * Dòng thời gian nhận hàng: mỗi row = 1 lần nhận, kèm tổng hợp số lượng
      */

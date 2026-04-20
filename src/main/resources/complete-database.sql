@@ -655,6 +655,26 @@ CREATE TABLE tailor_assignments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
+-- WAREHOUSE LINK (V24, G6, W15) — DANGER ZONE
+-- Nullable FK từ receipt_records → orders.order_items, receipt_items → tailor_assignments.
+-- Phải ALTER sau khi order_items + tailor_assignments đã create.
+-- Ref: docs/lark-integration-roadmap.md §G6
+-- =====================================================
+ALTER TABLE receipt_records
+    ADD COLUMN order_item_id BIGINT NULL,
+    ADD CONSTRAINT fk_receipt_order_item
+        FOREIGN KEY (order_item_id) REFERENCES order_items(order_item_id)
+        ON DELETE SET NULL,
+    ADD INDEX idx_receipt_order_item (order_item_id);
+
+ALTER TABLE receipt_items
+    ADD COLUMN tailor_assignment_id BIGINT NULL,
+    ADD CONSTRAINT fk_receipt_item_assignment
+        FOREIGN KEY (tailor_assignment_id) REFERENCES tailor_assignments(assignment_id)
+        ON DELETE SET NULL,
+    ADD INDEX idx_ri_assignment (tailor_assignment_id);
+
+-- =====================================================
 -- PHẦN 3: MASTER DATA
 -- =====================================================
 

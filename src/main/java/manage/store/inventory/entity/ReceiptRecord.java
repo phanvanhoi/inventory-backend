@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -34,4 +35,10 @@ public class ReceiptRecord {
 
     @Column(name = "note")
     private String note;
+
+    // G6, V24 — Optional link to OrderItem (Lark integration, nullable for legacy rows)
+    // LAZY: receipt list queries không cần load OrderItem trừ khi caller expand
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_item_id")
+    private OrderItem orderItem;
 }

@@ -22,9 +22,11 @@ import manage.store.inventory.exception.BusinessException;
 import manage.store.inventory.exception.ResourceNotFoundException;
 import manage.store.inventory.entity.InventoryRequest;
 import manage.store.inventory.entity.InventoryRequestItem;
+import manage.store.inventory.entity.OrderItem;
 import manage.store.inventory.entity.ReceiptItem;
 import manage.store.inventory.entity.ReceiptRecord;
 import manage.store.inventory.entity.RequestSet;
+import manage.store.inventory.entity.TailorAssignment;
 import manage.store.inventory.entity.User;
 import manage.store.inventory.entity.enums.ApprovalAction;
 import manage.store.inventory.entity.enums.RequestSetStatus;
@@ -32,9 +34,11 @@ import manage.store.inventory.repository.ApprovalHistoryRepository;
 import manage.store.inventory.repository.InventoryRequestItemRepository;
 import manage.store.inventory.repository.InventoryRequestRepository;
 import manage.store.inventory.repository.InventoryRepository;
+import manage.store.inventory.repository.OrderItemRepository;
 import manage.store.inventory.repository.ReceiptItemRepository;
 import manage.store.inventory.repository.ReceiptRecordRepository;
 import manage.store.inventory.repository.RequestSetRepository;
+import manage.store.inventory.repository.TailorAssignmentRepository;
 import manage.store.inventory.repository.UserRepository;
 
 @Service
@@ -50,6 +54,8 @@ public class ReceiptServiceImpl implements ReceiptService {
     private final ApprovalHistoryRepository approvalHistoryRepository;
     private final NotificationService notificationService;
     private final InventoryRepository inventoryRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final TailorAssignmentRepository tailorAssignmentRepository;
 
     public ReceiptServiceImpl(
             RequestSetRepository requestSetRepository,
@@ -60,7 +66,9 @@ public class ReceiptServiceImpl implements ReceiptService {
             UserRepository userRepository,
             ApprovalHistoryRepository approvalHistoryRepository,
             NotificationService notificationService,
-            InventoryRepository inventoryRepository
+            InventoryRepository inventoryRepository,
+            OrderItemRepository orderItemRepository,
+            TailorAssignmentRepository tailorAssignmentRepository
     ) {
         this.requestSetRepository = requestSetRepository;
         this.requestRepository = requestRepository;
@@ -71,6 +79,8 @@ public class ReceiptServiceImpl implements ReceiptService {
         this.approvalHistoryRepository = approvalHistoryRepository;
         this.notificationService = notificationService;
         this.inventoryRepository = inventoryRepository;
+        this.orderItemRepository = orderItemRepository;
+        this.tailorAssignmentRepository = tailorAssignmentRepository;
     }
 
     // =====================================================
@@ -131,6 +141,12 @@ public class ReceiptServiceImpl implements ReceiptService {
         record.setReceivedBy(user);
         record.setReceivedAt(LocalDateTime.now());
         record.setNote(dto.getNote());
+        // G6, V24 — optional link to OrderItem (Lark integration)
+        if (dto.getOrderItemId() != null) {
+            OrderItem oi = orderItemRepository.findById(dto.getOrderItemId())
+                    .orElseThrow(() -> new ResourceNotFoundException("OrderItem không tồn tại"));
+            record.setOrderItem(oi);
+        }
         record = receiptRecordRepository.save(record);
 
         // 2. Tạo receipt items
@@ -140,6 +156,12 @@ public class ReceiptServiceImpl implements ReceiptService {
             item.setRequestId(itemDTO.getRequestId());
             item.setVariantId(itemDTO.getVariantId());
             item.setReceivedQuantity(itemDTO.getReceivedQuantity());
+            // G6, V24 — optional link to TailorAssignment
+            if (itemDTO.getTailorAssignmentId() != null) {
+                TailorAssignment ta = tailorAssignmentRepository.findById(itemDTO.getTailorAssignmentId())
+                        .orElseThrow(() -> new ResourceNotFoundException("TailorAssignment không tồn tại"));
+                item.setTailorAssignment(ta);
+            }
             receiptItemRepository.save(item);
         }
 
@@ -251,6 +273,10 @@ public class ReceiptServiceImpl implements ReceiptService {
             dto.setReceivedByName(record.getReceivedBy().getFullName());
             dto.setReceivedAt(record.getReceivedAt());
             dto.setNote(record.getNote());
+            // G6, V24 — Lark link (LAZY: proxy access only if FK populated)
+            if (record.getOrderItem() != null) {
+                dto.setOrderItemId(record.getOrderItem().getOrderItemId());
+            }
 
             List<ReceiptItem> items = receiptItemRepository.findByReceiptId(record.getReceiptId());
             List<ReceiptDetailDTO.ReceiptItemDetailDTO> itemDetails = new ArrayList<>();
@@ -261,6 +287,10 @@ public class ReceiptServiceImpl implements ReceiptService {
                 itemDetail.setRequestId(item.getRequestId());
                 itemDetail.setVariantId(item.getVariantId());
                 itemDetail.setReceivedQuantity(item.getReceivedQuantity());
+                // G6, V24 — Lark link
+                if (item.getTailorAssignment() != null) {
+                    itemDetail.setTailorAssignmentId(item.getTailorAssignment().getAssignmentId());
+                }
                 itemDetails.add(itemDetail);
             }
 

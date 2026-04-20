@@ -19,6 +19,8 @@ public class ReceiptDetailDTO {
     private String receivedByName;
     private LocalDateTime receivedAt;
     private String note;
+    // G6, V24 — Optional link (nullable for legacy receipts pre-2026-04)
+    private Long orderItemId;
     private List<ReceiptItemDetailDTO> items;
 
     @Data
@@ -36,5 +38,7 @@ public class ReceiptDetailDTO {
         private String itemName;
         private String unit;
         private BigDecimal receivedQuantity;
+        // G6, V24 — Optional link to tailor batch
+        private Long tailorAssignmentId;
     }
 }

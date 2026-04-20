@@ -14,6 +14,9 @@ public class ReceiptCreateDTO {
 
     private String note;
 
+    // G6, V24 — Optional link to OrderItem (Lark integration, nullable for legacy RequestSet flow)
+    private Long orderItemId;
+
     @NotEmpty(message = "Danh sách hàng nhận không được để trống")
     @Valid
     private List<ReceiptItemDTO> items;
@@ -30,5 +33,8 @@ public class ReceiptCreateDTO {
         @NotNull(message = "Số lượng nhận không được để trống")
         @Positive(message = "Số lượng nhận phải > 0")
         private BigDecimal receivedQuantity;
+
+        // G6, V24 — Optional link to TailorAssignment (nullable for legacy)
+        private Long tailorAssignmentId;
     }
 }
