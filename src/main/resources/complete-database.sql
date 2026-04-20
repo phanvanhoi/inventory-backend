@@ -655,6 +655,38 @@ CREATE TABLE tailor_assignments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
+-- KCS PHASE (V25, G7, W16-17)
+-- Ref: docs/lark-integration-roadmap.md §G7
+-- Auto qc_passed flag when all items have PASSED quality check.
+-- =====================================================
+
+-- 2.31 Bảng quality_checks (Kiểm tra chất lượng per OrderItem)
+CREATE TABLE quality_checks (
+    qc_id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_item_id          BIGINT NOT NULL,
+    tailor_assignment_id   BIGINT NULL,
+    kcs_user_id            BIGINT NULL,
+    received_date          DATE,
+    completed_date         DATE,
+    full_documents_received BOOLEAN NOT NULL DEFAULT FALSE,
+    full_variants_received BOOLEAN NOT NULL DEFAULT FALSE,
+    status                 ENUM('PENDING','IN_PROGRESS','PASSED','FAILED','RETURNED')
+                           NOT NULL DEFAULT 'PENDING',
+    notes                  TEXT,
+    seed_source            VARCHAR(50) NULL,
+    created_at             DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at             DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_item_id)        REFERENCES order_items(order_item_id) ON DELETE CASCADE,
+    FOREIGN KEY (tailor_assignment_id) REFERENCES tailor_assignments(assignment_id) ON DELETE SET NULL,
+    FOREIGN KEY (kcs_user_id)          REFERENCES users(user_id) ON DELETE SET NULL,
+    INDEX idx_qc_order_item (order_item_id),
+    INDEX idx_qc_tailor_assignment (tailor_assignment_id),
+    INDEX idx_qc_kcs_user (kcs_user_id),
+    INDEX idx_qc_status (status),
+    INDEX idx_qc_seed (seed_source)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
 -- WAREHOUSE LINK (V24, G6, W15) — DANGER ZONE
 -- Nullable FK từ receipt_records → orders.order_items, receipt_items → tailor_assignments.
 -- Phải ALTER sau khi order_items + tailor_assignments đã create.

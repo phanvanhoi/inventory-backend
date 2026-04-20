@@ -164,7 +164,7 @@ public class DesignServiceImpl implements DesignService {
         long approvedItems = sampleRepository.countApprovedItems(orderId);
         boolean ready = totalItems > 0 && approvedItems >= totalItems;
 
-        if (!ready == Boolean.TRUE.equals(order.getDesignReady())) {
+        if (ready != Boolean.TRUE.equals(order.getDesignReady())) {
             order.setDesignReady(ready);
             orderRepository.save(order);
         }

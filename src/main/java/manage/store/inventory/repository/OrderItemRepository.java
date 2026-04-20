@@ -19,4 +19,9 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     List<OrderItem> findByOrderId(@Param("orderId") Long orderId);
 
     long countByOrderOrderId(Long orderId);
+
+    // G4/G7 helper: count ACTIVE (non-deleted) items for flag recompute logic
+    @Query("SELECT COUNT(DISTINCT oi.orderItemId) FROM OrderItem oi " +
+           "WHERE oi.order.orderId = :orderId AND oi.deletedAt IS NULL")
+    long countActiveByOrderId(@Param("orderId") Long orderId);
 }
