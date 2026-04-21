@@ -271,6 +271,8 @@ public class DashboardServiceImpl implements DashboardService {
                     .collect(Collectors.toList());
         }
         if (roles.contains("ADMIN")) return all;
+        // PURCHASER quản lý vật tư cho toàn bộ đơn → thấy all
+        if (roles.contains("PURCHASER")) return all;
         if (roles.contains("SALES")) {
             return all.stream()
                     .filter(o -> o.getSalesPersonUser() != null
