@@ -87,7 +87,7 @@ public class OrderController {
     }
 
     @PostMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('SALES','ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SALES','MEASUREMENT','PRODUCTION','STOCKKEEPER','DESIGNER','KCS','PACKER','REPAIRER','PURCHASER')")
     public ResponseEntity<Void> changeStatus(@PathVariable Long id,
                                               @RequestParam OrderStatus status) {
         orderService.changeStatus(id, status, currentUser.getUserId());
