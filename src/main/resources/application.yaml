@@ -9,10 +9,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: ${JPA_SHOW_SQL:false}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${JPA_FORMAT_SQL:false}
 
   # File upload (G3, W7-9): Lark integration StorageService
   servlet:
