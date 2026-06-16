@@ -2452,6 +2452,649 @@ FROM (
 JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
 -- =====================================================
+-- PHẦN 4c: XUẤT VẢI CÔNG TY → TRƯỜNG (Product 8)
+-- 6 mã vải (SL tồn > 0), category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- =====================================================
+
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Xuất vải CÔNG TY → TRƯỜNG',
+    'Chuyển vải từ kho CÔNG TY sang kho TRƯỜNG',
+    'VAI_NHAP_KHO_THO',
+    'EXECUTED',
+    NULL,
+    '2026-01-15 00:00:00',
+    '2026-01-15 00:00:00'
+);
+
+SET @transfer_truong_set_id = LAST_INSERT_ID();
+SET @truong_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'TRƯỜNG' LIMIT 1);
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_truong_set_id,
+    NULL,
+    8,
+    'OUT',
+    'EXECUTED',
+    'Xuất vải chuyển sang kho TRƯỜNG',
+    '2026-01-15 00:00:00',
+    @cong_ty_warehouse_id
+);
+
+SET @transfer_truong_out_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_truong_set_id,
+    NULL,
+    8,
+    'IN',
+    'EXECUTED',
+    'Nhập vải chuyển từ kho CÔNG TY',
+    '2026-01-15 00:00:00',
+    @truong_warehouse_id
+);
+
+SET @transfer_truong_in_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_truong_out_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B2'  AS item_code, 5215.1 AS qty
+    UNION ALL SELECT 'V2',  373.05
+    UNION ALL SELECT 'V5',  3733
+    UNION ALL SELECT 'B27', 186.7
+    UNION ALL SELECT 'K70', 147.1
+    UNION ALL SELECT 'V75', 302
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_truong_in_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B2'  AS item_code, 5215.1 AS qty
+    UNION ALL SELECT 'V2',  373.05
+    UNION ALL SELECT 'V5',  3733
+    UNION ALL SELECT 'B27', 186.7
+    UNION ALL SELECT 'K70', 147.1
+    UNION ALL SELECT 'V75', 302
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+-- =====================================================
+-- PHẦN 4d: XUẤT VẢI CÔNG TY → PHƯỚC (Product 8)
+-- 1 mã vải, category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- =====================================================
+
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Xuất vải CÔNG TY → PHƯỚC',
+    'Chuyển vải từ kho CÔNG TY sang kho PHƯỚC',
+    'VAI_NHAP_KHO_THO',
+    'EXECUTED',
+    NULL,
+    '2026-01-15 00:00:00',
+    '2026-01-15 00:00:00'
+);
+
+SET @transfer_phuoc_set_id = LAST_INSERT_ID();
+SET @phuoc_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'PHƯỚC' LIMIT 1);
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_phuoc_set_id,
+    NULL,
+    8,
+    'OUT',
+    'EXECUTED',
+    'Xuất vải chuyển sang kho PHƯỚC',
+    '2026-01-15 00:00:00',
+    @cong_ty_warehouse_id
+);
+
+SET @transfer_phuoc_out_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_phuoc_set_id,
+    NULL,
+    8,
+    'IN',
+    'EXECUTED',
+    'Nhập vải chuyển từ kho CÔNG TY',
+    '2026-01-15 00:00:00',
+    @phuoc_warehouse_id
+);
+
+SET @transfer_phuoc_in_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_phuoc_out_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B12' AS item_code, 505.5 AS qty
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_phuoc_in_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B12' AS item_code, 505.5 AS qty
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+-- =====================================================
+-- PHẦN 4e: XUẤT VẢI CÔNG TY → THÔNG (Product 8)
+-- 2 mã vải, category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- =====================================================
+
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Xuất vải CÔNG TY → THÔNG',
+    'Chuyển vải từ kho CÔNG TY sang kho THÔNG',
+    'VAI_NHAP_KHO_THO',
+    'EXECUTED',
+    NULL,
+    '2026-01-15 00:00:00',
+    '2026-01-15 00:00:00'
+);
+
+SET @transfer_thong_set_id = LAST_INSERT_ID();
+SET @thong_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'THÔNG' LIMIT 1);
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_thong_set_id,
+    NULL,
+    8,
+    'OUT',
+    'EXECUTED',
+    'Xuất vải chuyển sang kho THÔNG',
+    '2026-01-15 00:00:00',
+    @cong_ty_warehouse_id
+);
+
+SET @transfer_thong_out_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_thong_set_id,
+    NULL,
+    8,
+    'IN',
+    'EXECUTED',
+    'Nhập vải chuyển từ kho CÔNG TY',
+    '2026-01-15 00:00:00',
+    @thong_warehouse_id
+);
+
+SET @transfer_thong_in_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_thong_out_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B12' AS item_code, 35 AS qty
+    UNION ALL SELECT 'V20', 8
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_thong_in_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B12' AS item_code, 35 AS qty
+    UNION ALL SELECT 'V20', 8
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+-- =====================================================
+-- PHẦN 4f: XUẤT VẢI CÔNG TY → NGỌC GL (Product 8)
+-- 6 mã vải, category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- =====================================================
+
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Xuất vải CÔNG TY → NGỌC GL',
+    'Chuyển vải từ kho CÔNG TY sang kho NGỌC GL',
+    'VAI_NHAP_KHO_THO',
+    'EXECUTED',
+    NULL,
+    '2026-01-15 00:00:00',
+    '2026-01-15 00:00:00'
+);
+
+SET @transfer_ngoc_gl_set_id = LAST_INSERT_ID();
+SET @ngoc_gl_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'NGỌC GL' LIMIT 1);
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_ngoc_gl_set_id,
+    NULL,
+    8,
+    'OUT',
+    'EXECUTED',
+    'Xuất vải chuyển sang kho NGỌC GL',
+    '2026-01-15 00:00:00',
+    @cong_ty_warehouse_id
+);
+
+SET @transfer_ngoc_gl_out_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_ngoc_gl_set_id,
+    NULL,
+    8,
+    'IN',
+    'EXECUTED',
+    'Nhập vải chuyển từ kho CÔNG TY',
+    '2026-01-15 00:00:00',
+    @ngoc_gl_warehouse_id
+);
+
+SET @transfer_ngoc_gl_in_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_ngoc_gl_out_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B38' AS item_code, 210.4  AS qty
+    UNION ALL SELECT 'B39',  112.2
+    UNION ALL SELECT 'K17',  239.2
+    UNION ALL SELECT 'V48',  727.4
+    UNION ALL SELECT 'V50',  1228.14
+    UNION ALL SELECT 'V80',  3363.78
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_ngoc_gl_in_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B38' AS item_code, 210.4  AS qty
+    UNION ALL SELECT 'B39',  112.2
+    UNION ALL SELECT 'K17',  239.2
+    UNION ALL SELECT 'V48',  727.4
+    UNION ALL SELECT 'V50',  1228.14
+    UNION ALL SELECT 'V80',  3363.78
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+-- =====================================================
+-- PHẦN 4g: XUẤT VẢI CÔNG TY → LỤC (Product 8)
+-- 8 mã vải, category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- =====================================================
+
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Xuất vải CÔNG TY → LỤC',
+    'Chuyển vải từ kho CÔNG TY sang kho LỤC',
+    'VAI_NHAP_KHO_THO',
+    'EXECUTED',
+    NULL,
+    '2026-01-15 00:00:00',
+    '2026-01-15 00:00:00'
+);
+
+SET @transfer_luc_set_id = LAST_INSERT_ID();
+SET @luc_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'LỤC' LIMIT 1);
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_luc_set_id,
+    NULL,
+    8,
+    'OUT',
+    'EXECUTED',
+    'Xuất vải chuyển sang kho LỤC',
+    '2026-01-15 00:00:00',
+    @cong_ty_warehouse_id
+);
+
+SET @transfer_luc_out_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_luc_set_id,
+    NULL,
+    8,
+    'IN',
+    'EXECUTED',
+    'Nhập vải chuyển từ kho CÔNG TY',
+    '2026-01-15 00:00:00',
+    @luc_warehouse_id
+);
+
+SET @transfer_luc_in_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_luc_out_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B7'  AS item_code, 834.8  AS qty
+    UNION ALL SELECT 'V53',  103.5
+    UNION ALL SELECT 'V71',  1180.8
+    UNION ALL SELECT 'V79',  800.1
+    UNION ALL SELECT 'K58',  197
+    UNION ALL SELECT 'V85',  954.3
+    UNION ALL SELECT 'B40',  2218.9
+    UNION ALL SELECT 'V76',  1633
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_luc_in_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B7'  AS item_code, 834.8  AS qty
+    UNION ALL SELECT 'V53',  103.5
+    UNION ALL SELECT 'V71',  1180.8
+    UNION ALL SELECT 'V79',  800.1
+    UNION ALL SELECT 'K58',  197
+    UNION ALL SELECT 'V85',  954.3
+    UNION ALL SELECT 'B40',  2218.9
+    UNION ALL SELECT 'V76',  1633
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+-- =====================================================
+-- PHẦN 4h: XUẤT VẢI CÔNG TY → LẠNG (Product 8)
+-- 13 mã vải (SL tồn > 0), category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- =====================================================
+
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Xuất vải CÔNG TY → LẠNG',
+    'Chuyển vải từ kho CÔNG TY sang kho LẠNG',
+    'VAI_NHAP_KHO_THO',
+    'EXECUTED',
+    NULL,
+    '2026-01-15 00:00:00',
+    '2026-01-15 00:00:00'
+);
+
+SET @transfer_lang_set_id = LAST_INSERT_ID();
+SET @lang_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'LẠNG' LIMIT 1);
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_lang_set_id,
+    NULL,
+    8,
+    'OUT',
+    'EXECUTED',
+    'Xuất vải chuyển sang kho LẠNG',
+    '2026-01-15 00:00:00',
+    @cong_ty_warehouse_id
+);
+
+SET @transfer_lang_out_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_lang_set_id,
+    NULL,
+    8,
+    'IN',
+    'EXECUTED',
+    'Nhập vải chuyển từ kho CÔNG TY',
+    '2026-01-15 00:00:00',
+    @lang_warehouse_id
+);
+
+SET @transfer_lang_in_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_lang_out_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B11' AS item_code, 1076.2 AS qty
+    UNION ALL SELECT 'B12',  1096.9
+    UNION ALL SELECT 'B13',  998.8
+    UNION ALL SELECT 'V57',  160.6
+    UNION ALL SELECT 'K16',  755.8
+    UNION ALL SELECT 'V20',  833.4
+    UNION ALL SELECT 'V60',  6948
+    UNION ALL SELECT 'V76',  196
+    UNION ALL SELECT 'V67',  245
+    UNION ALL SELECT 'V82',  316
+    UNION ALL SELECT 'V80',  2781.9
+    UNION ALL SELECT 'K15',  93.4
+    UNION ALL SELECT 'K65',  305.1
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_lang_in_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B11' AS item_code, 1076.2 AS qty
+    UNION ALL SELECT 'B12',  1096.9
+    UNION ALL SELECT 'B13',  998.8
+    UNION ALL SELECT 'V57',  160.6
+    UNION ALL SELECT 'K16',  755.8
+    UNION ALL SELECT 'V20',  833.4
+    UNION ALL SELECT 'V60',  6948
+    UNION ALL SELECT 'V76',  196
+    UNION ALL SELECT 'V67',  245
+    UNION ALL SELECT 'V82',  316
+    UNION ALL SELECT 'V80',  2781.9
+    UNION ALL SELECT 'K15',  93.4
+    UNION ALL SELECT 'K65',  305.1
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+-- =====================================================
+-- PHẦN 4i: XUẤT VẢI CÔNG TY → HƯỜNG (Product 8)
+-- 5 mã vải, category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- =====================================================
+
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Xuất vải CÔNG TY → HƯỜNG',
+    'Chuyển vải từ kho CÔNG TY sang kho HƯỜNG',
+    'VAI_NHAP_KHO_THO',
+    'EXECUTED',
+    NULL,
+    '2026-01-15 00:00:00',
+    '2026-01-15 00:00:00'
+);
+
+SET @transfer_huong_set_id = LAST_INSERT_ID();
+SET @huong_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'HƯỜNG' LIMIT 1);
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_huong_set_id,
+    NULL,
+    8,
+    'OUT',
+    'EXECUTED',
+    'Xuất vải chuyển sang kho HƯỜNG',
+    '2026-01-15 00:00:00',
+    @cong_ty_warehouse_id
+);
+
+SET @transfer_huong_out_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_huong_set_id,
+    NULL,
+    8,
+    'IN',
+    'EXECUTED',
+    'Nhập vải chuyển từ kho CÔNG TY',
+    '2026-01-15 00:00:00',
+    @huong_warehouse_id
+);
+
+SET @transfer_huong_in_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_huong_out_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B2'  AS item_code, 1339.7 AS qty
+    UNION ALL SELECT 'V2',  335.4
+    UNION ALL SELECT 'V5',  812
+    UNION ALL SELECT 'H19', 146.6
+    UNION ALL SELECT 'V75', 316.9
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_huong_in_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B2'  AS item_code, 1339.7 AS qty
+    UNION ALL SELECT 'V2',  335.4
+    UNION ALL SELECT 'V5',  812
+    UNION ALL SELECT 'H19', 146.6
+    UNION ALL SELECT 'V75', 316.9
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+-- =====================================================
+-- PHẦN 4j: XUẤT VẢI CÔNG TY → DUNG (Product 8)
+-- 9 mã vải, category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- =====================================================
+
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Xuất vải CÔNG TY → DUNG',
+    'Chuyển vải từ kho CÔNG TY sang kho DUNG',
+    'VAI_NHAP_KHO_THO',
+    'EXECUTED',
+    NULL,
+    '2026-01-15 00:00:00',
+    '2026-01-15 00:00:00'
+);
+
+SET @transfer_dung_set_id = LAST_INSERT_ID();
+SET @dung_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'DUNG' LIMIT 1);
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_dung_set_id,
+    NULL,
+    8,
+    'OUT',
+    'EXECUTED',
+    'Xuất vải chuyển sang kho DUNG',
+    '2026-01-15 00:00:00',
+    @cong_ty_warehouse_id
+);
+
+SET @transfer_dung_out_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_dung_set_id,
+    NULL,
+    8,
+    'IN',
+    'EXECUTED',
+    'Nhập vải chuyển từ kho CÔNG TY',
+    '2026-01-15 00:00:00',
+    @dung_warehouse_id
+);
+
+SET @transfer_dung_in_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_dung_out_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B2'  AS item_code, 709.8  AS qty
+    UNION ALL SELECT 'H1',  90
+    UNION ALL SELECT 'H13', 121
+    UNION ALL SELECT 'H16', 110
+    UNION ALL SELECT 'H20', 117.5
+    UNION ALL SELECT 'H21', 120.6
+    UNION ALL SELECT 'V2',  385.5
+    UNION ALL SELECT 'V5',  759
+    UNION ALL SELECT 'V75', 224.6
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_dung_in_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B2'  AS item_code, 709.8  AS qty
+    UNION ALL SELECT 'H1',  90
+    UNION ALL SELECT 'H13', 121
+    UNION ALL SELECT 'H16', 110
+    UNION ALL SELECT 'H20', 117.5
+    UNION ALL SELECT 'H21', 120.6
+    UNION ALL SELECT 'V2',  385.5
+    UNION ALL SELECT 'V5',  759
+    UNION ALL SELECT 'V75', 224.6
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+-- =====================================================
+-- PHẦN 4k: XUẤT VẢI CÔNG TY → HẰNG (Product 8)
+-- 5 mã vải, category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- =====================================================
+
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Xuất vải CÔNG TY → HẰNG',
+    'Chuyển vải từ kho CÔNG TY sang kho HẰNG',
+    'VAI_NHAP_KHO_THO',
+    'EXECUTED',
+    NULL,
+    '2026-01-15 00:00:00',
+    '2026-01-15 00:00:00'
+);
+
+SET @transfer_hang_set_id = LAST_INSERT_ID();
+SET @hang_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'HẰNG' LIMIT 1);
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_hang_set_id,
+    NULL,
+    8,
+    'OUT',
+    'EXECUTED',
+    'Xuất vải chuyển sang kho HẰNG',
+    '2026-01-15 00:00:00',
+    @cong_ty_warehouse_id
+);
+
+SET @transfer_hang_out_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_hang_set_id,
+    NULL,
+    8,
+    'IN',
+    'EXECUTED',
+    'Nhập vải chuyển từ kho CÔNG TY',
+    '2026-01-15 00:00:00',
+    @hang_warehouse_id
+);
+
+SET @transfer_hang_in_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_hang_out_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B11' AS item_code, 5842.2 AS qty
+    UNION ALL SELECT 'K15',  169
+    UNION ALL SELECT 'K58',  352.7
+    UNION ALL SELECT 'V50',  151.7
+    UNION ALL SELECT 'V80',  2995
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @transfer_hang_in_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B11' AS item_code, 5842.2 AS qty
+    UNION ALL SELECT 'K15',  169
+    UNION ALL SELECT 'K58',  352.7
+    UNION ALL SELECT 'V50',  151.7
+    UNION ALL SELECT 'V80',  2995
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+-- =====================================================
+-- PHẦN 8: ORDERS (Dữ liệu mẫu - Lark integration G1+)
+-- =====================================================
 -- 7 seed orders cũ (contract_reports) đã được thay bằng Lark Excel import data.
 --
 -- Để import 19 đơn hàng test từ Lark Excel:
