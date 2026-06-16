@@ -2376,9 +2376,81 @@ FROM (
 JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code
 WHERE v.qty > 0;
 
-
 -- =====================================================
--- PHẦN 8: ORDERS (Dữ liệu mẫu - Lark integration G1+)
+-- PHẦN 4b: XUẤT VẢI CÔNG TY → SÀI ĐỒNG (Product 8)
+-- 7 mã vải (SL tồn > 0), category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- =====================================================
+
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Xuất vải CÔNG TY → SÀI ĐỒNG (HDH)',
+    'Chuyển vải từ kho CÔNG TY sang kho SÀI ĐỒNG',
+    'VAI_NHAP_KHO_THO',
+    'EXECUTED',
+    NULL,
+    '2026-01-15 00:00:00',
+    '2026-01-15 00:00:00'
+);
+
+SET @transfer_set_id = LAST_INSERT_ID();
+SET @sai_dong_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'SÀI ĐỒNG' LIMIT 1);
+
+-- Phiếu OUT: kho CÔNG TY
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_set_id,
+    NULL,
+    8,
+    'OUT',
+    'EXECUTED',
+    'Xuất vải chuyển sang kho SÀI ĐỒNG',
+    '2026-01-15 00:00:00',
+    @cong_ty_warehouse_id
+);
+
+SET @transfer_out_request_id = LAST_INSERT_ID();
+
+-- Phiếu IN: kho SÀI ĐỒNG
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+VALUES (
+    @transfer_set_id,
+    NULL,
+    8,
+    'IN',
+    'EXECUTED',
+    'Nhập vải chuyển từ kho CÔNG TY',
+    '2026-01-15 00:00:00',
+    @sai_dong_warehouse_id
+);
+
+SET @transfer_in_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity, fabric_note)
+SELECT @transfer_out_request_id, pv.variant_id, v.qty, v.note
+FROM (
+    SELECT 'B1'  AS item_code, 3295   AS qty, 'HDH22'   AS note
+    UNION ALL SELECT 'K70',  295,   'HDH 66'
+    UNION ALL SELECT 'V11',  9810.6, 'HDH55'
+    UNION ALL SELECT 'V8',   1615.2, 'HDH24S'
+    UNION ALL SELECT 'V87',  969.8,  'HDH67'
+    UNION ALL SELECT 'V88',  1413.5, 'HDH68'
+    UNION ALL SELECT 'V9',   73.3,   'HDH39C'
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity, fabric_note)
+SELECT @transfer_in_request_id, pv.variant_id, v.qty, v.note
+FROM (
+    SELECT 'B1'  AS item_code, 3295   AS qty, 'HDH22'   AS note
+    UNION ALL SELECT 'K70',  295,   'HDH 66'
+    UNION ALL SELECT 'V11',  9810.6, 'HDH55'
+    UNION ALL SELECT 'V8',   1615.2, 'HDH24S'
+    UNION ALL SELECT 'V87',  969.8,  'HDH67'
+    UNION ALL SELECT 'V88',  1413.5, 'HDH68'
+    UNION ALL SELECT 'V9',   73.3,   'HDH39C'
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
 -- =====================================================
 -- 7 seed orders cũ (contract_reports) đã được thay bằng Lark Excel import data.
 --
