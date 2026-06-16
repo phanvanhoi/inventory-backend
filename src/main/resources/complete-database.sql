@@ -880,7 +880,7 @@ INSERT INTO products (product_name, variant_type, note, created_at) VALUES
 ('ÁO LEN + GILE LEN 2026', 'STRUCTURED', 'Size(XS-6XL) + Gender(NAM/NỮ)', '2026-01-01 00:00:00'),
 ('GILE BẢO HỘ 2026', 'STRUCTURED', 'Size(XS-6XL) + Gender(NAM/NỮ)', '2026-01-01 00:00:00'),
 ('BẢO HỘ LAO ĐỘNG CÓ SIZE 2026', 'STRUCTURED', 'Parent: Giày BH + Áo mưa', '2026-01-01 00:00:00'),
-('NHẬP XUẤT VẢI 2026', 'ITEM_BASED', '31 mã vải', '2026-01-01 00:00:00'),
+('NHẬP XUẤT VẢI 2026', 'ITEM_BASED', '338 mã vải (CSV CÔNG TY)', '2026-01-01 00:00:00'),
 ('PHỤ KIỆN 2026', 'ITEM_BASED', '49 mã phụ kiện', '2026-01-01 00:00:00'),
 ('PHỤ LIỆU 2026', 'ITEM_BASED', '~250 mã phụ liệu', '2026-01-01 00:00:00');
 
@@ -991,39 +991,346 @@ INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
 (17, 'TUI1', 'Túi đựng dụng cụ', 'chiếc'),
 (17, 'BL1', 'Balo VNPT', 'chiếc');
 
--- Product 8: NHẬP XUẤT VẢI 2026 (31 mã — ITEM_BASED)
+-- Product 8: NHẬP XUẤT VẢI 2026 (338 mã — ITEM_BASED, nguồn CSV CÔNG TY)
 INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
 (8, 'B1', 'Trắng kem nam', 'mét'),
-(8, 'B2', 'Trắng kem nữ', 'mét'),
-(8, 'B4', 'Trắng kem nam TCT BĐ (2020)', 'mét'),
-(8, 'B7', 'Ghi nam', 'mét'),
-(8, 'B9', 'Ghi nam LĐ tổng Vnpost', 'mét'),
 (8, 'B11', 'Kaky ghi nam (2021 Grey)', 'mét'),
 (8, 'B12', 'Ghi nữ', 'mét'),
 (8, 'B13', 'Kaky ghi nữ', 'mét'),
-(8, 'B15', 'Xanh biển nam', 'mét'),
-(8, 'B16', 'Xanh biển nữ', 'mét'),
-(8, 'B17', 'Xanh biển dài nam', 'mét'),
-(8, 'B18', 'Xanh biển LĐ tổng Vnpost', 'mét'),
-(8, 'B19', 'Cam nam', 'mét'),
-(8, 'B20', 'Cam nữ', 'mét'),
-(8, 'B21', 'Cam LĐ tổng Vnpost', 'mét'),
-(8, 'B22', 'Ghi áo khoác', 'mét'),
-(8, 'B23', 'Ghi áo len', 'mét'),
-(8, 'B24', 'Vải HQ 01', 'mét'),
-(8, 'B25', 'Vải HQ 02', 'mét'),
-(8, 'B26', 'Lót trắng', 'mét'),
-(8, 'B27', 'Lót ghi', 'mét'),
-(8, 'B28', 'Lót xanh', 'mét'),
-(8, 'B29', 'Lót cam', 'mét'),
-(8, 'B30', 'Mex 4090', 'mét'),
-(8, 'B31', 'Mex 3040', 'mét'),
-(8, 'B32', 'Mex 6090', 'mét'),
-(8, 'B33', 'Dựng cứng', 'mét'),
-(8, 'B34', 'Dựng mềm', 'mét'),
-(8, 'B35', 'Bông', 'kilogam'),
-(8, 'B37', 'Vải TC 01', 'mét'),
-(8, 'B39', 'Vải TC 02', 'mét');
+(8, 'B15', 'Vải áo khai thác BĐ - Oxford ghi nhạt (chính)', 'mét'),
+(8, 'B16', 'Vải áo khai thác BĐ - Oxford vàng (phối)', 'mét'),
+(8, 'B17', 'Vải áo khoác gió vàng bưu điện (chính)', 'mét'),
+(8, 'B18', 'Vải áo khoác gió ghi đậm bưu điện (phối)', 'mét'),
+(8, 'B19', 'Vải áo khoác gió ghi nhạt bưu điện (chính)', 'mét'),
+(8, 'B2', 'Trắng kem nữ', 'mét'),
+(8, 'B22', 'Vải áo chống nắng màu vàng (chính)', 'kilogam'),
+(8, 'B23', 'Vải áo chống nắng màu ghi (phối)', 'kilogam'),
+(8, 'B24', 'Vải áo gile kaky màu vàng (chính)', 'mét'),
+(8, 'B25', 'Vải áo gile kaky màu ghi (phối)', 'mét'),
+(8, 'B26', 'Vải áo gile lưới', 'mét'),
+(8, 'B27', 'Vải viền lé vàng', 'mét'),
+(8, 'B28', 'Vải quần áo dài bưu điện (xanh)', 'mét'),
+(8, 'B29', 'Ghi nam lãnh đạo bưu điện', 'mét'),
+(8, 'B30', 'Ghi nữ lãnh đạo bưu điện', 'mét'),
+(8, 'B31', 'Vải lót vàng áo khoác gió bưu điện', 'mét'),
+(8, 'B32', 'Vải áo chống nắng bưu điện (Vĩnh Phúc, Ninh Bình)', 'mét'),
+(8, 'B33', 'Vải lót lưới vàng', 'kilogam'),
+(8, 'B34', 'Vải xanh tím đậm (may cho Bưu điện )', 'mét'),
+(8, 'B35', 'Vải xanh bảo vệ bưu điện', 'mét'),
+(8, 'B36', 'Vải áo khoác gió vàng bưu điện mã T400', 'mét'),
+(8, 'B37', 'Vải áo khoác gió xám bưu điện mã T400 (Ghi xám nhạt)', 'mét'),
+(8, 'B38', 'Vải áo khai thác BĐ - DT680 ghi nhạt (chính)', 'mét'),
+(8, 'B39', 'Vải áo khai thác BĐ - DT680 vàng (phối)', 'mét'),
+(8, 'B4', 'Trắng kem nam TCT BĐ (2020)', 'mét'),
+(8, 'B40', 'Vải quần ghi mã TS - S9012', 'mét'),
+(8, 'B7', 'Ghi nam', 'mét'),
+(8, 'B41', 'Vải gió bưu điện mã T400 (ghi đậm)', 'mét'),
+(8, 'B9', 'Ghi nam LĐ tổng Vnpost', 'mét'),
+(8, 'H10', 'Vải quần tím than EMS nhóm II', 'mét'),
+(8, 'H11', 'Hoa Vinh', 'mét'),
+(8, 'H12', 'Mã 2021', 'mét'),
+(8, 'H19', 'Mã 3311 (sơ mi trắng)', 'mét'),
+(8, 'H2', 'Sơ mi trắng mã 498-1 (Dùng cho TCT Bưu điện)', 'mét'),
+(8, 'H21', 'Mã 1816 (sơ mi trắng)', 'mét'),
+(8, 'H24', 'Mã 5039 (sơ mi trắng)', 'mét'),
+(8, 'H25', 'Vải Ông Sáng - Mã Y31129 - 113m', 'mét'),
+(8, 'H26', 'Vải Ông Sáng - Mã 2051 - 129,9m', 'mét'),
+(8, 'H27', 'Vải Ông Sáng - Mã Y31129 - 129,9m', 'mét'),
+(8, 'H28', 'Vải Ông Sáng - Mã Y31191 - 112,9m', 'mét'),
+(8, 'H29', 'Vải Ông Sáng - Mã Y31191 - 109,9m', 'mét'),
+(8, 'H3', 'M1 - Vải quần nam IT (GA002-Q7T60)', 'mét'),
+(8, 'H30', 'Vải Ông Sáng - Mã Y31129 - 131,9m', 'mét'),
+(8, 'H31', 'Vải Ông Sáng - Mã 3129 - 112,6m', 'mét'),
+(8, 'H32', 'Vải Ông Sáng - Mã Y31191 - 113,8m', 'mét'),
+(8, 'H33', 'Vải Ông Sáng - Mã 3081 - 131,8m', 'mét'),
+(8, 'H34', 'Vải Ông Sáng - Mã J2691 - 137,4m', 'mét'),
+(8, 'H35', 'Vải Ông Sáng - Mã Y31191 - 106,2m', 'mét'),
+(8, 'H36', 'Vải Ông Sáng - Mã Y31191 - 109,4m', 'mét'),
+(8, 'H37', 'Vải Ông Sáng - Mã 3081 - 135,7m', 'mét'),
+(8, 'H38', 'Vải Ông Sáng - Mã Y31191 - 112,9m', 'mét'),
+(8, 'H39', 'Vải mới cô Hằng không có mã', 'mét'),
+(8, 'H4', 'M2 - Vải quần nam IT (GA0001-08T79)', 'mét'),
+(8, 'H40', 'Mã 3081', 'mét'),
+(8, 'H41', 'Mã 300227 (Viettin bank)', 'mét'),
+(8, 'H42', 'JP180252 (xanh nhạt)', 'mét'),
+(8, 'H43', 'HTS03225-3 (xanh đậm)', 'mét'),
+(8, 'H44', 'BT01791-3 (tím nhạt)', 'mét'),
+(8, 'H45', 'Vải rủ tím than chị Sáng mua (đậm)', 'mét'),
+(8, 'H46', 'Vải rủ tím than chị Sáng mua (nhạt)', 'mét'),
+(8, 'H47', 'Vải quần mã T9069-1', 'mét'),
+(8, 'H48', 'Vải phối caro (dùng cho Than Thống Nhất)', 'mét'),
+(8, 'H49', 'Vải gió 75D-T400-55', 'mét'),
+(8, 'H5', 'Áo khoác gió phòng máy  (50D-138)', 'mét'),
+(8, 'H50', 'Vải quần nam Indovina 2025 (TSVT-GA0011-1)', 'mét'),
+(8, 'H51', 'Vải quần nữ Indovina 2025 (TSVT-GA0014-1)', 'mét'),
+(8, 'H52', 'Ghi nữ rủ (vải rủ BĐ cũ)', 'mét'),
+(8, 'H53', 'Vải lẻ dùng cho VT Kon Tum', 'mét'),
+(8, 'H54 - 0007', 'Vải kẻ dùng cho IT - mã GA0007 - X02 - 21 (M9)', 'mét'),
+(8, 'H54 - 004-6', 'Vải dùng cho IT - mã GA0004-6 (M7)', 'mét'),
+(8, 'H54 - 0201', 'Vải dùng cho IT - mã GA0001 - 0201 (M6)', 'mét'),
+(8, 'H54 - 08T79', 'Vải dùng cho IT - mã GA0002 - 08T79 (M8)', 'mét'),
+(8, 'H54 - Q7T60', 'Vải dùng cho IT - mã GA0001 - Q7T60 (M5)', 'mét'),
+(8, 'H54 - W0101', 'Vải dùng cho IT - mã GA0009 - W0101(M1)', 'mét'),
+(8, 'H54 - W0306', 'Vải dùng cho IT - mã GA0009 - W0306 (M2)', 'mét'),
+(8, 'H54 - W04U5', 'Vải dùng cho IT - Ghi xám - mã GA0009 - W04U5 (M3)', 'mét'),
+(8, 'H54 - W0508', 'Vải dùng cho IT - mã GA0009 - W0508 (M4)', 'mét'),
+(8, 'H6', 'Vải gió tím than mã 1956-42', 'mét'),
+(8, 'H7', 'Vải gió (VT Thái Nguyên) mã T600 - 64', 'mét'),
+(8, 'H8', 'Mobiphone toàn cầu', 'mét'),
+(8, 'K1', 'Áo dài than Nam Mẫu', 'mét'),
+(8, 'K15', 'EMS (kaky nam xanh tím than)', 'mét'),
+(8, 'K16', 'EMS (kaky nữ tím than mới)', 'mét'),
+(8, 'K17', 'Vải áo budong EMS', 'mét'),
+(8, 'K18', 'EMS (Vải áo gió tím than)', 'mét'),
+(8, 'K2', 'Sơ mi nữ EMS 2025 (BT02572)', 'mét'),
+(8, 'K9', 'Vải quần nữ Indovina mã S9023-1 (đen)', 'mét'),
+(8, 'K10', 'Vải quần nam Indovina mã A600K-UNI-1 (đen)', 'mét'),
+(8, 'K20', 'Vải áo dài cam Thái Tuấn', 'mét'),
+(8, 'K23', 'HUD (Vải áo dài đỏ)', 'mét'),
+(8, 'K27', 'Trắng SM nam Tập đoàn EVN 2020', 'mét'),
+(8, 'K3', 'Than Nam Mẫu 2020 (xanh SM nam)', 'mét'),
+(8, 'K31', 'SM nam NV Oceanbank (xanh)', 'mét'),
+(8, 'K39', 'LS70083 - ZY23083', 'mét'),
+(8, 'K40', 'S6036 - ZY23083', 'mét'),
+(8, 'K41', 'EMS (xanh SM nam mới 2021)', 'mét'),
+(8, 'K42', 'Vải gió IT 2021', 'mét'),
+(8, 'K43', 'Vải quần nữ EVN Cao Bằng', 'mét'),
+(8, 'K44', 'Trắng SM nam MTC 1309', 'mét'),
+(8, 'K46', 'Vải quần nam Học viện Bưu chính', 'mét'),
+(8, 'K47', 'Vải rủ đen', 'mét'),
+(8, 'K48', 'Trắng SM nam mã 033 trắng kem', 'mét'),
+(8, 'K49', 'Trắng SM nam mã 033 trắng tinh', 'mét'),
+(8, 'K5', 'Than Uông Bí 2019 (xanh SM nam)', 'mét'),
+(8, 'K51', 'Trắng SM nam mã LHT21063', 'mét'),
+(8, 'K56', 'Vải quần nam mã HS-25067', 'mét'),
+(8, 'K57', 'Vải SM mã JP180249', 'mét'),
+(8, 'K58', 'Vải quần mã 2183 - ZY23081', 'mét'),
+(8, 'K59', 'Vải quần mã 2183 - ZY23083', 'mét'),
+(8, 'K6', 'Than Uông Bí 2019 (xanh SM nữ)', 'mét'),
+(8, 'K60', 'Xanh SM mã BT1443', 'mét'),
+(8, 'K61', 'Vải áo gió Ban KTM 2023', 'mét'),
+(8, 'K62', 'Kaky cam Thủy điện Hòa Bình', 'mét'),
+(8, 'K63', 'Vải trắng SM mã HS210420TP', 'mét'),
+(8, 'K64', 'Vải quần nam Habeco (Mã 467T)', 'mét'),
+(8, 'K65', 'Vải quần mã AP03X - UNI- Q801', 'mét'),
+(8, 'K66', 'Xanh SM mã BT02564', 'mét'),
+(8, 'K67', 'Trắng SM nữ mã 1817', 'mét'),
+(8, 'K68', 'Trắng SM nữ mã 2235-1', 'mét'),
+(8, 'K69', 'Vải quần đen mã 124', 'mét'),
+(8, 'K70', 'Vải SM mã BA0053', 'mét'),
+(8, 'K71', 'Vải SM mã BA0046', 'mét'),
+(8, 'K72', 'Vải SM mã BTS03331-3', 'mét'),
+(8, 'K74', 'Trắng SM mã 3590-1 (TTKD)', 'mét'),
+(8, 'K75', 'Trắng SM nữ mã 03399SF', 'mét'),
+(8, 'K76', 'Trắng SM nam mã MTS03400 - 1', 'mét'),
+(8, 'K77', 'Vải quần mã TSL7715 - 10', 'mét'),
+(8, 'K78', 'Vải áo sơ mi trắng (Chị Nga mua - chuyển sang làm vải áo sơ mi)', 'mét'),
+(8, 'K79', 'Vải quần vest nam Thủy điện Hòa Bình', 'mét'),
+(8, 'K8', 'EMS (sơ mi nữ mới)', 'mét'),
+(8, 'K80', 'Vải áo dài Thủy điện Hòa Bình (Đỏ hơi đậm)', 'mét'),
+(8, 'K81', 'Vải quần của áo dài Thủy điện Hòa Bình', 'mét'),
+(8, 'K82', 'Vải áo dài cho Bệnh viện Bưu điện', 'mét'),
+(8, 'K83', 'Vải áo dài Học viện Bưu chính Viễn thông', 'mét'),
+(8, 'K84', 'Vải quần áo dài Học viện Bưu chính Viễn thông', 'mét'),
+(8, 'K85', 'Vải quần áo dài Bệnh viện Bưu điện', 'mét'),
+(8, 'K86', 'Vải SM trắng Indovina mã 241-1', 'mét'),
+(8, 'K87', 'Vải trắng SM mã KT-31752-K1', 'mét'),
+(8, 'K88', 'Vải SM trắng  mã SM-INDO 241-1', 'mét'),
+(8, 'V1', 'Trắng tinh co giãn nữ SG', 'mét'),
+(8, 'V11', 'Kẻ gân nam HLD', 'mét'),
+(8, 'V16', 'C2 đậm', 'mét'),
+(8, 'V17', 'C2 nhạt', 'mét'),
+(8, 'V2', 'Kẻ co giãn tập đoàn (có gân) - Mã 02605', 'mét'),
+(8, 'V20', 'Xanh tươi 4 chiều (đậm)', 'mét'),
+(8, 'V25', 'Cháy 200', 'mét'),
+(8, 'V28', 'Vải quần nam Nét 3', 'mét'),
+(8, 'V29', 'C1 đậm', 'mét'),
+(8, 'V3', 'Kẻ VP nữ giãn 1 mặt ông Sáng', 'mét'),
+(8, 'V36', 'Gấm áo dài VNPT (loại thường)', 'mét'),
+(8, 'V37', 'Quần áo dài', 'mét'),
+(8, 'V39', 'NT 2721 đậm (2021)', 'mét'),
+(8, 'V4', 'Kẻ Bamboo nữ giãn HDH39B', 'mét'),
+(8, 'V40', 'C3 (2015) Tổng Nét', 'mét'),
+(8, 'V43', 'Tím than 1301-35', 'mét'),
+(8, 'V44', 'Tím than TR121-4', 'mét'),
+(8, 'V47', 'Vải viền lé xanh', 'mét'),
+(8, 'V48', 'Vải áo bảo vệ mới (2021)', 'mét'),
+(8, 'V49', 'Vải áo chống nắng màu xanh', 'mét'),
+(8, 'V5', 'Kẻ nữ sợi to - Mã BT02659', 'mét'),
+(8, 'V50', 'Vải phối ngoài trời (mẫu mới 2021)', 'mét'),
+(8, 'V51', 'Vải quần nữ tập đoàn (Mã 1 - chuẩn)', 'mét'),
+(8, 'V52', 'Vải quần nữ C3 (Mã 2)', 'mét'),
+(8, 'V53', 'LD60059-ZY23081', 'mét'),
+(8, 'V54', 'Vải quần nam tím than (co giãn) - Mã 430', 'mét'),
+(8, 'V55', 'Trắng tinh nam TTKD 2021', 'mét'),
+(8, 'V57', 'S6036-ZY23081', 'mét'),
+(8, 'V58', 'Vải áo phòng máy', 'mét'),
+(8, 'V6', 'Vải rủ tím than dầy ( mã L72 cũ  )', 'mét'),
+(8, 'V60', 'NT 2702 (2102)', 'mét'),
+(8, 'V61', 'Vải quần nam IT 2022 (Mã 2183)', 'mét'),
+(8, 'V62', 'Gấm áo dài VNPT (loại xịn)', 'mét'),
+(8, 'V63', 'Vải áo tạp vụ', 'mét'),
+(8, 'V65', 'Vải quần nam V6042', 'mét'),
+(8, 'V66', 'Vải quần nữ V6030', 'mét'),
+(8, 'V67', 'Vải rủ tím than mã 6135', 'mét'),
+(8, 'V68', 'Trắng tinh nam TTKD mã 7100', 'mét'),
+(8, 'V69', 'Trắng tinh nữ TTKD mã TRS03072', 'mét'),
+(8, 'V7', 'Vải rủ tím than mỏng ( mã L90 cũ )', 'mét'),
+(8, 'V70', 'Vải quần nam Tổng Nét 2023 mã L77101', 'mét'),
+(8, 'V71', 'Vải quần nam V6046 - ZY23081', 'mét'),
+(8, 'V72', 'Vải Kaky xanh NT Tổng Nét', 'mét'),
+(8, 'V73', 'Kẻ nam mã HS-SMNVP-1', 'mét'),
+(8, 'V74', 'Vải rủ tím than mã L9908', 'mét'),
+(8, 'V75', 'Vải trắng nữ TTKD mã BA0052-1', 'mét'),
+(8, 'V76', 'Vải quần nam mã T9010-UNI-10', 'mét'),
+(8, 'V77', 'Vải quần nữ mã A634K-UNI-10', 'mét'),
+(8, 'V78', 'Vải trắng nam TTKD mã BA0074', 'mét'),
+(8, 'V79', 'Vải quần nam mã L88204-65', 'mét'),
+(8, 'V8', 'Kẻ nam HDH24S', 'mét'),
+(8, 'V80', 'NT 1202 (mẫu 2025)', 'mét'),
+(8, 'V81', 'NT 6528 (vải áo điều hòa)', 'mét'),
+(8, 'V82', 'Vải quần nữ mã AP02X-UNI-10', 'mét'),
+(8, 'V83', 'Vải NT mã DT820 (may áo khoác NT)', 'mét'),
+(8, 'V84', 'Vải sơ mi mã ATS03311-1', 'mét'),
+(8, 'V85', 'Vải quần nam mã T8567J-UNI-1001', 'mét'),
+(8, 'V86', 'Vải quần áo dài VNPT (loại xịn)', 'mét'),
+(8, 'V87', 'Vải SM nam xanh gân mã SM150 (VT Hồ Chí Minh)', 'mét'),
+(8, 'V88', 'Vải kẻ nam mã KT-30768', 'mét'),
+(8, 'V89', 'Vải áo phông xanh mã KT-31088-1', 'mét'),
+(8, 'V9', 'Kẻ nam HDH39C (mã cũ 2025 V7)', 'mét'),
+(8, 'V10', 'Vải gió viễn thông loại 2 mã KT 31135-1', 'mét'),
+(8, 'QU1', '33001-6-253', 'mét'),
+(8, 'QU2', 'Y81909-8', 'mét'),
+(8, 'QU3', '61665-Đen', 'mét'),
+(8, 'QU4', '33001-2-253', 'mét'),
+(8, 'QU5', 'Vải quần Kaky tím than', 'mét'),
+(8, 'QU6', '33001-1-253', 'mét'),
+(8, 'QU7', 'Vải quần xanh bộ đội', 'mét'),
+(8, 'QU8', 'Kẻ ô ghi', 'mét'),
+(8, 'QU9', '91665-1-253', 'mét'),
+(8, 'QU10', 'ZJ232007-253', 'mét'),
+(8, 'QU11', '91665-2-253', 'mét'),
+(8, 'QU12', '91665-3-253', 'mét'),
+(8, 'QU13', '91665-6-253', 'mét'),
+(8, 'QU14', '91665-5-253', 'mét'),
+(8, 'QU15', '91665-4-253', 'mét'),
+(8, 'QU16', 'ZJ232010-253', 'mét'),
+(8, 'QU17', '91665-21-253', 'mét'),
+(8, 'QU18', 'Vải quần', 'mét'),
+(8, 'QU19', 'Vải xanh', 'mét'),
+(8, 'QU20', 'Kaky nâu nhạt', 'mét'),
+(8, 'QU21', 'Quần nam màu rêu', 'mét'),
+(8, 'QU22', 'Mã 70 đen', 'mét'),
+(8, 'QU23', 'Vải quần tím than co giãn', 'mét'),
+(8, 'QU24', 'Quần nam mã 70 Hà Long màu xanh đen', 'mét'),
+(8, 'QU25', 'Cháy 200', 'mét'),
+(8, 'QU26', 'Vải quần nữ tím than', 'mét'),
+(8, 'QU27', 'Vải dạ tím than', 'mét'),
+(8, 'QU28', 'Vải quần nam xanh', 'mét'),
+(8, 'QU29', 'ZS9258-1 (Kaky)', 'mét'),
+(8, 'QU30', 'ZS9258-12', 'mét'),
+(8, 'QU31', 'ZS9258-14', 'mét'),
+(8, 'QU32', '8319-J5125-27', 'mét'),
+(8, 'QU33', '8319-J5125-9', 'mét'),
+(8, 'QU34', '8319-J5125-14', 'mét'),
+(8, 'QU35', '8319-J5125-1', 'mét'),
+(8, 'QU36', '7851-13', 'mét'),
+(8, 'QU37', '4542-3', 'mét'),
+(8, 'QU38', '0610-5', 'mét'),
+(8, 'QU39', '1265-11', 'mét'),
+(8, 'QU40', '5360-8', 'mét'),
+(8, 'QU41', '8319-J2125-32', 'mét'),
+(8, 'QU42', '8319-J2125-21', 'mét'),
+(8, 'QU43', '8319-J2125-31', 'mét'),
+(8, 'QU44', '8319-J2125-2', 'mét'),
+(8, 'QU45', '8319-J2125-10', 'mét'),
+(8, 'QU46', '8319-J2125-0', 'mét'),
+(8, 'QU47', '8319-J2125-23', 'mét'),
+(8, 'QU48', '8319-J2125-11', 'mét'),
+(8, 'QU49', '8319-J2125-5', 'mét'),
+(8, 'QU50', '0396-10', 'mét'),
+(8, 'QU51', '3609-7', 'mét'),
+(8, 'QU52', '7268-10', 'mét'),
+(8, 'QU53', '0-14', 'mét'),
+(8, 'QU54', 'Quần nữ than Hồng Thái', 'mét'),
+(8, 'QU55', 'P07209 (Kaky kem)', 'mét'),
+(8, 'QU56', 'ZS 9258-4', 'mét'),
+(8, 'QU57', 'ZS 9258-2', 'mét'),
+(8, 'QU58', '8319-J2125', 'mét'),
+(8, 'QU59', 'ZS 9258-6', 'mét'),
+(8, 'QU60', 'ZS 9258-15', 'mét'),
+(8, 'QU61', 'ZS 9258-16', 'mét'),
+(8, 'QU62', '8319-J2125-4', 'mét'),
+(8, 'QU63', '8319-J2125-8', 'mét'),
+(8, 'QU64', 'ZS 9258-7', 'mét'),
+(8, 'QU65', 'A290-5 (1)', 'mét'),
+(8, 'QU66', '8319-J2125-13', 'mét'),
+(8, 'QU67', 'A290-5 (2)', 'mét'),
+(8, 'QU68', '8319-J2125-3', 'mét'),
+(8, 'QU69', 'A290-20', 'mét'),
+(8, 'QU70', 'A290-22', 'mét'),
+(8, 'QU71', 'A290-6', 'mét'),
+(8, 'QU72', '621-3-14 (Vải Golf Ghi đậm)', 'mét'),
+(8, 'QU73', '621-2-22 (Vải Golf tím than)', 'mét'),
+(8, 'QU74', '621-4-20 (Vải Golf Ghi nhạt)', 'mét'),
+(8, 'QU75', '621-6-16 (Vải Golf Ghi sáng)', 'mét'),
+(8, 'QU76', '621-1-18 (Vải Golf Đen)', 'mét'),
+(8, 'QU77', 'ZJ232003 (Màu ghi)', 'mét'),
+(8, 'SM1', 'Sơ mi ghi nam', 'mét'),
+(8, 'SM2', 'Sơ mi trắng kẻ', 'mét'),
+(8, 'SM3', 'Sơ mi nam mã 2021', 'mét'),
+(8, 'SM4', '710-7# (trắng kem)', 'mét'),
+(8, 'SM5', 'Sơ mi xanh', 'mét'),
+(8, 'SM6', 'Sơ mi trắng tinh', 'mét'),
+(8, 'SM7', 'Trắng xương cá', 'mét'),
+(8, 'SM8', 'Sơ mi trắng kem', 'mét'),
+(8, 'SM9', 'Sơ mi xanh tím nhạt', 'mét'),
+(8, 'SM10', 'Sơ mi xanh khổ 1,25m (Viettin cũ)', 'mét'),
+(8, 'SM11', 'Sơ mi kẻ nam - nữ (Tổng Nét)', 'mét'),
+(8, 'SM12', 'Vải kẻ sọc thủy điện Sơn La', 'mét'),
+(8, 'SM13', 'Sơ mi xanh than Nam Mẫu', 'mét'),
+(8, 'SM14', 'Trắng xương cá to', 'mét'),
+(8, 'SM15', 'Vải nâu nhạt', 'mét'),
+(8, 'SM16', 'Sơ mi trắng tinh K150', 'mét'),
+(8, 'SM17', 'Sơ mi kẻ nam', 'mét'),
+(8, 'SM18', 'MTS 03400-34 (Nâu nhạt)', 'mét'),
+(8, 'SM19', 'MTS 03400-71 (Ghi sáng)', 'mét'),
+(8, 'SM20', 'MTS 03400-27 (Xanh nước biển)', 'mét'),
+(8, 'SM21', 'MTS 03400-13 (Xanh lơ)', 'mét'),
+(8, 'SM22', 'MTS 03400-5 (Đen)', 'mét'),
+(8, 'SM23', 'MTS 03400-25', 'mét'),
+(8, 'SM24', 'MTS 03400-14 (Xanh cổ vịt)', 'mét'),
+(8, 'SM25', 'MTS 03400-24', 'mét'),
+(8, 'SM26', 'MTS 03400-9', 'mét'),
+(8, 'SM27', 'MTS 03400-23 (Đậm)', 'mét'),
+(8, 'SM28', 'MTS 03400-23 (Nhạt)', 'mét'),
+(8, 'SM29', 'MTS 03400-69', 'mét'),
+(8, 'SM30', 'MTS 03400-6', 'mét'),
+(8, 'SM31', 'MTS 03400-26', 'mét'),
+(8, 'LO1', 'Lót nâu trơn', 'mét'),
+(8, 'LO2', 'Lót ghi', 'mét'),
+(8, 'LO3', '7122 (Khổ 1,2m) - Lót tím than co giãn hoa', 'mét'),
+(8, 'LO4', 'Lót ghi sáng', 'mét'),
+(8, 'LO5', '1051 (Khổ 1,2m)', 'mét'),
+(8, 'LO6', 'JHL 899-9 (Khổ 1,2m) - Lót Hoa ghi', 'mét'),
+(8, 'LO7', 'Lót ghi', 'mét'),
+(8, 'LO8', '8132 (Khổ 1,2m)', 'mét'),
+(8, 'LO9', '7673 (Khổ 1,2m) - Lót hoa ghi', 'mét'),
+(8, 'LO10', '5975 (Khổ 1,2m)', 'mét'),
+(8, 'LO11', '1575 (Khổ 1,2) - Lót ghi co giãn', 'mét'),
+(8, 'LO12', 'Không có mã (Khổ 1,2m) - Lót hoa nâu', 'mét'),
+(8, 'LO13', 'JHL 905-10 (Khổ 1,2m)', 'mét'),
+(8, 'LO14', 'JHL 905-7 (Khổ 1,2m)', 'mét'),
+(8, 'LO15', 'JHL 905-8 (Khổ 1,2m)', 'mét'),
+(8, 'LO16', 'JHL 905-9 (Khổ 1,2m)', 'mét'),
+(8, 'LO17', 'JHL 905-12 (Khổ 1,2m)', 'mét'),
+(8, 'LO18', 'JHL 905-11 (Khổ 1,2m)', 'mét'),
+(8, 'H1', 'Sơ mi mã 1840-1', 'mét'),
+(8, 'H13', 'Mã 2012', 'mét'),
+(8, 'H16', 'Mã 3188 (sơ mi trắng)', 'mét'),
+(8, 'H9', 'HS 210420JP', 'mét'),
+(8, 'H20', 'Mã 1918 (sơ mi trắng)', 'mét'),
+(8, 'H55', 'HTS03225-2', 'mét');
 
 -- Product 9: PHỤ KIỆN (47 mã — ITEM_BASED)
 INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
@@ -1357,8 +1664,19 @@ INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
 
 -- 3.7a Warehouses (Kho)
 INSERT INTO warehouses (warehouse_name, is_default) VALUES
-('Kho Chính', TRUE),
-('Kho Trường', FALSE);
+('CÔNG TY', TRUE),
+('DUNG', FALSE),
+('HẰNG', FALSE),
+('HÙNG', FALSE),
+('HƯỜNG', FALSE),
+('LẠNG', FALSE),
+('LỤC', FALSE),
+('LƯỠNG', FALSE),
+('NGỌC GL', FALSE),
+('PHƯỚC', FALSE),
+('SÀI ĐỒNG', FALSE),
+('THÔNG', FALSE),
+('TRƯỜNG', FALSE);
 
 -- 3.7b Units (72 đơn vị/khách hàng)
 INSERT INTO units (unit_name) VALUES
@@ -1468,742 +1786,596 @@ INSERT INTO user_roles (user_id, role_id) VALUES
 (9, 5); -- tthuy: SALES
 
 -- =====================================================
--- PHẦN 4: REQUEST SETS (52 bộ phiếu - gộp theo tên)
 -- =====================================================
-INSERT INTO request_sets (set_name, created_by, created_at) VALUES
--- set_id = 1: Nhập kho ban đầu
-('Nhập kho ban đầu', NULL, '2025-06-20 00:00:00');
--- =====================================================
--- PHẦN 5: INVENTORY REQUESTS (89 phiếu xuất/nhập)
--- =====================================================
--- Requests nhập kho ban đầu cho TẤT CẢ sản phẩm (set_id = 1, unit = 'Kho')
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 1, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 11, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 12, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 13, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 14, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 15, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 16, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 17, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 8, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 9, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at)
-SELECT 1, u.unit_id, 10, 'IN', NULL, '2025-06-20 00:00:00' FROM units u WHERE u.unit_name = 'Kho';
-
--- Set status = 'EXECUTED' và submitted_at cho tất cả request_sets cũ (dữ liệu lịch sử đã được thực hiện)
-UPDATE request_sets SET status = 'EXECUTED', submitted_at = created_at WHERE set_id > 0;
-
--- =====================================================
--- PHẦN 6: STORED PROCEDURE ĐỂ INSERT ITEMS
--- =====================================================
-DELIMITER //
-
-DROP PROCEDURE IF EXISTS insert_item_by_variant//
-CREATE PROCEDURE insert_item_by_variant(
-    IN p_request_id BIGINT,
-    IN p_style_name VARCHAR(50),
-    IN p_size_value VARCHAR(10),
-    IN p_length_code VARCHAR(10),
-    IN p_quantity INT
-)
-BEGIN
-    DECLARE v_variant_id BIGINT;
-
-    IF p_quantity > 0 THEN
-        SELECT pv.variant_id INTO v_variant_id
-        FROM product_variants pv
-        JOIN styles s ON s.style_id = pv.style_id
-        JOIN sizes sz ON sz.size_id = pv.size_id
-        JOIN length_types lt ON lt.length_type_id = pv.length_type_id
-        WHERE s.style_name = p_style_name
-          AND sz.size_value = p_size_value
-          AND lt.code = p_length_code;
-
-        IF v_variant_id IS NOT NULL THEN
-            INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-            VALUES (p_request_id, v_variant_id, p_quantity);
-        END IF;
-    END IF;
-END//
-
--- Procedure cho STRUCTURED với gender + size (không có length) — SP3,5,6
-DROP PROCEDURE IF EXISTS insert_item_by_gender//
-CREATE PROCEDURE insert_item_by_gender(
-    IN p_product_id BIGINT,
-    IN p_size_value VARCHAR(10),
-    IN p_gender VARCHAR(10),
-    IN p_quantity INT
-)
-BEGIN
-    DECLARE v_variant_id BIGINT;
-    DECLARE v_request_id BIGINT;
-
-    SELECT r.request_id INTO v_request_id
-    FROM inventory_requests r WHERE r.set_id = 1 AND r.product_id = p_product_id;
-
-    IF p_quantity > 0 AND v_request_id IS NOT NULL THEN
-        SELECT pv.variant_id INTO v_variant_id
-        FROM product_variants pv
-        JOIN sizes sz ON sz.size_id = pv.size_id
-        WHERE pv.product_id = p_product_id
-          AND sz.size_value = p_size_value
-          AND pv.gender = p_gender;
-
-        IF v_variant_id IS NOT NULL THEN
-            INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-            VALUES (v_request_id, v_variant_id, p_quantity);
-        END IF;
-    END IF;
-END//
-
--- Procedure cho STRUCTURED với gender + size + length — SP4
-DROP PROCEDURE IF EXISTS insert_item_by_gender_length//
-CREATE PROCEDURE insert_item_by_gender_length(
-    IN p_product_id BIGINT,
-    IN p_size_value VARCHAR(10),
-    IN p_length_code VARCHAR(10),
-    IN p_gender VARCHAR(10),
-    IN p_quantity INT
-)
-BEGIN
-    DECLARE v_variant_id BIGINT;
-    DECLARE v_request_id BIGINT;
-
-    SELECT r.request_id INTO v_request_id
-    FROM inventory_requests r WHERE r.set_id = 1 AND r.product_id = p_product_id;
-
-    IF p_quantity > 0 AND v_request_id IS NOT NULL THEN
-        SELECT pv.variant_id INTO v_variant_id
-        FROM product_variants pv
-        JOIN sizes sz ON sz.size_id = pv.size_id
-        JOIN length_types lt ON lt.length_type_id = pv.length_type_id
-        WHERE pv.product_id = p_product_id
-          AND sz.size_value = p_size_value
-          AND lt.code = p_length_code
-          AND pv.gender = p_gender;
-
-        IF v_variant_id IS NOT NULL THEN
-            INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-            VALUES (v_request_id, v_variant_id, p_quantity);
-        END IF;
-    END IF;
-END//
-
--- Procedure cho STRUCTURED với size only (không gender, không length) — SP15,16
-DROP PROCEDURE IF EXISTS insert_item_by_size//
-CREATE PROCEDURE insert_item_by_size(
-    IN p_product_id BIGINT,
-    IN p_size_value VARCHAR(10),
-    IN p_quantity INT
-)
-BEGIN
-    DECLARE v_variant_id BIGINT;
-    DECLARE v_request_id BIGINT;
-
-    SELECT r.request_id INTO v_request_id
-    FROM inventory_requests r WHERE r.set_id = 1 AND r.product_id = p_product_id;
-
-    IF p_quantity > 0 AND v_request_id IS NOT NULL THEN
-        SELECT pv.variant_id INTO v_variant_id
-        FROM product_variants pv
-        JOIN sizes sz ON sz.size_id = pv.size_id
-        WHERE pv.product_id = p_product_id
-          AND sz.size_value = p_size_value
-          AND pv.gender IS NULL;
-
-        IF v_variant_id IS NOT NULL THEN
-            INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-            VALUES (v_request_id, v_variant_id, p_quantity);
-        END IF;
-    END IF;
-END//
-
--- Procedure cho ITEM_BASED — SP17,8,9,10
-DROP PROCEDURE IF EXISTS insert_item_by_code//
-CREATE PROCEDURE insert_item_by_code(
-    IN p_product_id BIGINT,
-    IN p_item_code VARCHAR(50),
-    IN p_quantity INT
-)
-BEGIN
-    DECLARE v_variant_id BIGINT;
-    DECLARE v_request_id BIGINT;
-
-    SELECT r.request_id INTO v_request_id
-    FROM inventory_requests r WHERE r.set_id = 1 AND r.product_id = p_product_id;
-
-    IF p_quantity > 0 AND v_request_id IS NOT NULL THEN
-        SELECT pv.variant_id INTO v_variant_id
-        FROM product_variants pv
-        WHERE pv.product_id = p_product_id AND pv.item_code = p_item_code;
-
-        IF v_variant_id IS NOT NULL THEN
-            INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-            VALUES (v_request_id, v_variant_id, p_quantity);
-        END IF;
-    END IF;
-END//
-
-DELIMITER ;
-
--- =====================================================
--- PHẦN 7: INVENTORY REQUEST ITEMS (CHI TIẾT)
+-- PHẦN 4: DỮ LIỆU KHO VẢI — CÔNG TY (Product 8)
+-- Nguồn: NHẬP XUẤT VẢI 2026 - CÔNG TY.csv
+-- 338 mã vải, 274 mã có tồn > 0
 -- =====================================================
 
--- REQUEST 1: Nhập kho ban đầu (20/06/2025) - Kho
--- Dữ liệu từ CSV: SƠ MI NAM 2025 - SM1 - HDH22 - không lé không thêu.csv (line 5)
--- CỔ ĐIỂN (Tổng: Cộc=110, Dài=91)
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 35, 'COC', 10);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 35, 'DAI', 10);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 36, 'COC', 7);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 36, 'DAI', 6);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 37, 'COC', 11);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 37, 'DAI', 20);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 38, 'COC', 21);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 38, 'DAI', 4);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 39, 'COC', 6);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 39, 'DAI', 7);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 40, 'COC', 7);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 40, 'DAI', 10);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 41, 'COC', 21);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 41, 'DAI', 7);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 42, 'COC', 15);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 42, 'DAI', 12);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 43, 'COC', 7);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 43, 'DAI', 4);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 44, 'COC', 5);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN', 44, 'DAI', 11);
--- CỔ ĐIỂN NGẮN (Tổng: Cộc=149, Dài=143)
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 35, 'COC', 5);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 35, 'DAI', 5);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 36, 'COC', 5);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 36, 'DAI', 4);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 37, 'COC', 24);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 37, 'DAI', 21);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 38, 'COC', 25);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 38, 'DAI', 20);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 39, 'COC', 24);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 39, 'DAI', 16);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 40, 'COC', 11);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 40, 'DAI', 22);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 41, 'COC', 22);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 41, 'DAI', 27);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 42, 'COC', 25);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 42, 'DAI', 21);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 43, 'COC', 8);
-CALL insert_item_by_variant(1, 'CỔ ĐIỂN NGẮN', 43, 'DAI', 7);
--- SLIM (Tổng: Cộc=141, Dài=114)
-CALL insert_item_by_variant(1, 'SLIM', 37, 'COC', 14);
-CALL insert_item_by_variant(1, 'SLIM', 37, 'DAI', 10);
-CALL insert_item_by_variant(1, 'SLIM', 38, 'COC', 25);
-CALL insert_item_by_variant(1, 'SLIM', 38, 'DAI', 22);
-CALL insert_item_by_variant(1, 'SLIM', 39, 'COC', 24);
-CALL insert_item_by_variant(1, 'SLIM', 39, 'DAI', 17);
-CALL insert_item_by_variant(1, 'SLIM', 40, 'COC', 17);
-CALL insert_item_by_variant(1, 'SLIM', 40, 'DAI', 7);
-CALL insert_item_by_variant(1, 'SLIM', 41, 'COC', 19);
-CALL insert_item_by_variant(1, 'SLIM', 41, 'DAI', 21);
-CALL insert_item_by_variant(1, 'SLIM', 42, 'COC', 12);
-CALL insert_item_by_variant(1, 'SLIM', 42, 'DAI', 14);
-CALL insert_item_by_variant(1, 'SLIM', 43, 'COC', 20);
-CALL insert_item_by_variant(1, 'SLIM', 43, 'DAI', 16);
-CALL insert_item_by_variant(1, 'SLIM', 44, 'COC', 10);
-CALL insert_item_by_variant(1, 'SLIM', 44, 'DAI', 7);
--- SLIM Ngắn (Tổng: Cộc=123, Dài=115)
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 37, 'COC', 13);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 37, 'DAI', 15);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 38, 'COC', 15);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 38, 'DAI', 17);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 39, 'COC', 26);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 39, 'DAI', 19);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 40, 'COC', 21);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 40, 'DAI', 16);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 41, 'COC', 20);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 41, 'DAI', 20);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 42, 'COC', 18);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 42, 'DAI', 18);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 44, 'COC', 10);
-CALL insert_item_by_variant(1, 'SLIM Ngắn', 44, 'DAI', 10);
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Tồn kho ban đầu - Vải CÔNG TY 2026',
+    'Import từ BẢNG TỔNG HỢP NHẬP XUẤT TỒN VẢI 2026 (CÔNG TY)',
+    'VAI_NHAP_KHO',
+    'EXECUTED',
+    NULL,
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
+);
 
--- =====================================================
--- Product 11: Áo khoác Bưu điện - ghi phối vàng (child của SP3)
--- STRUCTURED: gender + size (no length)
--- =====================================================
--- NAM
-CALL insert_item_by_gender(11, 'XS', 'NAM', 3);
-CALL insert_item_by_gender(11, 'S', 'NAM', 8);
-CALL insert_item_by_gender(11, 'M', 'NAM', 18);
-CALL insert_item_by_gender(11, 'L', 'NAM', 22);
-CALL insert_item_by_gender(11, 'XL', 'NAM', 20);
-CALL insert_item_by_gender(11, '2XL', 'NAM', 15);
-CALL insert_item_by_gender(11, '3XL', 'NAM', 10);
-CALL insert_item_by_gender(11, '4XL', 'NAM', 6);
-CALL insert_item_by_gender(11, '5XL', 'NAM', 3);
-CALL insert_item_by_gender(11, '6XL', 'NAM', 2);
--- NỮ
-CALL insert_item_by_gender(11, 'XS', 'NU', 4);
-CALL insert_item_by_gender(11, 'S', 'NU', 10);
-CALL insert_item_by_gender(11, 'M', 'NU', 16);
-CALL insert_item_by_gender(11, 'L', 'NU', 14);
-CALL insert_item_by_gender(11, 'XL', 'NU', 12);
-CALL insert_item_by_gender(11, '2XL', 'NU', 8);
-CALL insert_item_by_gender(11, '3XL', 'NU', 5);
-CALL insert_item_by_gender(11, '4XL', 'NU', 3);
-CALL insert_item_by_gender(11, '5XL', 'NU', 2);
-CALL insert_item_by_gender(11, '6XL', 'NU', 1);
+SET @fabric_set_id = LAST_INSERT_ID();
+SET @cong_ty_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'CÔNG TY' LIMIT 1);
 
--- =====================================================
--- Product 12: Áo phông Bưu điện (vàng phối ghi) - Bưu tá (child của SP4)
--- STRUCTURED: gender + size + length (COC/DAI)
--- =====================================================
--- NAM
-CALL insert_item_by_gender_length(12, 'XS', 'COC', 'NAM', 2);
-CALL insert_item_by_gender_length(12, 'XS', 'DAI', 'NAM', 2);
-CALL insert_item_by_gender_length(12, 'S', 'COC', 'NAM', 6);
-CALL insert_item_by_gender_length(12, 'S', 'DAI', 'NAM', 5);
-CALL insert_item_by_gender_length(12, 'M', 'COC', 'NAM', 15);
-CALL insert_item_by_gender_length(12, 'M', 'DAI', 'NAM', 12);
-CALL insert_item_by_gender_length(12, 'L', 'COC', 'NAM', 18);
-CALL insert_item_by_gender_length(12, 'L', 'DAI', 'NAM', 15);
-CALL insert_item_by_gender_length(12, 'XL', 'COC', 'NAM', 16);
-CALL insert_item_by_gender_length(12, 'XL', 'DAI', 'NAM', 14);
-CALL insert_item_by_gender_length(12, '2XL', 'COC', 'NAM', 12);
-CALL insert_item_by_gender_length(12, '2XL', 'DAI', 'NAM', 10);
-CALL insert_item_by_gender_length(12, '3XL', 'COC', 'NAM', 8);
-CALL insert_item_by_gender_length(12, '3XL', 'DAI', 'NAM', 6);
-CALL insert_item_by_gender_length(12, '4XL', 'COC', 'NAM', 4);
-CALL insert_item_by_gender_length(12, '4XL', 'DAI', 'NAM', 3);
-CALL insert_item_by_gender_length(12, '5XL', 'COC', 'NAM', 2);
-CALL insert_item_by_gender_length(12, '5XL', 'DAI', 'NAM', 2);
-CALL insert_item_by_gender_length(12, '6XL', 'COC', 'NAM', 1);
-CALL insert_item_by_gender_length(12, '6XL', 'DAI', 'NAM', 1);
--- NỮ
-CALL insert_item_by_gender_length(12, 'XS', 'COC', 'NU', 3);
-CALL insert_item_by_gender_length(12, 'XS', 'DAI', 'NU', 2);
-CALL insert_item_by_gender_length(12, 'S', 'COC', 'NU', 8);
-CALL insert_item_by_gender_length(12, 'S', 'DAI', 'NU', 6);
-CALL insert_item_by_gender_length(12, 'M', 'COC', 'NU', 14);
-CALL insert_item_by_gender_length(12, 'M', 'DAI', 'NU', 11);
-CALL insert_item_by_gender_length(12, 'L', 'COC', 'NU', 12);
-CALL insert_item_by_gender_length(12, 'L', 'DAI', 'NU', 10);
-CALL insert_item_by_gender_length(12, 'XL', 'COC', 'NU', 10);
-CALL insert_item_by_gender_length(12, 'XL', 'DAI', 'NU', 8);
-CALL insert_item_by_gender_length(12, '2XL', 'COC', 'NU', 6);
-CALL insert_item_by_gender_length(12, '2XL', 'DAI', 'NU', 5);
-CALL insert_item_by_gender_length(12, '3XL', 'COC', 'NU', 4);
-CALL insert_item_by_gender_length(12, '3XL', 'DAI', 'NU', 3);
-CALL insert_item_by_gender_length(12, '4XL', 'COC', 'NU', 2);
-CALL insert_item_by_gender_length(12, '4XL', 'DAI', 'NU', 2);
-CALL insert_item_by_gender_length(12, '5XL', 'COC', 'NU', 1);
-CALL insert_item_by_gender_length(12, '5XL', 'DAI', 'NU', 1);
-CALL insert_item_by_gender_length(12, '6XL', 'COC', 'NU', 1);
-CALL insert_item_by_gender_length(12, '6XL', 'DAI', 'NU', 1);
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+SELECT
+    @fabric_set_id,
+    u.unit_id,
+    8,
+    'IN',
+    'EXECUTED',
+    'Tồn kho ban đầu vải kho CÔNG TY',
+    '2026-01-01 00:00:00',
+    @cong_ty_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
 
--- =====================================================
--- Product 13: Áo Gile len VNPT (child của SP5) — Nhập kho ban đầu
--- STRUCTURED: gender + size (no length)
--- =====================================================
--- NAM
-CALL insert_item_by_gender(13, 'XS', 'NAM', 2);
-CALL insert_item_by_gender(13, 'S', 'NAM', 6);
-CALL insert_item_by_gender(13, 'M', 'NAM', 14);
-CALL insert_item_by_gender(13, 'L', 'NAM', 18);
-CALL insert_item_by_gender(13, 'XL', 'NAM', 16);
-CALL insert_item_by_gender(13, '2XL', 'NAM', 12);
-CALL insert_item_by_gender(13, '3XL', 'NAM', 8);
-CALL insert_item_by_gender(13, '4XL', 'NAM', 5);
-CALL insert_item_by_gender(13, '5XL', 'NAM', 3);
-CALL insert_item_by_gender(13, '6XL', 'NAM', 2);
--- NỮ
-CALL insert_item_by_gender(13, 'XS', 'NU', 3);
-CALL insert_item_by_gender(13, 'S', 'NU', 8);
-CALL insert_item_by_gender(13, 'M', 'NU', 12);
-CALL insert_item_by_gender(13, 'L', 'NU', 10);
-CALL insert_item_by_gender(13, 'XL', 'NU', 8);
-CALL insert_item_by_gender(13, '2XL', 'NU', 6);
-CALL insert_item_by_gender(13, '3XL', 'NU', 4);
-CALL insert_item_by_gender(13, '4XL', 'NU', 2);
-CALL insert_item_by_gender(13, '5XL', 'NU', 1);
-CALL insert_item_by_gender(13, '6XL', 'NU', 1);
+SET @fabric_request_id = LAST_INSERT_ID();
 
--- =====================================================
--- Product 14: Áo Gile bảo hộ Bưu điện - Kaky vàng (child của SP6) — Nhập kho ban đầu
--- STRUCTURED: gender + size (no length)
--- =====================================================
--- NAM
-CALL insert_item_by_gender(14, 'XS', 'NAM', 4);
-CALL insert_item_by_gender(14, 'S', 'NAM', 10);
-CALL insert_item_by_gender(14, 'M', 'NAM', 20);
-CALL insert_item_by_gender(14, 'L', 'NAM', 25);
-CALL insert_item_by_gender(14, 'XL', 'NAM', 22);
-CALL insert_item_by_gender(14, '2XL', 'NAM', 16);
-CALL insert_item_by_gender(14, '3XL', 'NAM', 10);
-CALL insert_item_by_gender(14, '4XL', 'NAM', 6);
-CALL insert_item_by_gender(14, '5XL', 'NAM', 3);
-CALL insert_item_by_gender(14, '6XL', 'NAM', 2);
--- NỮ
-CALL insert_item_by_gender(14, 'XS', 'NU', 5);
-CALL insert_item_by_gender(14, 'S', 'NU', 12);
-CALL insert_item_by_gender(14, 'M', 'NU', 18);
-CALL insert_item_by_gender(14, 'L', 'NU', 15);
-CALL insert_item_by_gender(14, 'XL', 'NU', 12);
-CALL insert_item_by_gender(14, '2XL', 'NU', 8);
-CALL insert_item_by_gender(14, '3XL', 'NU', 5);
-CALL insert_item_by_gender(14, '4XL', 'NU', 3);
-CALL insert_item_by_gender(14, '5XL', 'NU', 2);
-CALL insert_item_by_gender(14, '6XL', 'NU', 1);
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @fabric_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'B1' AS item_code, 3369.9 AS qty
+    UNION ALL
+    SELECT 'B11' AS item_code, 6936.4 AS qty
+    UNION ALL
+    SELECT 'B12' AS item_code, 2128.6 AS qty
+    UNION ALL
+    SELECT 'B13' AS item_code, 1032.2 AS qty
+    UNION ALL
+    SELECT 'B2' AS item_code, 7519.2 AS qty
+    UNION ALL
+    SELECT 'B22' AS item_code, 253 AS qty
+    UNION ALL
+    SELECT 'B23' AS item_code, 268.1 AS qty
+    UNION ALL
+    SELECT 'B24' AS item_code, 27 AS qty
+    UNION ALL
+    SELECT 'B27' AS item_code, 351.5 AS qty
+    UNION ALL
+    SELECT 'B28' AS item_code, 348 AS qty
+    UNION ALL
+    SELECT 'B31' AS item_code, 1605 AS qty
+    UNION ALL
+    SELECT 'B32' AS item_code, 116 AS qty
+    UNION ALL
+    SELECT 'B33' AS item_code, 312.5 AS qty
+    UNION ALL
+    SELECT 'B35' AS item_code, 12 AS qty
+    UNION ALL
+    SELECT 'B36' AS item_code, 914.7 AS qty
+    UNION ALL
+    SELECT 'B37' AS item_code, 1692.7 AS qty
+    UNION ALL
+    SELECT 'B38' AS item_code, 210.4 AS qty
+    UNION ALL
+    SELECT 'B39' AS item_code, 112.2 AS qty
+    UNION ALL
+    SELECT 'B40' AS item_code, 2659.2 AS qty
+    UNION ALL
+    SELECT 'B7' AS item_code, 1190.28 AS qty
+    UNION ALL
+    SELECT 'B41' AS item_code, 1099 AS qty
+    UNION ALL
+    SELECT 'H11' AS item_code, 3.5 AS qty
+    UNION ALL
+    SELECT 'H12' AS item_code, 113 AS qty
+    UNION ALL
+    SELECT 'H19' AS item_code, 146.6 AS qty
+    UNION ALL
+    SELECT 'H2' AS item_code, 50 AS qty
+    UNION ALL
+    SELECT 'H21' AS item_code, 120.6 AS qty
+    UNION ALL
+    SELECT 'H42' AS item_code, 10.4 AS qty
+    UNION ALL
+    SELECT 'H43' AS item_code, 84.7 AS qty
+    UNION ALL
+    SELECT 'H44' AS item_code, 15.4 AS qty
+    UNION ALL
+    SELECT 'H47' AS item_code, 9.8 AS qty
+    UNION ALL
+    SELECT 'H48' AS item_code, 44.6 AS qty
+    UNION ALL
+    SELECT 'H49' AS item_code, 294 AS qty
+    UNION ALL
+    SELECT 'H5' AS item_code, 1963.2 AS qty
+    UNION ALL
+    SELECT 'H50' AS item_code, 12.8 AS qty
+    UNION ALL
+    SELECT 'H51' AS item_code, 13.2 AS qty
+    UNION ALL
+    SELECT 'H54 - 0007' AS item_code, 25 AS qty
+    UNION ALL
+    SELECT 'H54 - 004-6' AS item_code, 35.6 AS qty
+    UNION ALL
+    SELECT 'H54 - 0201' AS item_code, 6.8 AS qty
+    UNION ALL
+    SELECT 'H54 - W0101' AS item_code, 67 AS qty
+    UNION ALL
+    SELECT 'H54 - W0306' AS item_code, 27.2 AS qty
+    UNION ALL
+    SELECT 'H54 - W04U5' AS item_code, 75.4 AS qty
+    UNION ALL
+    SELECT 'H54 - W0508' AS item_code, 16.4 AS qty
+    UNION ALL
+    SELECT 'H6' AS item_code, 15 AS qty
+    UNION ALL
+    SELECT 'H7' AS item_code, 633.9 AS qty
+    UNION ALL
+    SELECT 'H8' AS item_code, 65.3 AS qty
+    UNION ALL
+    SELECT 'K1' AS item_code, 7.3 AS qty
+    UNION ALL
+    SELECT 'K15' AS item_code, 368.4 AS qty
+    UNION ALL
+    SELECT 'K16' AS item_code, 878.2 AS qty
+    UNION ALL
+    SELECT 'K17' AS item_code, 239.2 AS qty
+    UNION ALL
+    SELECT 'K18' AS item_code, 528.8 AS qty
+    UNION ALL
+    SELECT 'K2' AS item_code, 74.55 AS qty
+    UNION ALL
+    SELECT 'K10' AS item_code, 161 AS qty
+    UNION ALL
+    SELECT 'K20' AS item_code, 34.3 AS qty
+    UNION ALL
+    SELECT 'K23' AS item_code, 270 AS qty
+    UNION ALL
+    SELECT 'K27' AS item_code, 7.6 AS qty
+    UNION ALL
+    SELECT 'K31' AS item_code, 240.6 AS qty
+    UNION ALL
+    SELECT 'K39' AS item_code, 19.3 AS qty
+    UNION ALL
+    SELECT 'K40' AS item_code, 129.1 AS qty
+    UNION ALL
+    SELECT 'K41' AS item_code, 10 AS qty
+    UNION ALL
+    SELECT 'K42' AS item_code, 106.9 AS qty
+    UNION ALL
+    SELECT 'K44' AS item_code, 29.5 AS qty
+    UNION ALL
+    SELECT 'K46' AS item_code, 19 AS qty
+    UNION ALL
+    SELECT 'K47' AS item_code, 117.3 AS qty
+    UNION ALL
+    SELECT 'K48' AS item_code, 3 AS qty
+    UNION ALL
+    SELECT 'K49' AS item_code, 200.7 AS qty
+    UNION ALL
+    SELECT 'K5' AS item_code, 210.2 AS qty
+    UNION ALL
+    SELECT 'K57' AS item_code, 293.7 AS qty
+    UNION ALL
+    SELECT 'K58' AS item_code, 589 AS qty
+    UNION ALL
+    SELECT 'K59' AS item_code, 958.9 AS qty
+    UNION ALL
+    SELECT 'K6' AS item_code, 38.6 AS qty
+    UNION ALL
+    SELECT 'K60' AS item_code, 60.95 AS qty
+    UNION ALL
+    SELECT 'K62' AS item_code, 8 AS qty
+    UNION ALL
+    SELECT 'K64' AS item_code, 28 AS qty
+    UNION ALL
+    SELECT 'K65' AS item_code, 618.6 AS qty
+    UNION ALL
+    SELECT 'K67' AS item_code, 120 AS qty
+    UNION ALL
+    SELECT 'K68' AS item_code, 99.7 AS qty
+    UNION ALL
+    SELECT 'K70' AS item_code, 519.4 AS qty
+    UNION ALL
+    SELECT 'K72' AS item_code, 100.4 AS qty
+    UNION ALL
+    SELECT 'K74' AS item_code, 9.7 AS qty
+    UNION ALL
+    SELECT 'K75' AS item_code, 122.7 AS qty
+    UNION ALL
+    SELECT 'K76' AS item_code, 211.9 AS qty
+    UNION ALL
+    SELECT 'K77' AS item_code, 92 AS qty
+    UNION ALL
+    SELECT 'K78' AS item_code, 427 AS qty
+    UNION ALL
+    SELECT 'K79' AS item_code, 49.5 AS qty
+    UNION ALL
+    SELECT 'K8' AS item_code, 14.1 AS qty
+    UNION ALL
+    SELECT 'K80' AS item_code, 2 AS qty
+    UNION ALL
+    SELECT 'K82' AS item_code, 62 AS qty
+    UNION ALL
+    SELECT 'K83' AS item_code, 64.9 AS qty
+    UNION ALL
+    SELECT 'K84' AS item_code, 4.7 AS qty
+    UNION ALL
+    SELECT 'K85' AS item_code, 1.4 AS qty
+    UNION ALL
+    SELECT 'K86' AS item_code, 161.8 AS qty
+    UNION ALL
+    SELECT 'K88' AS item_code, 1230.9 AS qty
+    UNION ALL
+    SELECT 'V11' AS item_code, 9903.4 AS qty
+    UNION ALL
+    SELECT 'V16' AS item_code, 6.4 AS qty
+    UNION ALL
+    SELECT 'V2' AS item_code, 1254.45 AS qty
+    UNION ALL
+    SELECT 'V20' AS item_code, 1072.1 AS qty
+    UNION ALL
+    SELECT 'V28' AS item_code, 4.8 AS qty
+    UNION ALL
+    SELECT 'V29' AS item_code, 44.7 AS qty
+    UNION ALL
+    SELECT 'V36' AS item_code, 1646.35 AS qty
+    UNION ALL
+    SELECT 'V37' AS item_code, 583.65 AS qty
+    UNION ALL
+    SELECT 'V39' AS item_code, 8.4 AS qty
+    UNION ALL
+    SELECT 'V4' AS item_code, 25.6 AS qty
+    UNION ALL
+    SELECT 'V40' AS item_code, 24 AS qty
+    UNION ALL
+    SELECT 'V43' AS item_code, 10 AS qty
+    UNION ALL
+    SELECT 'V44' AS item_code, 17.4 AS qty
+    UNION ALL
+    SELECT 'V47' AS item_code, 23 AS qty
+    UNION ALL
+    SELECT 'V48' AS item_code, 727.4 AS qty
+    UNION ALL
+    SELECT 'V49' AS item_code, 134 AS qty
+    UNION ALL
+    SELECT 'V5' AS item_code, 5374.5 AS qty
+    UNION ALL
+    SELECT 'V50' AS item_code, 1379.84 AS qty
+    UNION ALL
+    SELECT 'V51' AS item_code, 10.3 AS qty
+    UNION ALL
+    SELECT 'V52' AS item_code, 3.5 AS qty
+    UNION ALL
+    SELECT 'V53' AS item_code, 103.5 AS qty
+    UNION ALL
+    SELECT 'V54' AS item_code, 1.27 AS qty
+    UNION ALL
+    SELECT 'V57' AS item_code, 529.4 AS qty
+    UNION ALL
+    SELECT 'V58' AS item_code, 34.5 AS qty
+    UNION ALL
+    SELECT 'V6' AS item_code, 89.6 AS qty
+    UNION ALL
+    SELECT 'V60' AS item_code, 6972.5 AS qty
+    UNION ALL
+    SELECT 'V61' AS item_code, 64.5 AS qty
+    UNION ALL
+    SELECT 'V62' AS item_code, 383.15 AS qty
+    UNION ALL
+    SELECT 'V63' AS item_code, 52.3 AS qty
+    UNION ALL
+    SELECT 'V66' AS item_code, 11.6 AS qty
+    UNION ALL
+    SELECT 'V67' AS item_code, 273.1 AS qty
+    UNION ALL
+    SELECT 'V7' AS item_code, 66.5 AS qty
+    UNION ALL
+    SELECT 'V70' AS item_code, 2.9 AS qty
+    UNION ALL
+    SELECT 'V71' AS item_code, 1811.1 AS qty
+    UNION ALL
+    SELECT 'V73' AS item_code, 113 AS qty
+    UNION ALL
+    SELECT 'V75' AS item_code, 1124.8 AS qty
+    UNION ALL
+    SELECT 'V76' AS item_code, 2191.9 AS qty
+    UNION ALL
+    SELECT 'V77' AS item_code, 292.4 AS qty
+    UNION ALL
+    SELECT 'V79' AS item_code, 1024.1 AS qty
+    UNION ALL
+    SELECT 'V8' AS item_code, 1752.3 AS qty
+    UNION ALL
+    SELECT 'V80' AS item_code, 9273.18 AS qty
+    UNION ALL
+    SELECT 'V81' AS item_code, 706 AS qty
+    UNION ALL
+    SELECT 'V82' AS item_code, 437.2 AS qty
+    UNION ALL
+    SELECT 'V84' AS item_code, 215.2 AS qty
+    UNION ALL
+    SELECT 'V85' AS item_code, 1399.8 AS qty
+    UNION ALL
+    SELECT 'V86' AS item_code, 286.8 AS qty
+    UNION ALL
+    SELECT 'V87' AS item_code, 1026.7 AS qty
+    UNION ALL
+    SELECT 'V88' AS item_code, 1557.9 AS qty
+    UNION ALL
+    SELECT 'V89' AS item_code, 503.5 AS qty
+    UNION ALL
+    SELECT 'V9' AS item_code, 73.3 AS qty
+    UNION ALL
+    SELECT 'V10' AS item_code, 1193.8 AS qty
+    UNION ALL
+    SELECT 'QU1' AS item_code, 53.2 AS qty
+    UNION ALL
+    SELECT 'QU2' AS item_code, 37.4 AS qty
+    UNION ALL
+    SELECT 'QU3' AS item_code, 44.6 AS qty
+    UNION ALL
+    SELECT 'QU4' AS item_code, 69 AS qty
+    UNION ALL
+    SELECT 'QU5' AS item_code, 69.7 AS qty
+    UNION ALL
+    SELECT 'QU6' AS item_code, 73.4 AS qty
+    UNION ALL
+    SELECT 'QU7' AS item_code, 47 AS qty
+    UNION ALL
+    SELECT 'QU8' AS item_code, 52 AS qty
+    UNION ALL
+    SELECT 'QU9' AS item_code, 69.1 AS qty
+    UNION ALL
+    SELECT 'QU10' AS item_code, 216.6 AS qty
+    UNION ALL
+    SELECT 'QU11' AS item_code, 66.3 AS qty
+    UNION ALL
+    SELECT 'QU12' AS item_code, 67.6 AS qty
+    UNION ALL
+    SELECT 'QU13' AS item_code, 70.2 AS qty
+    UNION ALL
+    SELECT 'QU14' AS item_code, 69 AS qty
+    UNION ALL
+    SELECT 'QU15' AS item_code, 78 AS qty
+    UNION ALL
+    SELECT 'QU16' AS item_code, 21.8 AS qty
+    UNION ALL
+    SELECT 'QU17' AS item_code, 17.3 AS qty
+    UNION ALL
+    SELECT 'QU18' AS item_code, 18 AS qty
+    UNION ALL
+    SELECT 'QU19' AS item_code, 11.2 AS qty
+    UNION ALL
+    SELECT 'QU20' AS item_code, 9 AS qty
+    UNION ALL
+    SELECT 'QU21' AS item_code, 24.5 AS qty
+    UNION ALL
+    SELECT 'QU22' AS item_code, 21 AS qty
+    UNION ALL
+    SELECT 'QU23' AS item_code, 5.8 AS qty
+    UNION ALL
+    SELECT 'QU24' AS item_code, 12.3 AS qty
+    UNION ALL
+    SELECT 'QU25' AS item_code, 11.5 AS qty
+    UNION ALL
+    SELECT 'QU26' AS item_code, 23 AS qty
+    UNION ALL
+    SELECT 'QU27' AS item_code, 25.5 AS qty
+    UNION ALL
+    SELECT 'QU28' AS item_code, 15.5 AS qty
+    UNION ALL
+    SELECT 'QU29' AS item_code, 18.6 AS qty
+    UNION ALL
+    SELECT 'QU30' AS item_code, 18.6 AS qty
+    UNION ALL
+    SELECT 'QU31' AS item_code, 18.6 AS qty
+    UNION ALL
+    SELECT 'QU32' AS item_code, 8.6 AS qty
+    UNION ALL
+    SELECT 'QU33' AS item_code, 9.8 AS qty
+    UNION ALL
+    SELECT 'QU34' AS item_code, 8.6 AS qty
+    UNION ALL
+    SELECT 'QU35' AS item_code, 7.4 AS qty
+    UNION ALL
+    SELECT 'QU36' AS item_code, 8.6 AS qty
+    UNION ALL
+    SELECT 'QU37' AS item_code, 6.2 AS qty
+    UNION ALL
+    SELECT 'QU38' AS item_code, 8.6 AS qty
+    UNION ALL
+    SELECT 'QU39' AS item_code, 7.5 AS qty
+    UNION ALL
+    SELECT 'QU40' AS item_code, 7.5 AS qty
+    UNION ALL
+    SELECT 'QU41' AS item_code, 8.6 AS qty
+    UNION ALL
+    SELECT 'QU42' AS item_code, 8.6 AS qty
+    UNION ALL
+    SELECT 'QU43' AS item_code, 8.6 AS qty
+    UNION ALL
+    SELECT 'QU44' AS item_code, 8.6 AS qty
+    UNION ALL
+    SELECT 'QU45' AS item_code, 8.6 AS qty
+    UNION ALL
+    SELECT 'QU46' AS item_code, 8.6 AS qty
+    UNION ALL
+    SELECT 'QU47' AS item_code, 8.6 AS qty
+    UNION ALL
+    SELECT 'QU48' AS item_code, 8.6 AS qty
+    UNION ALL
+    SELECT 'QU49' AS item_code, 7.5 AS qty
+    UNION ALL
+    SELECT 'QU50' AS item_code, 7.5 AS qty
+    UNION ALL
+    SELECT 'QU51' AS item_code, 8.6 AS qty
+    UNION ALL
+    SELECT 'QU52' AS item_code, 6.4 AS qty
+    UNION ALL
+    SELECT 'QU53' AS item_code, 8.6 AS qty
+    UNION ALL
+    SELECT 'QU54' AS item_code, 5.6 AS qty
+    UNION ALL
+    SELECT 'QU55' AS item_code, 21 AS qty
+    UNION ALL
+    SELECT 'QU56' AS item_code, 101.8 AS qty
+    UNION ALL
+    SELECT 'QU57' AS item_code, 144.8 AS qty
+    UNION ALL
+    SELECT 'QU58' AS item_code, 118.8 AS qty
+    UNION ALL
+    SELECT 'QU59' AS item_code, 91.8 AS qty
+    UNION ALL
+    SELECT 'QU60' AS item_code, 103.6 AS qty
+    UNION ALL
+    SELECT 'QU61' AS item_code, 101.6 AS qty
+    UNION ALL
+    SELECT 'QU62' AS item_code, 120.8 AS qty
+    UNION ALL
+    SELECT 'QU63' AS item_code, 120.8 AS qty
+    UNION ALL
+    SELECT 'QU64' AS item_code, 99.8 AS qty
+    UNION ALL
+    SELECT 'QU65' AS item_code, 117.8 AS qty
+    UNION ALL
+    SELECT 'QU66' AS item_code, 113.7 AS qty
+    UNION ALL
+    SELECT 'QU67' AS item_code, 116 AS qty
+    UNION ALL
+    SELECT 'QU68' AS item_code, 116.8 AS qty
+    UNION ALL
+    SELECT 'QU69' AS item_code, 124.4 AS qty
+    UNION ALL
+    SELECT 'QU70' AS item_code, 106.8 AS qty
+    UNION ALL
+    SELECT 'QU71' AS item_code, 111.3 AS qty
+    UNION ALL
+    SELECT 'QU72' AS item_code, 83.9 AS qty
+    UNION ALL
+    SELECT 'QU73' AS item_code, 78.15 AS qty
+    UNION ALL
+    SELECT 'QU74' AS item_code, 80.1 AS qty
+    UNION ALL
+    SELECT 'QU75' AS item_code, 85 AS qty
+    UNION ALL
+    SELECT 'QU76' AS item_code, 87.4 AS qty
+    UNION ALL
+    SELECT 'QU77' AS item_code, 76.1 AS qty
+    UNION ALL
+    SELECT 'SM1' AS item_code, 110 AS qty
+    UNION ALL
+    SELECT 'SM2' AS item_code, 107.2 AS qty
+    UNION ALL
+    SELECT 'SM3' AS item_code, 113.7 AS qty
+    UNION ALL
+    SELECT 'SM4' AS item_code, 104.8 AS qty
+    UNION ALL
+    SELECT 'SM5' AS item_code, 32.3 AS qty
+    UNION ALL
+    SELECT 'SM6' AS item_code, 77.3 AS qty
+    UNION ALL
+    SELECT 'SM7' AS item_code, 77.3 AS qty
+    UNION ALL
+    SELECT 'SM8' AS item_code, 89.3 AS qty
+    UNION ALL
+    SELECT 'SM9' AS item_code, 45.3 AS qty
+    UNION ALL
+    SELECT 'SM10' AS item_code, 22.3 AS qty
+    UNION ALL
+    SELECT 'SM11' AS item_code, 17 AS qty
+    UNION ALL
+    SELECT 'SM12' AS item_code, 6.6 AS qty
+    UNION ALL
+    SELECT 'SM13' AS item_code, 14.5 AS qty
+    UNION ALL
+    SELECT 'SM14' AS item_code, 88.8 AS qty
+    UNION ALL
+    SELECT 'SM15' AS item_code, 80 AS qty
+    UNION ALL
+    SELECT 'SM16' AS item_code, 24.3 AS qty
+    UNION ALL
+    SELECT 'SM17' AS item_code, 9.3 AS qty
+    UNION ALL
+    SELECT 'SM18' AS item_code, 109.3 AS qty
+    UNION ALL
+    SELECT 'SM19' AS item_code, 91.5 AS qty
+    UNION ALL
+    SELECT 'SM20' AS item_code, 109.2 AS qty
+    UNION ALL
+    SELECT 'SM21' AS item_code, 71.9 AS qty
+    UNION ALL
+    SELECT 'SM22' AS item_code, 27.3 AS qty
+    UNION ALL
+    SELECT 'SM23' AS item_code, 112.1 AS qty
+    UNION ALL
+    SELECT 'SM24' AS item_code, 111.4 AS qty
+    UNION ALL
+    SELECT 'SM25' AS item_code, 106.9 AS qty
+    UNION ALL
+    SELECT 'SM26' AS item_code, 108.8 AS qty
+    UNION ALL
+    SELECT 'SM27' AS item_code, 110 AS qty
+    UNION ALL
+    SELECT 'SM28' AS item_code, 109.7 AS qty
+    UNION ALL
+    SELECT 'SM29' AS item_code, 109.4 AS qty
+    UNION ALL
+    SELECT 'SM30' AS item_code, 110.1 AS qty
+    UNION ALL
+    SELECT 'SM31' AS item_code, 108.1 AS qty
+    UNION ALL
+    SELECT 'LO1' AS item_code, 76.8 AS qty
+    UNION ALL
+    SELECT 'LO2' AS item_code, 153.4 AS qty
+    UNION ALL
+    SELECT 'LO3' AS item_code, 95.5 AS qty
+    UNION ALL
+    SELECT 'LO4' AS item_code, 38.6 AS qty
+    UNION ALL
+    SELECT 'LO5' AS item_code, 117 AS qty
+    UNION ALL
+    SELECT 'LO6' AS item_code, 54.7 AS qty
+    UNION ALL
+    SELECT 'LO7' AS item_code, 42.8 AS qty
+    UNION ALL
+    SELECT 'LO8' AS item_code, 56.5 AS qty
+    UNION ALL
+    SELECT 'LO9' AS item_code, 58 AS qty
+    UNION ALL
+    SELECT 'LO10' AS item_code, 70 AS qty
+    UNION ALL
+    SELECT 'LO11' AS item_code, 78.3 AS qty
+    UNION ALL
+    SELECT 'LO12' AS item_code, 76.8 AS qty
+    UNION ALL
+    SELECT 'LO13' AS item_code, 120 AS qty
+    UNION ALL
+    SELECT 'LO14' AS item_code, 100 AS qty
+    UNION ALL
+    SELECT 'LO15' AS item_code, 111 AS qty
+    UNION ALL
+    SELECT 'LO16' AS item_code, 120 AS qty
+    UNION ALL
+    SELECT 'LO17' AS item_code, 120 AS qty
+    UNION ALL
+    SELECT 'LO18' AS item_code, 120 AS qty
+    UNION ALL
+    SELECT 'H1' AS item_code, 90 AS qty
+    UNION ALL
+    SELECT 'H13' AS item_code, 121 AS qty
+    UNION ALL
+    SELECT 'H16' AS item_code, 110 AS qty
+    UNION ALL
+    SELECT 'H20' AS item_code, 117.5 AS qty
+    UNION ALL
+    SELECT 'H55' AS item_code, 90.7 AS qty
+) v
+JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code
+WHERE v.qty > 0;
 
--- =====================================================
--- Product 15: Giày BH (child của SP7) — Nhập kho ban đầu
--- STRUCTURED: size only (38-45)
--- =====================================================
-CALL insert_item_by_size(15, '38', 15);
-CALL insert_item_by_size(15, '39', 25);
-CALL insert_item_by_size(15, '40', 35);
-CALL insert_item_by_size(15, '41', 40);
-CALL insert_item_by_size(15, '42', 38);
-CALL insert_item_by_size(15, '43', 20);
-CALL insert_item_by_size(15, '44', 12);
-CALL insert_item_by_size(15, '45', 8);
-
--- =====================================================
--- Product 16: Bộ áo mưa (child của SP7) — Nhập kho ban đầu
--- STRUCTURED: size only (S-4XL)
--- =====================================================
-CALL insert_item_by_size(16, 'S', 10);
-CALL insert_item_by_size(16, 'M', 20);
-CALL insert_item_by_size(16, 'L', 25);
-CALL insert_item_by_size(16, 'XL', 22);
-CALL insert_item_by_size(16, '2XL', 15);
-CALL insert_item_by_size(16, '3XL', 10);
-CALL insert_item_by_size(16, '4XL', 5);
-
--- =====================================================
--- Product 17: BẢO HỘ LAO ĐỘNG 2026 — Nhập kho ban đầu
--- ITEM_BASED
--- =====================================================
-CALL insert_item_by_code(17, 'M1', 50);
-CALL insert_item_by_code(17, 'TUI1', 30);
-CALL insert_item_by_code(17, 'BL1', 20);
-
--- =====================================================
--- Product 8: NHẬP XUẤT VẢI 2026 — Nhập kho ban đầu
--- ITEM_BASED (đơn vị: mét, kilogam)
--- =====================================================
-CALL insert_item_by_code(8, 'B1', 520);
-CALL insert_item_by_code(8, 'B2', 380);
-CALL insert_item_by_code(8, 'B4', 150);
-CALL insert_item_by_code(8, 'B7', 450);
-CALL insert_item_by_code(8, 'B9', 200);
-CALL insert_item_by_code(8, 'B11', 180);
-CALL insert_item_by_code(8, 'B12', 320);
-CALL insert_item_by_code(8, 'B13', 160);
-CALL insert_item_by_code(8, 'B15', 400);
-CALL insert_item_by_code(8, 'B16', 280);
-CALL insert_item_by_code(8, 'B17', 350);
-CALL insert_item_by_code(8, 'B18', 150);
-CALL insert_item_by_code(8, 'B19', 300);
-CALL insert_item_by_code(8, 'B20', 220);
-CALL insert_item_by_code(8, 'B21', 120);
-CALL insert_item_by_code(8, 'B22', 250);
-CALL insert_item_by_code(8, 'B23', 180);
-CALL insert_item_by_code(8, 'B24', 100);
-CALL insert_item_by_code(8, 'B25', 80);
-CALL insert_item_by_code(8, 'B26', 600);
-CALL insert_item_by_code(8, 'B27', 450);
-CALL insert_item_by_code(8, 'B28', 400);
-CALL insert_item_by_code(8, 'B29', 300);
-CALL insert_item_by_code(8, 'B30', 350);
-CALL insert_item_by_code(8, 'B31', 250);
-CALL insert_item_by_code(8, 'B32', 200);
-CALL insert_item_by_code(8, 'B33', 300);
-CALL insert_item_by_code(8, 'B34', 280);
-CALL insert_item_by_code(8, 'B35', 45);
-CALL insert_item_by_code(8, 'B37', 150);
-CALL insert_item_by_code(8, 'B39', 120);
-
--- =====================================================
--- Product 9: PHỤ KIỆN — Nhập kho ban đầu
--- ITEM_BASED (đơn vị: chiếc, bộ)
--- =====================================================
-CALL insert_item_by_code(9, 'PK1', 120);
-CALL insert_item_by_code(9, 'PK2', 85);
-CALL insert_item_by_code(9, 'PK3', 40);
-CALL insert_item_by_code(9, 'PK4', 65);
-CALL insert_item_by_code(9, 'PK5', 55);
-CALL insert_item_by_code(9, 'PK6', 70);
-CALL insert_item_by_code(9, 'PK8', 25);
-CALL insert_item_by_code(9, 'PK9', 90);
-CALL insert_item_by_code(9, 'PK10', 60);
-CALL insert_item_by_code(9, 'PK11', 75);
-CALL insert_item_by_code(9, 'PK13', 45);
-CALL insert_item_by_code(9, 'PK14', 50);
-CALL insert_item_by_code(9, 'PK15', 20);
-CALL insert_item_by_code(9, 'PK16', 15);
-CALL insert_item_by_code(9, 'PK17', 80);
-CALL insert_item_by_code(9, 'PK18', 60);
-CALL insert_item_by_code(9, 'PK19', 30);
-CALL insert_item_by_code(9, 'PK20', 25);
-CALL insert_item_by_code(9, 'PK21', 35);
-CALL insert_item_by_code(9, 'PK22', 40);
-CALL insert_item_by_code(9, 'PK23', 20);
-CALL insert_item_by_code(9, 'PK24', 30);
-CALL insert_item_by_code(9, 'PK25', 25);
-CALL insert_item_by_code(9, 'PK26', 50);
-CALL insert_item_by_code(9, 'PK27', 35);
-CALL insert_item_by_code(9, 'PK28', 45);
-CALL insert_item_by_code(9, 'PK29', 20);
-CALL insert_item_by_code(9, 'PK30', 25);
-CALL insert_item_by_code(9, 'PK31', 15);
-CALL insert_item_by_code(9, 'PK32', 10);
-CALL insert_item_by_code(9, 'PK33', 30);
-CALL insert_item_by_code(9, 'PK34', 55);
-CALL insert_item_by_code(9, 'PK35', 40);
-CALL insert_item_by_code(9, 'PK36', 25);
-CALL insert_item_by_code(9, 'PK37', 35);
-CALL insert_item_by_code(9, 'PK38', 30);
-CALL insert_item_by_code(9, 'PK39', 20);
-CALL insert_item_by_code(9, 'PK40', 25);
-CALL insert_item_by_code(9, 'PK41', 45);
-CALL insert_item_by_code(9, 'PK42', 40);
-CALL insert_item_by_code(9, 'PK43', 30);
-CALL insert_item_by_code(9, 'PK44', 25);
-CALL insert_item_by_code(9, 'PK45', 60);
-CALL insert_item_by_code(9, 'PK46', 35);
-CALL insert_item_by_code(9, 'PK47', 20);
-CALL insert_item_by_code(9, 'PK48', 50);
-CALL insert_item_by_code(9, 'PK49', 40);
-
--- =====================================================
--- Product 10: PHỤ LIỆU — Nhập kho ban đầu (dữ liệu thực tế)
--- ITEM_BASED (258 mã, chỉ insert những mã có tồn kho > 0)
--- =====================================================
--- Nhóm KHOA
-CALL insert_item_by_code(10, 'KHOA1', 9250);
-CALL insert_item_by_code(10, 'KHOA3', 1300);
-CALL insert_item_by_code(10, 'KHOA4', 7200);
-CALL insert_item_by_code(10, 'KHOA5', 87);
-CALL insert_item_by_code(10, 'KHOA6', 2080);
-CALL insert_item_by_code(10, 'KHOA7', 605);
-CALL insert_item_by_code(10, 'KHOA8', 5000);
-CALL insert_item_by_code(10, 'KHOA9', 536);
-CALL insert_item_by_code(10, 'KHOA30', 2630);
-CALL insert_item_by_code(10, 'KHOA31', 2400);
-CALL insert_item_by_code(10, 'KHOA32', 982);
-CALL insert_item_by_code(10, 'KHOA33', 830);
-CALL insert_item_by_code(10, 'KHOA36', 499);
-CALL insert_item_by_code(10, 'KHOA37', 3);
-CALL insert_item_by_code(10, 'KHOA38', 9);
-CALL insert_item_by_code(10, 'KHOA39', 15);
-CALL insert_item_by_code(10, 'KHOA47', 1602);
-CALL insert_item_by_code(10, 'KHOA48', 17);
-CALL insert_item_by_code(10, 'KHOA49', 35);
-CALL insert_item_by_code(10, 'KHOA50', 430);
-CALL insert_item_by_code(10, 'KHOA51', 8);
-CALL insert_item_by_code(10, 'KHOA52', 21);
-CALL insert_item_by_code(10, 'KHOA53', 83);
-CALL insert_item_by_code(10, 'KHOA54', 183);
-CALL insert_item_by_code(10, 'KHOA55', 61);
-CALL insert_item_by_code(10, 'KHOA56', 49);
-CALL insert_item_by_code(10, 'KHOA57', 811);
-CALL insert_item_by_code(10, 'KHOA58', 56);
-CALL insert_item_by_code(10, 'KHOA61', 35);
-CALL insert_item_by_code(10, 'KHOA64', 100);
-CALL insert_item_by_code(10, 'KHOA65', 218);
-CALL insert_item_by_code(10, 'KHOA69', 158);
-CALL insert_item_by_code(10, 'KHOA73', 148);
-CALL insert_item_by_code(10, 'KHOA74', 500);
-CALL insert_item_by_code(10, 'KHOA75', 231);
-CALL insert_item_by_code(10, 'KHOA76', 215);
-CALL insert_item_by_code(10, 'KHOA77', 158);
-CALL insert_item_by_code(10, 'KHOA78', 43);
-CALL insert_item_by_code(10, 'KHOA79', 1215);
-CALL insert_item_by_code(10, 'KHOA80', 357);
-CALL insert_item_by_code(10, 'KHOA103', 50);
-CALL insert_item_by_code(10, 'KHOA81', 4980);
-CALL insert_item_by_code(10, 'KHOA82', 1600);
-CALL insert_item_by_code(10, 'KHOA83', 72);
-CALL insert_item_by_code(10, 'KHOA84', 112);
-CALL insert_item_by_code(10, 'KHOA85', 260);
-CALL insert_item_by_code(10, 'KHOA86', 77);
-CALL insert_item_by_code(10, 'KHOA88', 70);
-CALL insert_item_by_code(10, 'KHOA90', 329);
-CALL insert_item_by_code(10, 'KHOA91', 182);
-CALL insert_item_by_code(10, 'KHOA92', 106);
-CALL insert_item_by_code(10, 'KHOA95', 42);
-CALL insert_item_by_code(10, 'KHOA96', 1110);
-CALL insert_item_by_code(10, 'KHOA97', 42);
-CALL insert_item_by_code(10, 'KHOA98', 48);
-CALL insert_item_by_code(10, 'KHOA99', 83);
--- Nhóm MAC
-CALL insert_item_by_code(10, 'MAC1', 13288);
-CALL insert_item_by_code(10, 'MAC2', 18200);
-CALL insert_item_by_code(10, 'MAC3', 1941);
-CALL insert_item_by_code(10, 'MAC4', 3500);
-CALL insert_item_by_code(10, 'MAC5', 2026);
-CALL insert_item_by_code(10, 'MAC6', 5412);
-CALL insert_item_by_code(10, 'MAC7', 6705);
-CALL insert_item_by_code(10, 'MAC8', 5601);
-CALL insert_item_by_code(10, 'MAC9', 3000);
-CALL insert_item_by_code(10, 'MAC10', 11500);
-CALL insert_item_by_code(10, 'MAC11', 5460);
-CALL insert_item_by_code(10, 'MAC12', 8700);
-CALL insert_item_by_code(10, 'MAC13', 900);
-CALL insert_item_by_code(10, 'MAC14', 1870);
-CALL insert_item_by_code(10, 'MAC15', 2250);
-CALL insert_item_by_code(10, 'MAC16', 3870);
-CALL insert_item_by_code(10, 'MAC17', 2960);
-CALL insert_item_by_code(10, 'MAC18', 1840);
-CALL insert_item_by_code(10, 'MAC19', 2200);
-CALL insert_item_by_code(10, 'MAC20', 2290);
-CALL insert_item_by_code(10, 'MAC21', 1160);
-CALL insert_item_by_code(10, 'MAC22', 1460);
-CALL insert_item_by_code(10, 'MAC23', 1170);
-CALL insert_item_by_code(10, 'MAC24', 1100);
-CALL insert_item_by_code(10, 'MAC25', 1057);
-CALL insert_item_by_code(10, 'MAC26', 3010);
-CALL insert_item_by_code(10, 'MAC27', 2160);
-CALL insert_item_by_code(10, 'MAC28', 1720);
-CALL insert_item_by_code(10, 'MAC29', 3340);
-CALL insert_item_by_code(10, 'MAC30', 1590);
-CALL insert_item_by_code(10, 'MAC31', 1346);
-CALL insert_item_by_code(10, 'MAC32', 1050);
-CALL insert_item_by_code(10, 'MAC33', 861);
-CALL insert_item_by_code(10, 'MAC34', 1922);
-CALL insert_item_by_code(10, 'MAC35', 1553);
-CALL insert_item_by_code(10, 'MAC36', 284);
-CALL insert_item_by_code(10, 'MAC37', 1404);
-CALL insert_item_by_code(10, 'MAC38', 645);
-CALL insert_item_by_code(10, 'MAC40', 2590);
-CALL insert_item_by_code(10, 'MAC41', 1050);
-CALL insert_item_by_code(10, 'MAC42', 2430);
-CALL insert_item_by_code(10, 'MAC43', 2100);
-CALL insert_item_by_code(10, 'MAC44', 2624);
-CALL insert_item_by_code(10, 'MAC45', 2900);
-CALL insert_item_by_code(10, 'MAC46', 2533);
-CALL insert_item_by_code(10, 'MAC47', 700);
-CALL insert_item_by_code(10, 'MAC48', 360);
-CALL insert_item_by_code(10, 'MAC49', 900);
-CALL insert_item_by_code(10, 'MAC50', 798);
-CALL insert_item_by_code(10, 'MAC51', 1042);
-CALL insert_item_by_code(10, 'MAC52', 727);
-CALL insert_item_by_code(10, 'MAC53', 5519);
-CALL insert_item_by_code(10, 'MAC54', 1567);
-CALL insert_item_by_code(10, 'MAC55', 2118);
-CALL insert_item_by_code(10, 'MAC56', 4292);
-CALL insert_item_by_code(10, 'MAC57', 4800);
-CALL insert_item_by_code(10, 'MAC58', 5000);
-CALL insert_item_by_code(10, 'MAC59', 4930);
-CALL insert_item_by_code(10, 'MAC60', 789);
-CALL insert_item_by_code(10, 'MAC61', 1310);
-CALL insert_item_by_code(10, 'MAC62', 2090);
-CALL insert_item_by_code(10, 'MAC63', 11);
-CALL insert_item_by_code(10, 'MAC64', 1000);
-CALL insert_item_by_code(10, 'MAC65', 1000);
-CALL insert_item_by_code(10, 'MAC66', 709);
-CALL insert_item_by_code(10, 'MAC67', 709);
-CALL insert_item_by_code(10, 'MAC68', 709);
--- Nhóm KHUY
-CALL insert_item_by_code(10, 'KHUY1', 22);
-CALL insert_item_by_code(10, 'KHUY3', 16);
-CALL insert_item_by_code(10, 'KHUY5', 56);
-CALL insert_item_by_code(10, 'KHUY6', 31);
-CALL insert_item_by_code(10, 'KHUY7', 34);
-CALL insert_item_by_code(10, 'KHUY11', 14);
-CALL insert_item_by_code(10, 'KHUY12', 8);
--- Nhóm MEX
-CALL insert_item_by_code(10, 'MEX1', 52);
-CALL insert_item_by_code(10, 'MEX2', 190);
-CALL insert_item_by_code(10, 'MEX3', 9);
-CALL insert_item_by_code(10, 'MEX4', 3);
-CALL insert_item_by_code(10, 'MEX5', 415);
-CALL insert_item_by_code(10, 'MEX7', 2230);
-CALL insert_item_by_code(10, 'MEX8', 470);
--- Nhóm ĐV, NI, LQ
-CALL insert_item_by_code(10, 'ĐV1', 531);
-CALL insert_item_by_code(10, 'ĐV2', 56);
-CALL insert_item_by_code(10, 'NI1', 105);
-CALL insert_item_by_code(10, 'NI2', 308);
-CALL insert_item_by_code(10, 'NI3', 118);
-CALL insert_item_by_code(10, 'NI4', 200);
-CALL insert_item_by_code(10, 'NI5', 1252);
-CALL insert_item_by_code(10, 'LQ1', 280);
-CALL insert_item_by_code(10, 'LQ3', 250);
-CALL insert_item_by_code(10, 'LQ4', 4300);
-CALL insert_item_by_code(10, 'LQ5', 2700);
--- Nhóm LOT
-CALL insert_item_by_code(10, 'LOT1', 1188);
-CALL insert_item_by_code(10, 'LOT2', 2061);
-CALL insert_item_by_code(10, 'LOT3', 1500);
-CALL insert_item_by_code(10, 'LOT4', 654);
-CALL insert_item_by_code(10, 'LOT5', 1480);
-CALL insert_item_by_code(10, 'LOT10', 757);
-CALL insert_item_by_code(10, 'LOT11', 155);
-CALL insert_item_by_code(10, 'LOT12', 3064);
-CALL insert_item_by_code(10, 'LOT13', 2900);
-CALL insert_item_by_code(10, 'LOT15', 5727);
-CALL insert_item_by_code(10, 'LOT16', 2250);
-CALL insert_item_by_code(10, 'LOT17', 830);
-CALL insert_item_by_code(10, 'LOT18', 1017);
-CALL insert_item_by_code(10, 'LOT19', 4910);
-CALL insert_item_by_code(10, 'LOT20', 950);
-CALL insert_item_by_code(10, 'LOT21', 1650);
-CALL insert_item_by_code(10, 'LOT22', 519);
-CALL insert_item_by_code(10, 'LOT23', 454);
-CALL insert_item_by_code(10, 'LOT25', 53);
-CALL insert_item_by_code(10, 'LOT26', 174);
-CALL insert_item_by_code(10, 'LOT27', 1011);
-CALL insert_item_by_code(10, 'LOT29', 285);
-CALL insert_item_by_code(10, 'LOT30', 26);
-CALL insert_item_by_code(10, 'LOT32', 615);
-CALL insert_item_by_code(10, 'LOT34', 1070);
-CALL insert_item_by_code(10, 'LOT37', 1890);
--- Nhóm NHAM, TB, K
-CALL insert_item_by_code(10, 'NHAM1', 41);
-CALL insert_item_by_code(10, 'NHAM2', 9);
-CALL insert_item_by_code(10, 'K1', 7000);
-CALL insert_item_by_code(10, 'K2', 300);
-CALL insert_item_by_code(10, 'K3', 7);
-CALL insert_item_by_code(10, 'K5', 8);
-CALL insert_item_by_code(10, 'K6', 2);
-CALL insert_item_by_code(10, 'K7', 5);
-CALL insert_item_by_code(10, 'K8', 195);
-CALL insert_item_by_code(10, 'K9', 700);
-CALL insert_item_by_code(10, 'K10', 700);
-CALL insert_item_by_code(10, 'K11', 585);
-CALL insert_item_by_code(10, 'K12', 7400);
-CALL insert_item_by_code(10, 'K13', 1600);
-CALL insert_item_by_code(10, 'K14', 230);
-CALL insert_item_by_code(10, 'K15', 1489);
-CALL insert_item_by_code(10, 'K16', 940);
-CALL insert_item_by_code(10, 'K17', 750);
-CALL insert_item_by_code(10, 'K18', 800);
-CALL insert_item_by_code(10, 'K19', 818);
-CALL insert_item_by_code(10, 'K20', 863);
-CALL insert_item_by_code(10, 'K21', 828);
-CALL insert_item_by_code(10, 'K22', 100);
-CALL insert_item_by_code(10, 'K23', 189);
-CALL insert_item_by_code(10, 'K24', 200);
-CALL insert_item_by_code(10, 'K25', 200);
-CALL insert_item_by_code(10, 'K26', 2);
 
 -- =====================================================
 -- PHẦN 8: ORDERS (Dữ liệu mẫu - Lark integration G1+)
@@ -2264,65 +2436,6 @@ BEGIN
 END//
 
 DELIMITER ;
-
--- =====================================================
--- PHẦN 9b: NHẬP KHO TRƯỜNG — Clone dữ liệu Vải (Product 8)
--- =====================================================
-
--- Tạo request set cho nhập kho Trường
-INSERT INTO request_sets (set_name, created_by, created_at) VALUES
-('Nhập kho Trường - Vải ban đầu', NULL, '2025-06-20 00:00:00');
-
-SET @truong_set_id = LAST_INSERT_ID();
-
--- Tạo inventory request cho product 8, warehouse_id = 2 (Kho Trường)
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, note, created_at, warehouse_id)
-VALUES (@truong_set_id, NULL, 8, 'IN', 'Nhập kho Trường ban đầu', '2025-06-20 00:00:00', 2);
-
-SET @truong_request_id = LAST_INSERT_ID();
-
--- Clone items từ Kho Chính sang Kho Trường (số lượng nhỏ hơn ~30-50%)
-INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @truong_request_id, pv.variant_id, CASE pv.item_code
-    WHEN 'B1'  THEN 180
-    WHEN 'B2'  THEN 120
-    WHEN 'B4'  THEN 50
-    WHEN 'B7'  THEN 150
-    WHEN 'B9'  THEN 70
-    WHEN 'B11' THEN 60
-    WHEN 'B12' THEN 100
-    WHEN 'B13' THEN 50
-    WHEN 'B15' THEN 130
-    WHEN 'B16' THEN 90
-    WHEN 'B17' THEN 120
-    WHEN 'B18' THEN 50
-    WHEN 'B19' THEN 100
-    WHEN 'B20' THEN 70
-    WHEN 'B21' THEN 40
-    WHEN 'B22' THEN 80
-    WHEN 'B23' THEN 60
-    WHEN 'B24' THEN 35
-    WHEN 'B25' THEN 25
-    WHEN 'B26' THEN 200
-    WHEN 'B27' THEN 150
-    WHEN 'B28' THEN 130
-    WHEN 'B29' THEN 100
-    WHEN 'B30' THEN 120
-    WHEN 'B31' THEN 80
-    WHEN 'B32' THEN 65
-    WHEN 'B33' THEN 100
-    WHEN 'B34' THEN 90
-    WHEN 'B35' THEN 15
-    WHEN 'B37' THEN 50
-    WHEN 'B39' THEN 40
-    ELSE 0
-END
-FROM product_variants pv
-WHERE pv.product_id = 8
-  AND pv.item_code IN ('B1','B2','B4','B7','B9','B11','B12','B13','B15','B16','B17','B18','B19','B20','B21','B22','B23','B24','B25','B26','B27','B28','B29','B30','B31','B32','B33','B34','B35','B37','B39');
-
--- Set status EXECUTED
-UPDATE request_sets SET status = 'EXECUTED', submitted_at = created_at WHERE set_id = @truong_set_id;
 
 -- =====================================================
 -- PHẦN 10: ACCESSORY TEMPLATES (V15)
@@ -2388,10 +2501,7 @@ WHERE t.name = 'Quần NT nam';
 -- =====================================================
 -- PHẦN 11: CLEANUP - XÓA PROCEDURE SAU KHI IMPORT
 -- =====================================================
-DROP PROCEDURE IF EXISTS insert_item_by_variant;
-DROP PROCEDURE IF EXISTS insert_item_by_gender;
-DROP PROCEDURE IF EXISTS insert_item_by_gender_length;
-DROP PROCEDURE IF EXISTS insert_item_by_code;
+-- (Không còn procedure seed kho tạm thời)
 -- Lưu ý: KHÔNG xóa create_child_product vì cần dùng runtime
 
 -- =====================================================
