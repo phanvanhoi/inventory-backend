@@ -1,7 +1,8 @@
 -- =====================================================
 -- PHẦN 8a: TỒN KHO BAN ĐẦU HDH22 — CÔNG TY (Product 1)
 -- Nguồn: HDH22 - TRẮNG KEM NAM BƯU ĐIỆN (KHÔNG LÉ, KHÔNG THÊU).csv
--- Dòng 4 = thực tế (IN EXECUTED) | Dòng 5 = dự kiến (ADJUST APPROVED, có thể âm)
+-- Dòng 4 = thực tế (request set EXECUTED) | Dòng 5 = dự kiến (request set APPROVED riêng)
+-- ADJUST chỉ cộng vào tồn dự kiến khi request_set.status IN (PENDING, APPROVED, RECEIVING)
 -- Tổng thực tế: 1094 chiếc | ADJUST_IN: 3 dòng | ADJUST_OUT: 43 dòng
 -- Ô dự kiến âm trong CSV: 8 ô (giữ nguyên)
 -- =====================================================
@@ -9,7 +10,7 @@
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
     'Tồn kho ban đầu - HDH22 CÔNG TY 2026',
-    'HDH22 - TRẮNG KEM NAM BƯU ĐIỆN: thực tế + điều chỉnh dự kiến',
+    'HDH22 - TRẮNG KEM NAM BƯU ĐIỆN: tồn thực tế',
     'HANG_MAY_SAN',
     'EXECUTED',
     NULL,
@@ -17,13 +18,13 @@ VALUES (
     '2026-01-01 00:00:00'
 );
 
-SET @hdh22_set_id = LAST_INSERT_ID();
+SET @hdh22_actual_set_id = LAST_INSERT_ID();
 SET @hdh22_cong_ty_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'CÔNG TY' LIMIT 1);
 
 -- 8a-1: Tồn thực tế
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
 SELECT
-    @hdh22_set_id,
+    @hdh22_actual_set_id,
     u.unit_id,
     1,
     'IN',
@@ -221,10 +222,24 @@ JOIN product_variants pv ON pv.product_id = 1
   AND pv.size_id = v.size_id
   AND pv.length_type_id = v.length_type_id;
 
--- 8a-2: Điều chỉnh dự kiến nhập (ADJUST_IN)
+-- 8a-2: Request set riêng cho điều chỉnh dự kiến (phải APPROVED, không EXECUTED)
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Dự kiến tồn - HDH22 CÔNG TY 2026',
+    'Điều chỉnh dự kiến HDH22 (ADJUST_IN/OUT)',
+    'HANG_MAY_SAN',
+    'APPROVED',
+    NULL,
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
+);
+
+SET @hdh22_expected_set_id = LAST_INSERT_ID();
+
+-- 8a-3: Điều chỉnh dự kiến nhập (ADJUST_IN)
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, expected_date, note, created_at, warehouse_id)
 SELECT
-    @hdh22_set_id,
+    @hdh22_expected_set_id,
     u.unit_id,
     1,
     'ADJUST_IN',
@@ -253,10 +268,10 @@ JOIN product_variants pv ON pv.product_id = 1
   AND pv.size_id = v.size_id
   AND pv.length_type_id = v.length_type_id;
 
--- 8a-3: Điều chỉnh dự kiến xuất (ADJUST_OUT)
+-- 8a-4: Điều chỉnh dự kiến xuất (ADJUST_OUT)
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, expected_date, note, created_at, warehouse_id)
 SELECT
-    @hdh22_set_id,
+    @hdh22_expected_set_id,
     u.unit_id,
     1,
     'ADJUST_OUT',
