@@ -882,7 +882,7 @@ INSERT INTO products (product_name, variant_type, note, created_at) VALUES
 ('BẢO HỘ LAO ĐỘNG CÓ SIZE 2026', 'STRUCTURED', 'Parent: Giày BH + Áo mưa', '2026-01-01 00:00:00'),
 ('NHẬP XUẤT VẢI 2026', 'ITEM_BASED', '338 mã vải (CSV CÔNG TY)', '2026-01-01 00:00:00'),
 ('PHỤ KIỆN 2026', 'ITEM_BASED', '50 mã phụ kiện (CSV 2026)', '2026-01-01 00:00:00'),
-('PHỤ LIỆU 2026', 'ITEM_BASED', '~250 mã phụ liệu', '2026-01-01 00:00:00');
+('PHỤ LIỆU 2026', 'ITEM_BASED', '262 mã phụ liệu (CSV 2026)', '2026-01-01 00:00:00');
 
 -- SP1 là child của SP2 (SƠ MI NAM 2026)
 UPDATE products SET parent_product_id = 2 WHERE product_id = 1;
@@ -1394,7 +1394,7 @@ INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
 (9, 'PK51', 'Cavat vàng chấm bi mác VN Post (2)', 'chiếc'),
 (9, 'PK52', 'Cavat vàng mác VN Post (3)', 'chiếc');
 
--- Product 10: PHỤ LIỆU (258 mã — ITEM_BASED)
+-- Product 10: PHỤ LIỆU (262 mã — ITEM_BASED)
 -- Nhóm KHOA (77 mã)
 INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
 (10, 'KHOA1', 'Khóa quần tím than', 'chiếc'),
@@ -1673,6 +1673,13 @@ INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
 (10, 'K26', 'Dựng', 'cây'),
 (10, 'K27', 'Dựng vải', 'mét'),
 (10, 'K28', 'Dựng giấy (đen)', 'mét');
+
+-- Bổ sung từ NHẬP PHỤ LIỆU 2026.csv (4 mã mới)
+INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
+(10, 'LQ6', 'Lưng cạp chun quần chữ H', 'mét'),
+(10, 'K29', 'Chặn đầu khóa', 'gói'),
+(10, 'K30', 'Dây luồn gấu', 'mét'),
+(10, 'K31', 'Dây luồn mũ', 'mét');
 
 -- 3.7a Warehouses (Kho)
 INSERT INTO warehouses (warehouse_name, is_default) VALUES
@@ -3151,6 +3158,570 @@ FROM (
     SELECT 'KHOA3' AS item_code, 0 AS qty
 ) v
 JOIN product_variants pv ON pv.product_id = 17 AND pv.item_code = v.item_code;
+
+
+-- =====================================================
+-- PHẦN 7: TỒN KHO BAN ĐẦU PHỤ LIỆU — CÔNG TY (Product 10)
+-- Nguồn: NHẬP PHỤ LIỆU 2026.csv
+-- 261 mã (gồm 47 mã SL=0, 4 mã SL âm), giữ nguyên ghi chú
+-- =====================================================
+
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Tồn kho ban đầu - Phụ liệu CÔNG TY 2026',
+    'Import từ NHẬP PHỤ LIỆU 2026.csv',
+    'PHU_LIEU',
+    'EXECUTED',
+    NULL,
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
+);
+
+SET @phulieu_set_id = LAST_INSERT_ID();
+SET @phulieu_cong_ty_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'CÔNG TY' LIMIT 1);
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+SELECT
+    @phulieu_set_id,
+    u.unit_id,
+    10,
+    'IN',
+    'EXECUTED',
+    'Tồn kho ban đầu phụ liệu kho CÔNG TY',
+    '2026-01-01 00:00:00',
+    @phulieu_cong_ty_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
+
+SET @phulieu_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity, fabric_note)
+SELECT @phulieu_request_id, pv.variant_id, v.qty, v.note
+FROM (
+    SELECT 'KHOA1' AS item_code, 17210 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA2' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA3' AS item_code, 7800 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA4' AS item_code, 11616 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA5' AS item_code, 982 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA6' AS item_code, 2020 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA7' AS item_code, 605 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA8' AS item_code, 3613 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA9' AS item_code, 3064 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA30' AS item_code, 8014 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA31' AS item_code, 4017 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA32' AS item_code, 981 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA33' AS item_code, 830 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA34' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA35' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA36' AS item_code, 499 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA37' AS item_code, 3 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA38' AS item_code, 599 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA39' AS item_code, 285 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA40' AS item_code, 90 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA47' AS item_code, 3602 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA48' AS item_code, 17 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA49' AS item_code, 35 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA50' AS item_code, 430 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA51' AS item_code, 1 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA52' AS item_code, 19 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA53' AS item_code, 83 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA54' AS item_code, 183 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA55' AS item_code, 61 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA56' AS item_code, 49 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA57' AS item_code, 811 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA58' AS item_code, 56 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA59' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA60' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA61' AS item_code, 35 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA62' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA63' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA64' AS item_code, 100 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA65' AS item_code, 218 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA66' AS item_code, 202 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA67' AS item_code, 600 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA68' AS item_code, 245 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA69' AS item_code, 253 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA70' AS item_code, 600 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA71' AS item_code, 309 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA72' AS item_code, 256 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA73' AS item_code, 148 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA74' AS item_code, 363 AS qty, '189 cục dài, 311 khóa cụ tròn' AS note
+    UNION ALL
+    SELECT 'KHOA75' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA76' AS item_code, 100 AS qty, '2 loại' AS note
+    UNION ALL
+    SELECT 'KHOA77' AS item_code, 158 AS qty, '2 loại' AS note
+    UNION ALL
+    SELECT 'KHOA102' AS item_code, 50 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA78' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA79' AS item_code, 243 AS qty, '2 loại' AS note
+    UNION ALL
+    SELECT 'KHOA80' AS item_code, 357 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA103' AS item_code, 50 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA81' AS item_code, 1669 AS qty, '2 loại' AS note
+    UNION ALL
+    SELECT 'KHOA82' AS item_code, -52 AS qty, '2 loại' AS note
+    UNION ALL
+    SELECT 'KHOA83' AS item_code, 172 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA84' AS item_code, 312 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA85' AS item_code, 207 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA86' AS item_code, 147 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA87' AS item_code, 314 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA88' AS item_code, 150 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA89' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA90' AS item_code, 329 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA91' AS item_code, 182 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA92' AS item_code, 106 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA93' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA94' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA95' AS item_code, 42 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA96' AS item_code, 1110 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA97' AS item_code, 42 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA98' AS item_code, 48 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA99' AS item_code, 83 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC1' AS item_code, 3180 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC2' AS item_code, 7100 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC3' AS item_code, 1703 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC4' AS item_code, 3437 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC5' AS item_code, 1718 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC6' AS item_code, 5128 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC7' AS item_code, 2361 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC8' AS item_code, 3464 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC9' AS item_code, 3000 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC10' AS item_code, 11500 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC11' AS item_code, 5460 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC12' AS item_code, 20560 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC13' AS item_code, 900 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC14' AS item_code, 1773 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC15' AS item_code, 1911 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC16' AS item_code, 3037 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC17' AS item_code, 2025 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC18' AS item_code, 1008 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC19' AS item_code, 1603 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC20' AS item_code, 1858 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC21' AS item_code, 973 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC22' AS item_code, 1328 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC23' AS item_code, 1162 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC24' AS item_code, 1100 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC25' AS item_code, 629 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC26' AS item_code, 2032 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC27' AS item_code, 576 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC28' AS item_code, 697 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC29' AS item_code, 2850 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC30' AS item_code, 1419 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC31' AS item_code, 1065 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC32' AS item_code, 441 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC33' AS item_code, 203 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC34' AS item_code, 1660 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC35' AS item_code, 1479 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC36' AS item_code, 284 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC37' AS item_code, 1404 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC38' AS item_code, 645 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC40' AS item_code, 1205 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC41' AS item_code, 925 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC42' AS item_code, 2170 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC43' AS item_code, 1702 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC44' AS item_code, 2276 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC45' AS item_code, 2740 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC46' AS item_code, 2373 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC47' AS item_code, 698 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC48' AS item_code, 358 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC49' AS item_code, 883 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC50' AS item_code, 765 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC51' AS item_code, 908 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC52' AS item_code, 725 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC53' AS item_code, 5517 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC54' AS item_code, 1567 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC55' AS item_code, 2118 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC56' AS item_code, 4272 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC57' AS item_code, 4780 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC58' AS item_code, 4980 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC59' AS item_code, 4910 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC60' AS item_code, 724 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC61' AS item_code, 1310 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC62' AS item_code, 2090 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC63' AS item_code, 5 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC64' AS item_code, 959 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC65' AS item_code, 994 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY1' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY2' AS item_code, 35.4 AS qty, 'chú Thắng' AS note
+    UNION ALL
+    SELECT 'KHUY3' AS item_code, 65.7 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY4' AS item_code, 32.7 AS qty, 'chú Thắng' AS note
+    UNION ALL
+    SELECT 'KHUY5' AS item_code, 99.78 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY6' AS item_code, 58.8 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY7' AS item_code, 28.6 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY8' AS item_code, 0 AS qty, 'chú Thắng' AS note
+    UNION ALL
+    SELECT 'KHUY9' AS item_code, 20.7 AS qty, 'chú Thắng' AS note
+    UNION ALL
+    SELECT 'KHUY10' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY11' AS item_code, 34.56 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY12' AS item_code, 19.9 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY13' AS item_code, 54.66 AS qty, 'chú Thắng' AS note
+    UNION ALL
+    SELECT 'KHUY14' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY15' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY16' AS item_code, 0 AS qty, 'chú Thắng' AS note
+    UNION ALL
+    SELECT 'KHUY17' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY18' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY19' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY20' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHUY21' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MEX1' AS item_code, 24 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MEX2' AS item_code, 685.9 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MEX3' AS item_code, 2717 AS qty, '1 cây 91,4m' AS note
+    UNION ALL
+    SELECT 'MEX4' AS item_code, 2 AS qty, '1 cây 100m' AS note
+    UNION ALL
+    SELECT 'MEX5' AS item_code, 1954.6 AS qty, '1 cây 91,4m' AS note
+    UNION ALL
+    SELECT 'MEX6' AS item_code, 672 AS qty, '1 cây 100m' AS note
+    UNION ALL
+    SELECT 'MEX7' AS item_code, 2932 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MEX8' AS item_code, 1257 AS qty, '1 cây 100m' AS note
+    UNION ALL
+    SELECT 'MEX9' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'ĐV1' AS item_code, 1168 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'ĐV2' AS item_code, 869 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'NI1' AS item_code, 99.1 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'NI2' AS item_code, 301.5 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'NI3' AS item_code, 104.46 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'NI4' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'NI5' AS item_code, 1813 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LQ1' AS item_code, 280 AS qty, '50m/ cuộn' AS note
+    UNION ALL
+    SELECT 'LQ3' AS item_code, 3068 AS qty, '50m/ cuộn' AS note
+    UNION ALL
+    SELECT 'LQ4' AS item_code, 3389 AS qty, '50m/ cuộn' AS note
+    UNION ALL
+    SELECT 'LQ5' AS item_code, 2650 AS qty, '1500m TRƠN, 1200m kẻ' AS note
+    UNION ALL
+    SELECT 'LOT1' AS item_code, 223 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT2' AS item_code, 1923.9 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT3' AS item_code, 1315.7 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT4' AS item_code, 1339.35 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT5' AS item_code, 1970 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT6' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT7' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT8' AS item_code, -70 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT9' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT10' AS item_code, -62.9 AS qty, 'BH nam 0,35m/1 BH nữ 0,25m/1' AS note
+    UNION ALL
+    SELECT 'LOT11' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT12' AS item_code, 1773.2 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT13' AS item_code, 1464 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT14' AS item_code, 294 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT15' AS item_code, 4167.35 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT16' AS item_code, 1492 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT17' AS item_code, 3340 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT18' AS item_code, 948 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT19' AS item_code, 3674.3 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT20' AS item_code, 1950 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT21' AS item_code, 1600 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT22' AS item_code, 421 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT23' AS item_code, 419.15 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT24' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT25' AS item_code, 53.2 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT26' AS item_code, 174 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT27' AS item_code, 1009.5 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT28' AS item_code, 380.3 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT29' AS item_code, 281.27 AS qty, 'xấp xỉ 5m = 1kg' AS note
+    UNION ALL
+    SELECT 'LOT30' AS item_code, 26.3 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT31' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT32' AS item_code, 611 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT33' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT34' AS item_code, 1070 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT35' AS item_code, -3 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT36' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LOT37' AS item_code, 1723.6 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'NHAM1' AS item_code, 10.86 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'NHAM2' AS item_code, 8.8 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'NHAM3' AS item_code, 580 AS qty, '20m/cuộn' AS note
+    UNION ALL
+    SELECT 'TB1' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'TB2' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'TB3' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K1' AS item_code, 1222 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K2' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K3' AS item_code, 3200 AS qty, '100m/ cuộn' AS note
+    UNION ALL
+    SELECT 'K4' AS item_code, 1099 AS qty, '100m/ cuộn' AS note
+    UNION ALL
+    SELECT 'K5' AS item_code, 446.7 AS qty, '50m/ cuộn' AS note
+    UNION ALL
+    SELECT 'K6' AS item_code, 350 AS qty, '2 cuộn = 100m' AS note
+    UNION ALL
+    SELECT 'K7' AS item_code, 1399.1 AS qty, '50m/ cuộn' AS note
+    UNION ALL
+    SELECT 'K8' AS item_code, 195 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K9' AS item_code, 698 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K10' AS item_code, 698 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K11' AS item_code, 2209 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K12' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K13' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K14' AS item_code, 230 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K15' AS item_code, 1489 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K16' AS item_code, 940 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K17' AS item_code, 750 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K18' AS item_code, 800 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K19' AS item_code, 818 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K20' AS item_code, 863 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K21' AS item_code, 828 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K22' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K23' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K24' AS item_code, 200 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K25' AS item_code, 200 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K26' AS item_code, 0.5 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K27' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K28' AS item_code, 0 AS qty, '100Y=91,4m' AS note
+    UNION ALL
+    SELECT 'LOT38' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA100' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'KHOA101' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC66' AS item_code, 708 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC67' AS item_code, 708 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'MAC68' AS item_code, 708 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'LQ6' AS item_code, 2030 AS qty, '1kg = 37m' AS note
+    UNION ALL
+    SELECT 'K29' AS item_code, 0 AS qty, NULL AS note
+    UNION ALL
+    SELECT 'K30' AS item_code, 3408.3 AS qty, '1000 Yds = 914m' AS note
+    UNION ALL
+    SELECT 'K31' AS item_code, 8008.6 AS qty, '1000 Yds = 914m' AS note
+) v
+JOIN product_variants pv ON pv.product_id = 10 AND pv.item_code = v.item_code;
 
 
 -- =====================================================
