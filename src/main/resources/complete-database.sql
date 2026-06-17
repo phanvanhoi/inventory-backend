@@ -881,7 +881,7 @@ INSERT INTO products (product_name, variant_type, note, created_at) VALUES
 ('GILE BẢO HỘ 2026', 'STRUCTURED', 'Size(XS-6XL) + Gender(NAM/NỮ)', '2026-01-01 00:00:00'),
 ('BẢO HỘ LAO ĐỘNG CÓ SIZE 2026', 'STRUCTURED', 'Parent: Giày BH + Áo mưa', '2026-01-01 00:00:00'),
 ('NHẬP XUẤT VẢI 2026', 'ITEM_BASED', '338 mã vải (CSV CÔNG TY)', '2026-01-01 00:00:00'),
-('PHỤ KIỆN 2026', 'ITEM_BASED', '49 mã phụ kiện', '2026-01-01 00:00:00'),
+('PHỤ KIỆN 2026', 'ITEM_BASED', '50 mã phụ kiện (CSV 2026)', '2026-01-01 00:00:00'),
 ('PHỤ LIỆU 2026', 'ITEM_BASED', '~250 mã phụ liệu', '2026-01-01 00:00:00');
 
 -- SP1 là child của SP2 (SƠ MI NAM 2026)
@@ -1332,7 +1332,7 @@ INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
 (8, 'H20', 'Mã 1918 (sơ mi trắng)', 'mét'),
 (8, 'H55', 'HTS03225-2', 'mét');
 
--- Product 9: PHỤ KIỆN (47 mã — ITEM_BASED)
+-- Product 9: PHỤ KIỆN (50 mã — ITEM_BASED)
 INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
 (9, 'PK1', 'Cavat văn phòng bưu điện', 'chiếc'),
 (9, 'PK2', 'Cavat giao dịch bưu điện', 'chiếc'),
@@ -1381,6 +1381,13 @@ INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
 (9, 'PK47', 'Khăn Học viện bưu chính viễn thông', 'chiếc'),
 (9, 'PK48', 'Cavat Học viện bưu chính viễn thông 2025 - Xanh', 'chiếc'),
 (9, 'PK49', 'Nơ Học viện bưu chính viễn thông (Mẫu mới 2025)', 'chiếc');
+
+
+-- Bổ sung từ NHẬP PHỤ KIỆN 2026.csv
+INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
+(9, 'PK50', 'Cavat vàng trơn mác VN Post (1)', 'chiếc'),
+(9, 'PK51', 'Cavat vàng chấm bi mác VN Post (2)', 'chiếc'),
+(9, 'PK52', 'Cavat vàng mác VN Post (3)', 'chiếc');
 
 -- Product 10: PHỤ LIỆU (258 mã — ITEM_BASED)
 -- Nhóm KHOA (77 mã)
@@ -2862,6 +2869,136 @@ SELECT 'B11' AS item_code, 5842.2 AS qty
     UNION ALL SELECT 'V80',  2995
 ) v
 JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
+
+
+-- =====================================================
+-- PHẦN 5: TỒN KHO BAN ĐẦU PHỤ KIỆN — CÔNG TY (Product 9)
+-- Nguồn: NHẬP PHỤ KIỆN 2026.csv
+-- 50 mã phụ kiện, 44 mã có tồn > 0
+-- =====================================================
+
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Tồn kho ban đầu - Phụ kiện CÔNG TY 2026',
+    'Import từ NHẬP PHỤ KIỆN 2026.csv',
+    'PHU_KIEN',
+    'EXECUTED',
+    NULL,
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
+);
+
+SET @accessory_set_id = LAST_INSERT_ID();
+SET @accessory_cong_ty_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'CÔNG TY' LIMIT 1);
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+SELECT
+    @accessory_set_id,
+    u.unit_id,
+    9,
+    'IN',
+    'EXECUTED',
+    'Tồn kho ban đầu phụ kiện kho CÔNG TY',
+    '2026-01-01 00:00:00',
+    @accessory_cong_ty_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
+
+SET @accessory_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @accessory_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'PK1' AS item_code, 35 AS qty
+    UNION ALL
+    SELECT 'PK2' AS item_code, 1703 AS qty
+    UNION ALL
+    SELECT 'PK3' AS item_code, 568 AS qty
+    UNION ALL
+    SELECT 'PK4' AS item_code, 9 AS qty
+    UNION ALL
+    SELECT 'PK5' AS item_code, 114 AS qty
+    UNION ALL
+    SELECT 'PK6' AS item_code, 62 AS qty
+    UNION ALL
+    SELECT 'PK9' AS item_code, 430 AS qty
+    UNION ALL
+    SELECT 'PK10' AS item_code, 477 AS qty
+    UNION ALL
+    SELECT 'PK11' AS item_code, 454 AS qty
+    UNION ALL
+    SELECT 'PK13' AS item_code, 173 AS qty
+    UNION ALL
+    SELECT 'PK14' AS item_code, 535 AS qty
+    UNION ALL
+    SELECT 'PK17' AS item_code, 143 AS qty
+    UNION ALL
+    SELECT 'PK18' AS item_code, 214 AS qty
+    UNION ALL
+    SELECT 'PK19' AS item_code, 251 AS qty
+    UNION ALL
+    SELECT 'PK20' AS item_code, 211 AS qty
+    UNION ALL
+    SELECT 'PK21' AS item_code, 16 AS qty
+    UNION ALL
+    SELECT 'PK22' AS item_code, 50 AS qty
+    UNION ALL
+    SELECT 'PK23' AS item_code, 11 AS qty
+    UNION ALL
+    SELECT 'PK24' AS item_code, 26 AS qty
+    UNION ALL
+    SELECT 'PK25' AS item_code, 62 AS qty
+    UNION ALL
+    SELECT 'PK26' AS item_code, 7 AS qty
+    UNION ALL
+    SELECT 'PK27' AS item_code, 61 AS qty
+    UNION ALL
+    SELECT 'PK28' AS item_code, 72 AS qty
+    UNION ALL
+    SELECT 'PK29' AS item_code, 1 AS qty
+    UNION ALL
+    SELECT 'PK30' AS item_code, 7 AS qty
+    UNION ALL
+    SELECT 'PK32' AS item_code, 11 AS qty
+    UNION ALL
+    SELECT 'PK33' AS item_code, 73 AS qty
+    UNION ALL
+    SELECT 'PK34' AS item_code, 18 AS qty
+    UNION ALL
+    SELECT 'PK35' AS item_code, 2 AS qty
+    UNION ALL
+    SELECT 'PK36' AS item_code, 7 AS qty
+    UNION ALL
+    SELECT 'PK37' AS item_code, 19 AS qty
+    UNION ALL
+    SELECT 'PK38' AS item_code, 56 AS qty
+    UNION ALL
+    SELECT 'PK39' AS item_code, 102 AS qty
+    UNION ALL
+    SELECT 'PK40' AS item_code, 104 AS qty
+    UNION ALL
+    SELECT 'PK41' AS item_code, 535 AS qty
+    UNION ALL
+    SELECT 'PK42' AS item_code, 356 AS qty
+    UNION ALL
+    SELECT 'PK43' AS item_code, 608 AS qty
+    UNION ALL
+    SELECT 'PK44' AS item_code, 291 AS qty
+    UNION ALL
+    SELECT 'PK45' AS item_code, 53 AS qty
+    UNION ALL
+    SELECT 'PK46' AS item_code, 49 AS qty
+    UNION ALL
+    SELECT 'PK47' AS item_code, 43 AS qty
+    UNION ALL
+    SELECT 'PK50' AS item_code, 1045 AS qty
+    UNION ALL
+    SELECT 'PK51' AS item_code, 521 AS qty
+    UNION ALL
+    SELECT 'PK52' AS item_code, 520 AS qty
+) v
+JOIN product_variants pv ON pv.product_id = 9 AND pv.item_code = v.item_code;
 
 
 -- =====================================================
