@@ -10,17 +10,22 @@ const csvPath =
   process.argv[2] ||
   "c:\\Users\\RemoteUser\\Downloads\\HDH22 - TRẮNG KEM NAM BƯU ĐIỆN (KHÔNG LÉ, KHÔNG THÊU).csv";
 const productId = Number(process.argv[3] || 1);
-const partLabel = process.argv[4] || (productId === 1 ? "8a" : "8b");
-const varPrefix = process.argv[5] || (productId === 1 ? "hdh22" : "hdh22_le");
-const outFile = process.argv[6] || (productId === 1 ? "hdh22-seed.sql" : "hdh22-le-seed.sql");
+const PART_BY_PRODUCT = { 1: "8a", 18: "8b", 19: "8c" };
+const VAR_PREFIX_BY_PRODUCT = { 1: "hdh22", 18: "hdh22_le", 19: "ke_gan_hld" };
+const OUT_FILE_BY_PRODUCT = { 1: "hdh22-seed.sql", 18: "hdh22-le-seed.sql", 19: "ke-gan-hld-seed.sql" };
+const partLabel = process.argv[4] || PART_BY_PRODUCT[productId] || `8-${productId}`;
+const varPrefix = process.argv[5] || VAR_PREFIX_BY_PRODUCT[productId] || `sp${productId}`;
+const outFile = process.argv[6] || OUT_FILE_BY_PRODUCT[productId] || `sp${productId}-seed.sql`;
 
 const PRODUCT_LABELS = {
   1: "HDH22 - TRẮNG KEM NAM BƯU ĐIỆN (KHÔNG LÉ, KHÔNG THÊU)",
   18: "HDH22 - TRẮNG KEM NAM BƯU ĐIỆN (CÓ LÉ VÀNG, CÓ THÊU VNPOST)",
+  19: "KẺ GÂN NAM HLD",
 };
 const SET_SHORT = {
   1: "HDH22",
   18: "HDH22 lé vàng VNPOST",
+  19: "Kẻ gân nam HLD",
 };
 
 const lines = fs

@@ -913,6 +913,9 @@ INSERT INTO products (product_name, variant_type, note, created_at) VALUES
 INSERT INTO products (product_name, variant_type, parent_product_id, note, created_at) VALUES
 ('HDH22 - TRẮNG KEM NAM BƯU ĐIỆN (CÓ LÉ VÀNG, CÓ THÊU VNPOST)', 'STRUCTURED', 2, 'Sơ mi nam 2025 - SM1 có lé vàng VNPOST', '2025-06-20 00:00:00');
 -- product_id = 18
+INSERT INTO products (product_name, variant_type, parent_product_id, note, created_at) VALUES
+('KẺ GÂN NAM HLD', 'STRUCTURED', 2, 'Sơ mi kẻ gân nam HLD', '2025-06-20 00:00:00');
+-- product_id = 19
 
 -- 3.7 Product Variants
 -- ====== Product 1: SƠ MI NAM 2025 (88 biến thể = 4 styles x 11 sizes x 2 lengths) ======
@@ -943,6 +946,12 @@ INSERT INTO product_variants (product_id, style_id, size_id, length_type_id) VAL
 -- ====== Product 18: HDH22 có lé vàng VNPOST (child SP2, 88 biến thể = clone SP1) ======
 INSERT INTO product_variants (product_id, style_id, size_id, length_type_id)
 SELECT 18, style_id, size_id, length_type_id
+FROM product_variants
+WHERE product_id = 1;
+
+-- ====== Product 19: KẺ GÂN NAM HLD (child SP2, 88 biến thể = clone SP1) ======
+INSERT INTO product_variants (product_id, style_id, size_id, length_type_id)
+SELECT 19, style_id, size_id, length_type_id
 FROM product_variants
 WHERE product_id = 1;
 
