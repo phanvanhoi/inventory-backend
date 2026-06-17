@@ -4911,6 +4911,7 @@ JOIN product_variants pv ON pv.product_id = 19
   AND pv.length_type_id = v.length_type_id;
 
 -- =====================================================
+-- =====================================================
 -- PHẦN 8d: SƠ MI NAM 2026 — BATCH NHẬP LIỆU (SP20–SP32)
 -- Nguồn: NHẬP LIỆU.csv | 13 sản phẩm | parent SP2
 -- =====================================================
@@ -4918,12 +4919,12 @@ JOIN product_variants pv ON pv.product_id = 19
 -- 8d-a: Master products
 INSERT INTO products (product_name, variant_type, parent_product_id, note, created_at) VALUES
 ('HDH24S - KẺ NAM', 'STRUCTURED', 2, 'Sơ mi nam 2026 - batch NHẬP LIỆU', '2026-01-01 00:00:00'),
-('BA0053 (THÊU VNPT TRẮNG - DÀI TAY THÊU MĂNG SÉC TAY', 'STRUCTURED', 2, 'Sơ mi nam 2026 - batch NHẬP LIỆU', '2026-01-01 00:00:00'),
+('BA0053 (THÊU VNPT TRẮNG - DÀI TAY THÊU MĂNG SÉC TAY, CỘC TAY THÊU NGỰC)', 'STRUCTURED', 2, 'Sơ mi nam 2026 - batch NHẬP LIỆU', '2026-01-01 00:00:00'),
 ('ÁO PHÒNG MÁY', 'STRUCTURED', 2, 'Sơ mi nam 2026 - batch NHẬP LIỆU', '2026-01-01 00:00:00'),
 ('TRẮNG TINH TTKD BA 0074 (CỘC TAY THÊU NGỰC - DÀI TAY THÊU MĂNG SÉC)', 'STRUCTURED', 2, 'Sơ mi nam 2026 - batch NHẬP LIỆU', '2026-01-01 00:00:00'),
 ('EMS', 'STRUCTURED', 2, 'Sơ mi nam 2026 - batch NHẬP LIỆU', '2026-01-01 00:00:00'),
 ('EMS ( ÁO TỒN CÁC NĂM TRƯỚC NÊN KHÁC CÂY VẢI)', 'STRUCTURED', 2, 'Sơ mi nam 2026 - batch NHẬP LIỆU', '2026-01-01 00:00:00'),
-('TRẮNG KEM NAM TỔNG CÔNG TY BƯU ĐIỆN (KHÔNG LÉ', 'STRUCTURED', 2, 'Sơ mi nam 2026 - batch NHẬP LIỆU', '2026-01-01 00:00:00'),
+('TRẮNG KEM NAM TỔNG CÔNG TY BƯU ĐIỆN (KHÔNG LÉ, KHÔNG THÊU)', 'STRUCTURED', 2, 'Sơ mi nam 2026 - batch NHẬP LIỆU', '2026-01-01 00:00:00'),
 ('TRẮNG SM NAM MÃ K27 - TẬP ĐOÀN EVN (CỘC TAY THÊU NGỰC - DÀI TAY THÊU MĂNG SÉC)', 'STRUCTURED', 2, 'Sơ mi nam 2026 - batch NHẬP LIỆU', '2026-01-01 00:00:00'),
 ('XANH BT1443 (BƯU ĐIỆN TRUNG ƯƠNG)', 'STRUCTURED', 2, 'Sơ mi nam 2026 - batch NHẬP LIỆU', '2026-01-01 00:00:00'),
 ('NGÂN HÀNG INDOVINA (Vải BA0053 logo IVB cổ) - SLIM', 'STRUCTURED', 2, 'Sơ mi nam 2026 - batch NHẬP LIỆU', '2026-01-01 00:00:00'),
@@ -5199,11 +5200,11 @@ JOIN product_variants pv ON pv.product_id = 20
   AND pv.size_id = v.size_id
   AND pv.length_type_id = v.length_type_id;
 
--- SP21: BA0053 (THÊU VNPT TRẮNG - DÀI TAY THÊU MĂNG SÉC TAY
+-- SP21: BA0053 (THÊU VNPT TRẮNG - DÀI TAY THÊU MĂNG SÉC TAY, CỘC TAY THÊU NGỰC)
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
     'Tồn kho ban đầu - SP21 CÔNG TY 2026',
-    'BA0053 (THÊU VNPT TRẮNG - DÀI TAY THÊU MĂNG SÉC TAY: tồn thực tế (801 chiếc)',
+    'BA0053 (THÊU VNPT TRẮNG - DÀI TAY THÊU MĂNG SÉC TAY, CỘC TAY THÊU NGỰC): tồn thực tế (801 chiếc)',
     'HANG_MAY_SAN',
     'EXECUTED',
     NULL,
@@ -5416,7 +5417,7 @@ JOIN product_variants pv ON pv.product_id = 21
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
     'Dự kiến tồn - SP21 CÔNG TY 2026',
-    'BA0053 (THÊU VNPT TRẮNG - DÀI TAY THÊU MĂNG SÉC TAY: ADJUST (0 IN / 29 OUT)',
+    'BA0053 (THÊU VNPT TRẮNG - DÀI TAY THÊU MĂNG SÉC TAY, CỘC ...: ADJUST (0 IN / 29 OUT)',
     'HANG_MAY_SAN',
     'APPROVED',
     NULL,
@@ -6407,11 +6408,11 @@ JOIN product_variants pv ON pv.product_id = 25
   AND pv.size_id = v.size_id
   AND pv.length_type_id = v.length_type_id;
 
--- SP26: TRẮNG KEM NAM TỔNG CÔNG TY BƯU ĐIỆN (KHÔNG LÉ
+-- SP26: TRẮNG KEM NAM TỔNG CÔNG TY BƯU ĐIỆN (KHÔNG LÉ, KHÔNG THÊU)
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
     'Tồn kho ban đầu - SP26 CÔNG TY 2026',
-    'TRẮNG KEM NAM TỔNG CÔNG TY BƯU ĐIỆN (KHÔNG LÉ: tồn thực tế (0 chiếc)',
+    'TRẮNG KEM NAM TỔNG CÔNG TY BƯU ĐIỆN (KHÔNG LÉ, KHÔNG THÊU): tồn thực tế (0 chiếc)',
     'HANG_MAY_SAN',
     'EXECUTED',
     NULL,

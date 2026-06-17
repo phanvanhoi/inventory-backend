@@ -31,11 +31,20 @@ function parseCsvLines(filePath) {
     .filter((l) => l.trim());
 }
 
+function parseProductName(line) {
+  const trimmed = line.trim();
+  if (trimmed.startsWith('"')) {
+    const end = trimmed.indexOf('"', 1);
+    if (end > 0) return trimmed.slice(1, end).trim();
+  }
+  return trimmed.split(",")[0].trim();
+}
+
 function parseBlocks(lines) {
   const blocks = [];
   let i = 0;
   while (i < lines.length) {
-    const name = lines[i].split(",")[0].replace(/^"|"$/g, "").trim();
+    const name = parseProductName(lines[i]);
     if (!name || name.startsWith("CỔ ĐIỂN") || name.startsWith("Size")) {
       throw new Error(`Unexpected line ${i + 1}: ${name.slice(0, 40)}`);
     }
