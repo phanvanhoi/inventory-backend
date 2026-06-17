@@ -1786,16 +1786,19 @@ INSERT INTO user_roles (user_id, role_id) VALUES
 (9, 5); -- tthuy: SALES
 
 -- =====================================================
+-- PHẦN 4: DỮ LIỆU KHO VẢI — KHO THỢ (Product 8)
+-- Nhập trực tiếp từng kho thợ (4b–4k). Không còn tồn tổng CÔNG TY (PHẦN 4 cũ đã bỏ).
 -- =====================================================
--- PHẦN 4: DỮ LIỆU KHO VẢI — CÔNG TY (Product 8)
--- Nguồn: NHẬP XUẤT VẢI 2026 - CÔNG TY.csv
--- 338 mã vải, 274 mã có tồn > 0
+
+-- =====================================================
+-- PHẦN 4b: TỒN KHO BAN ĐẦU VẢI — SÀI ĐỒNG (Product 8)
+-- Nhập trực tiếp kho thợ (7 mã), không chuyển từ CÔNG TY
 -- =====================================================
 
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
-    'Tồn kho ban đầu - Vải CÔNG TY 2026',
-    'Import từ BẢNG TỔNG HỢP NHẬP XUẤT TỒN VẢI 2026 (CÔNG TY)',
+    'Tồn kho ban đầu - Vải SÀI ĐỒNG 2026',
+    'Nhập tồn ban đầu trực tiếp kho SÀI ĐỒNG',
     'VAI_NHAP_KHO',
     'EXECUTED',
     NULL,
@@ -1803,632 +1806,29 @@ VALUES (
     '2026-01-01 00:00:00'
 );
 
-SET @fabric_set_id = LAST_INSERT_ID();
-SET @cong_ty_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'CÔNG TY' LIMIT 1);
+SET @fabric_sai_ong_set_id = LAST_INSERT_ID();
+SET @fabric_sai_ong_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'SÀI ĐỒNG' LIMIT 1);
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
 SELECT
-    @fabric_set_id,
+    @fabric_sai_ong_set_id,
     u.unit_id,
     8,
     'IN',
     'EXECUTED',
-    'Tồn kho ban đầu vải kho CÔNG TY',
+    'Tồn kho ban đầu vải kho SÀI ĐỒNG',
     '2026-01-01 00:00:00',
-    @cong_ty_warehouse_id
+    @fabric_sai_ong_warehouse_id
 FROM units u
 WHERE u.unit_name = 'Kho'
 LIMIT 1;
 
-SET @fabric_request_id = LAST_INSERT_ID();
-
-INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @fabric_request_id, pv.variant_id, v.qty
-FROM (
-    SELECT 'B1' AS item_code, 3369.9 AS qty
-    UNION ALL
-    SELECT 'B11' AS item_code, 6936.4 AS qty
-    UNION ALL
-    SELECT 'B12' AS item_code, 2128.6 AS qty
-    UNION ALL
-    SELECT 'B13' AS item_code, 1032.2 AS qty
-    UNION ALL
-    SELECT 'B2' AS item_code, 7519.2 AS qty
-    UNION ALL
-    SELECT 'B22' AS item_code, 253 AS qty
-    UNION ALL
-    SELECT 'B23' AS item_code, 268.1 AS qty
-    UNION ALL
-    SELECT 'B24' AS item_code, 27 AS qty
-    UNION ALL
-    SELECT 'B27' AS item_code, 351.5 AS qty
-    UNION ALL
-    SELECT 'B28' AS item_code, 348 AS qty
-    UNION ALL
-    SELECT 'B31' AS item_code, 1605 AS qty
-    UNION ALL
-    SELECT 'B32' AS item_code, 116 AS qty
-    UNION ALL
-    SELECT 'B33' AS item_code, 312.5 AS qty
-    UNION ALL
-    SELECT 'B35' AS item_code, 12 AS qty
-    UNION ALL
-    SELECT 'B36' AS item_code, 914.7 AS qty
-    UNION ALL
-    SELECT 'B37' AS item_code, 1692.7 AS qty
-    UNION ALL
-    SELECT 'B38' AS item_code, 210.4 AS qty
-    UNION ALL
-    SELECT 'B39' AS item_code, 112.2 AS qty
-    UNION ALL
-    SELECT 'B40' AS item_code, 2659.2 AS qty
-    UNION ALL
-    SELECT 'B7' AS item_code, 1190.28 AS qty
-    UNION ALL
-    SELECT 'B41' AS item_code, 1099 AS qty
-    UNION ALL
-    SELECT 'H11' AS item_code, 3.5 AS qty
-    UNION ALL
-    SELECT 'H12' AS item_code, 113 AS qty
-    UNION ALL
-    SELECT 'H19' AS item_code, 146.6 AS qty
-    UNION ALL
-    SELECT 'H2' AS item_code, 50 AS qty
-    UNION ALL
-    SELECT 'H21' AS item_code, 120.6 AS qty
-    UNION ALL
-    SELECT 'H42' AS item_code, 10.4 AS qty
-    UNION ALL
-    SELECT 'H43' AS item_code, 84.7 AS qty
-    UNION ALL
-    SELECT 'H44' AS item_code, 15.4 AS qty
-    UNION ALL
-    SELECT 'H47' AS item_code, 9.8 AS qty
-    UNION ALL
-    SELECT 'H48' AS item_code, 44.6 AS qty
-    UNION ALL
-    SELECT 'H49' AS item_code, 294 AS qty
-    UNION ALL
-    SELECT 'H5' AS item_code, 1963.2 AS qty
-    UNION ALL
-    SELECT 'H50' AS item_code, 12.8 AS qty
-    UNION ALL
-    SELECT 'H51' AS item_code, 13.2 AS qty
-    UNION ALL
-    SELECT 'H54 - 0007' AS item_code, 25 AS qty
-    UNION ALL
-    SELECT 'H54 - 004-6' AS item_code, 35.6 AS qty
-    UNION ALL
-    SELECT 'H54 - 0201' AS item_code, 6.8 AS qty
-    UNION ALL
-    SELECT 'H54 - W0101' AS item_code, 67 AS qty
-    UNION ALL
-    SELECT 'H54 - W0306' AS item_code, 27.2 AS qty
-    UNION ALL
-    SELECT 'H54 - W04U5' AS item_code, 75.4 AS qty
-    UNION ALL
-    SELECT 'H54 - W0508' AS item_code, 16.4 AS qty
-    UNION ALL
-    SELECT 'H6' AS item_code, 15 AS qty
-    UNION ALL
-    SELECT 'H7' AS item_code, 633.9 AS qty
-    UNION ALL
-    SELECT 'H8' AS item_code, 65.3 AS qty
-    UNION ALL
-    SELECT 'K1' AS item_code, 7.3 AS qty
-    UNION ALL
-    SELECT 'K15' AS item_code, 368.4 AS qty
-    UNION ALL
-    SELECT 'K16' AS item_code, 878.2 AS qty
-    UNION ALL
-    SELECT 'K17' AS item_code, 239.2 AS qty
-    UNION ALL
-    SELECT 'K18' AS item_code, 528.8 AS qty
-    UNION ALL
-    SELECT 'K2' AS item_code, 74.55 AS qty
-    UNION ALL
-    SELECT 'K10' AS item_code, 161 AS qty
-    UNION ALL
-    SELECT 'K20' AS item_code, 34.3 AS qty
-    UNION ALL
-    SELECT 'K23' AS item_code, 270 AS qty
-    UNION ALL
-    SELECT 'K27' AS item_code, 7.6 AS qty
-    UNION ALL
-    SELECT 'K31' AS item_code, 240.6 AS qty
-    UNION ALL
-    SELECT 'K39' AS item_code, 19.3 AS qty
-    UNION ALL
-    SELECT 'K40' AS item_code, 129.1 AS qty
-    UNION ALL
-    SELECT 'K41' AS item_code, 10 AS qty
-    UNION ALL
-    SELECT 'K42' AS item_code, 106.9 AS qty
-    UNION ALL
-    SELECT 'K44' AS item_code, 29.5 AS qty
-    UNION ALL
-    SELECT 'K46' AS item_code, 19 AS qty
-    UNION ALL
-    SELECT 'K47' AS item_code, 117.3 AS qty
-    UNION ALL
-    SELECT 'K48' AS item_code, 3 AS qty
-    UNION ALL
-    SELECT 'K49' AS item_code, 200.7 AS qty
-    UNION ALL
-    SELECT 'K5' AS item_code, 210.2 AS qty
-    UNION ALL
-    SELECT 'K57' AS item_code, 293.7 AS qty
-    UNION ALL
-    SELECT 'K58' AS item_code, 589 AS qty
-    UNION ALL
-    SELECT 'K59' AS item_code, 958.9 AS qty
-    UNION ALL
-    SELECT 'K6' AS item_code, 38.6 AS qty
-    UNION ALL
-    SELECT 'K60' AS item_code, 60.95 AS qty
-    UNION ALL
-    SELECT 'K62' AS item_code, 8 AS qty
-    UNION ALL
-    SELECT 'K64' AS item_code, 28 AS qty
-    UNION ALL
-    SELECT 'K65' AS item_code, 618.6 AS qty
-    UNION ALL
-    SELECT 'K67' AS item_code, 120 AS qty
-    UNION ALL
-    SELECT 'K68' AS item_code, 99.7 AS qty
-    UNION ALL
-    SELECT 'K70' AS item_code, 519.4 AS qty
-    UNION ALL
-    SELECT 'K72' AS item_code, 100.4 AS qty
-    UNION ALL
-    SELECT 'K74' AS item_code, 9.7 AS qty
-    UNION ALL
-    SELECT 'K75' AS item_code, 122.7 AS qty
-    UNION ALL
-    SELECT 'K76' AS item_code, 211.9 AS qty
-    UNION ALL
-    SELECT 'K77' AS item_code, 92 AS qty
-    UNION ALL
-    SELECT 'K78' AS item_code, 427 AS qty
-    UNION ALL
-    SELECT 'K79' AS item_code, 49.5 AS qty
-    UNION ALL
-    SELECT 'K8' AS item_code, 14.1 AS qty
-    UNION ALL
-    SELECT 'K80' AS item_code, 2 AS qty
-    UNION ALL
-    SELECT 'K82' AS item_code, 62 AS qty
-    UNION ALL
-    SELECT 'K83' AS item_code, 64.9 AS qty
-    UNION ALL
-    SELECT 'K84' AS item_code, 4.7 AS qty
-    UNION ALL
-    SELECT 'K85' AS item_code, 1.4 AS qty
-    UNION ALL
-    SELECT 'K86' AS item_code, 161.8 AS qty
-    UNION ALL
-    SELECT 'K88' AS item_code, 1230.9 AS qty
-    UNION ALL
-    SELECT 'V11' AS item_code, 9903.4 AS qty
-    UNION ALL
-    SELECT 'V16' AS item_code, 6.4 AS qty
-    UNION ALL
-    SELECT 'V2' AS item_code, 1254.45 AS qty
-    UNION ALL
-    SELECT 'V20' AS item_code, 1072.1 AS qty
-    UNION ALL
-    SELECT 'V28' AS item_code, 4.8 AS qty
-    UNION ALL
-    SELECT 'V29' AS item_code, 44.7 AS qty
-    UNION ALL
-    SELECT 'V36' AS item_code, 1646.35 AS qty
-    UNION ALL
-    SELECT 'V37' AS item_code, 583.65 AS qty
-    UNION ALL
-    SELECT 'V39' AS item_code, 8.4 AS qty
-    UNION ALL
-    SELECT 'V4' AS item_code, 25.6 AS qty
-    UNION ALL
-    SELECT 'V40' AS item_code, 24 AS qty
-    UNION ALL
-    SELECT 'V43' AS item_code, 10 AS qty
-    UNION ALL
-    SELECT 'V44' AS item_code, 17.4 AS qty
-    UNION ALL
-    SELECT 'V47' AS item_code, 23 AS qty
-    UNION ALL
-    SELECT 'V48' AS item_code, 727.4 AS qty
-    UNION ALL
-    SELECT 'V49' AS item_code, 134 AS qty
-    UNION ALL
-    SELECT 'V5' AS item_code, 5374.5 AS qty
-    UNION ALL
-    SELECT 'V50' AS item_code, 1379.84 AS qty
-    UNION ALL
-    SELECT 'V51' AS item_code, 10.3 AS qty
-    UNION ALL
-    SELECT 'V52' AS item_code, 3.5 AS qty
-    UNION ALL
-    SELECT 'V53' AS item_code, 103.5 AS qty
-    UNION ALL
-    SELECT 'V54' AS item_code, 1.27 AS qty
-    UNION ALL
-    SELECT 'V57' AS item_code, 529.4 AS qty
-    UNION ALL
-    SELECT 'V58' AS item_code, 34.5 AS qty
-    UNION ALL
-    SELECT 'V6' AS item_code, 89.6 AS qty
-    UNION ALL
-    SELECT 'V60' AS item_code, 6972.5 AS qty
-    UNION ALL
-    SELECT 'V61' AS item_code, 64.5 AS qty
-    UNION ALL
-    SELECT 'V62' AS item_code, 383.15 AS qty
-    UNION ALL
-    SELECT 'V63' AS item_code, 52.3 AS qty
-    UNION ALL
-    SELECT 'V66' AS item_code, 11.6 AS qty
-    UNION ALL
-    SELECT 'V67' AS item_code, 273.1 AS qty
-    UNION ALL
-    SELECT 'V7' AS item_code, 66.5 AS qty
-    UNION ALL
-    SELECT 'V70' AS item_code, 2.9 AS qty
-    UNION ALL
-    SELECT 'V71' AS item_code, 1811.1 AS qty
-    UNION ALL
-    SELECT 'V73' AS item_code, 113 AS qty
-    UNION ALL
-    SELECT 'V75' AS item_code, 1124.8 AS qty
-    UNION ALL
-    SELECT 'V76' AS item_code, 2191.9 AS qty
-    UNION ALL
-    SELECT 'V77' AS item_code, 292.4 AS qty
-    UNION ALL
-    SELECT 'V79' AS item_code, 1024.1 AS qty
-    UNION ALL
-    SELECT 'V8' AS item_code, 1752.3 AS qty
-    UNION ALL
-    SELECT 'V80' AS item_code, 9273.18 AS qty
-    UNION ALL
-    SELECT 'V81' AS item_code, 706 AS qty
-    UNION ALL
-    SELECT 'V82' AS item_code, 437.2 AS qty
-    UNION ALL
-    SELECT 'V84' AS item_code, 215.2 AS qty
-    UNION ALL
-    SELECT 'V85' AS item_code, 1399.8 AS qty
-    UNION ALL
-    SELECT 'V86' AS item_code, 286.8 AS qty
-    UNION ALL
-    SELECT 'V87' AS item_code, 1026.7 AS qty
-    UNION ALL
-    SELECT 'V88' AS item_code, 1557.9 AS qty
-    UNION ALL
-    SELECT 'V89' AS item_code, 503.5 AS qty
-    UNION ALL
-    SELECT 'V9' AS item_code, 73.3 AS qty
-    UNION ALL
-    SELECT 'V10' AS item_code, 1193.8 AS qty
-    UNION ALL
-    SELECT 'QU1' AS item_code, 53.2 AS qty
-    UNION ALL
-    SELECT 'QU2' AS item_code, 37.4 AS qty
-    UNION ALL
-    SELECT 'QU3' AS item_code, 44.6 AS qty
-    UNION ALL
-    SELECT 'QU4' AS item_code, 69 AS qty
-    UNION ALL
-    SELECT 'QU5' AS item_code, 69.7 AS qty
-    UNION ALL
-    SELECT 'QU6' AS item_code, 73.4 AS qty
-    UNION ALL
-    SELECT 'QU7' AS item_code, 47 AS qty
-    UNION ALL
-    SELECT 'QU8' AS item_code, 52 AS qty
-    UNION ALL
-    SELECT 'QU9' AS item_code, 69.1 AS qty
-    UNION ALL
-    SELECT 'QU10' AS item_code, 216.6 AS qty
-    UNION ALL
-    SELECT 'QU11' AS item_code, 66.3 AS qty
-    UNION ALL
-    SELECT 'QU12' AS item_code, 67.6 AS qty
-    UNION ALL
-    SELECT 'QU13' AS item_code, 70.2 AS qty
-    UNION ALL
-    SELECT 'QU14' AS item_code, 69 AS qty
-    UNION ALL
-    SELECT 'QU15' AS item_code, 78 AS qty
-    UNION ALL
-    SELECT 'QU16' AS item_code, 21.8 AS qty
-    UNION ALL
-    SELECT 'QU17' AS item_code, 17.3 AS qty
-    UNION ALL
-    SELECT 'QU18' AS item_code, 18 AS qty
-    UNION ALL
-    SELECT 'QU19' AS item_code, 11.2 AS qty
-    UNION ALL
-    SELECT 'QU20' AS item_code, 9 AS qty
-    UNION ALL
-    SELECT 'QU21' AS item_code, 24.5 AS qty
-    UNION ALL
-    SELECT 'QU22' AS item_code, 21 AS qty
-    UNION ALL
-    SELECT 'QU23' AS item_code, 5.8 AS qty
-    UNION ALL
-    SELECT 'QU24' AS item_code, 12.3 AS qty
-    UNION ALL
-    SELECT 'QU25' AS item_code, 11.5 AS qty
-    UNION ALL
-    SELECT 'QU26' AS item_code, 23 AS qty
-    UNION ALL
-    SELECT 'QU27' AS item_code, 25.5 AS qty
-    UNION ALL
-    SELECT 'QU28' AS item_code, 15.5 AS qty
-    UNION ALL
-    SELECT 'QU29' AS item_code, 18.6 AS qty
-    UNION ALL
-    SELECT 'QU30' AS item_code, 18.6 AS qty
-    UNION ALL
-    SELECT 'QU31' AS item_code, 18.6 AS qty
-    UNION ALL
-    SELECT 'QU32' AS item_code, 8.6 AS qty
-    UNION ALL
-    SELECT 'QU33' AS item_code, 9.8 AS qty
-    UNION ALL
-    SELECT 'QU34' AS item_code, 8.6 AS qty
-    UNION ALL
-    SELECT 'QU35' AS item_code, 7.4 AS qty
-    UNION ALL
-    SELECT 'QU36' AS item_code, 8.6 AS qty
-    UNION ALL
-    SELECT 'QU37' AS item_code, 6.2 AS qty
-    UNION ALL
-    SELECT 'QU38' AS item_code, 8.6 AS qty
-    UNION ALL
-    SELECT 'QU39' AS item_code, 7.5 AS qty
-    UNION ALL
-    SELECT 'QU40' AS item_code, 7.5 AS qty
-    UNION ALL
-    SELECT 'QU41' AS item_code, 8.6 AS qty
-    UNION ALL
-    SELECT 'QU42' AS item_code, 8.6 AS qty
-    UNION ALL
-    SELECT 'QU43' AS item_code, 8.6 AS qty
-    UNION ALL
-    SELECT 'QU44' AS item_code, 8.6 AS qty
-    UNION ALL
-    SELECT 'QU45' AS item_code, 8.6 AS qty
-    UNION ALL
-    SELECT 'QU46' AS item_code, 8.6 AS qty
-    UNION ALL
-    SELECT 'QU47' AS item_code, 8.6 AS qty
-    UNION ALL
-    SELECT 'QU48' AS item_code, 8.6 AS qty
-    UNION ALL
-    SELECT 'QU49' AS item_code, 7.5 AS qty
-    UNION ALL
-    SELECT 'QU50' AS item_code, 7.5 AS qty
-    UNION ALL
-    SELECT 'QU51' AS item_code, 8.6 AS qty
-    UNION ALL
-    SELECT 'QU52' AS item_code, 6.4 AS qty
-    UNION ALL
-    SELECT 'QU53' AS item_code, 8.6 AS qty
-    UNION ALL
-    SELECT 'QU54' AS item_code, 5.6 AS qty
-    UNION ALL
-    SELECT 'QU55' AS item_code, 21 AS qty
-    UNION ALL
-    SELECT 'QU56' AS item_code, 101.8 AS qty
-    UNION ALL
-    SELECT 'QU57' AS item_code, 144.8 AS qty
-    UNION ALL
-    SELECT 'QU58' AS item_code, 118.8 AS qty
-    UNION ALL
-    SELECT 'QU59' AS item_code, 91.8 AS qty
-    UNION ALL
-    SELECT 'QU60' AS item_code, 103.6 AS qty
-    UNION ALL
-    SELECT 'QU61' AS item_code, 101.6 AS qty
-    UNION ALL
-    SELECT 'QU62' AS item_code, 120.8 AS qty
-    UNION ALL
-    SELECT 'QU63' AS item_code, 120.8 AS qty
-    UNION ALL
-    SELECT 'QU64' AS item_code, 99.8 AS qty
-    UNION ALL
-    SELECT 'QU65' AS item_code, 117.8 AS qty
-    UNION ALL
-    SELECT 'QU66' AS item_code, 113.7 AS qty
-    UNION ALL
-    SELECT 'QU67' AS item_code, 116 AS qty
-    UNION ALL
-    SELECT 'QU68' AS item_code, 116.8 AS qty
-    UNION ALL
-    SELECT 'QU69' AS item_code, 124.4 AS qty
-    UNION ALL
-    SELECT 'QU70' AS item_code, 106.8 AS qty
-    UNION ALL
-    SELECT 'QU71' AS item_code, 111.3 AS qty
-    UNION ALL
-    SELECT 'QU72' AS item_code, 83.9 AS qty
-    UNION ALL
-    SELECT 'QU73' AS item_code, 78.15 AS qty
-    UNION ALL
-    SELECT 'QU74' AS item_code, 80.1 AS qty
-    UNION ALL
-    SELECT 'QU75' AS item_code, 85 AS qty
-    UNION ALL
-    SELECT 'QU76' AS item_code, 87.4 AS qty
-    UNION ALL
-    SELECT 'QU77' AS item_code, 76.1 AS qty
-    UNION ALL
-    SELECT 'SM1' AS item_code, 110 AS qty
-    UNION ALL
-    SELECT 'SM2' AS item_code, 107.2 AS qty
-    UNION ALL
-    SELECT 'SM3' AS item_code, 113.7 AS qty
-    UNION ALL
-    SELECT 'SM4' AS item_code, 104.8 AS qty
-    UNION ALL
-    SELECT 'SM5' AS item_code, 32.3 AS qty
-    UNION ALL
-    SELECT 'SM6' AS item_code, 77.3 AS qty
-    UNION ALL
-    SELECT 'SM7' AS item_code, 77.3 AS qty
-    UNION ALL
-    SELECT 'SM8' AS item_code, 89.3 AS qty
-    UNION ALL
-    SELECT 'SM9' AS item_code, 45.3 AS qty
-    UNION ALL
-    SELECT 'SM10' AS item_code, 22.3 AS qty
-    UNION ALL
-    SELECT 'SM11' AS item_code, 17 AS qty
-    UNION ALL
-    SELECT 'SM12' AS item_code, 6.6 AS qty
-    UNION ALL
-    SELECT 'SM13' AS item_code, 14.5 AS qty
-    UNION ALL
-    SELECT 'SM14' AS item_code, 88.8 AS qty
-    UNION ALL
-    SELECT 'SM15' AS item_code, 80 AS qty
-    UNION ALL
-    SELECT 'SM16' AS item_code, 24.3 AS qty
-    UNION ALL
-    SELECT 'SM17' AS item_code, 9.3 AS qty
-    UNION ALL
-    SELECT 'SM18' AS item_code, 109.3 AS qty
-    UNION ALL
-    SELECT 'SM19' AS item_code, 91.5 AS qty
-    UNION ALL
-    SELECT 'SM20' AS item_code, 109.2 AS qty
-    UNION ALL
-    SELECT 'SM21' AS item_code, 71.9 AS qty
-    UNION ALL
-    SELECT 'SM22' AS item_code, 27.3 AS qty
-    UNION ALL
-    SELECT 'SM23' AS item_code, 112.1 AS qty
-    UNION ALL
-    SELECT 'SM24' AS item_code, 111.4 AS qty
-    UNION ALL
-    SELECT 'SM25' AS item_code, 106.9 AS qty
-    UNION ALL
-    SELECT 'SM26' AS item_code, 108.8 AS qty
-    UNION ALL
-    SELECT 'SM27' AS item_code, 110 AS qty
-    UNION ALL
-    SELECT 'SM28' AS item_code, 109.7 AS qty
-    UNION ALL
-    SELECT 'SM29' AS item_code, 109.4 AS qty
-    UNION ALL
-    SELECT 'SM30' AS item_code, 110.1 AS qty
-    UNION ALL
-    SELECT 'SM31' AS item_code, 108.1 AS qty
-    UNION ALL
-    SELECT 'LO1' AS item_code, 76.8 AS qty
-    UNION ALL
-    SELECT 'LO2' AS item_code, 153.4 AS qty
-    UNION ALL
-    SELECT 'LO3' AS item_code, 95.5 AS qty
-    UNION ALL
-    SELECT 'LO4' AS item_code, 38.6 AS qty
-    UNION ALL
-    SELECT 'LO5' AS item_code, 117 AS qty
-    UNION ALL
-    SELECT 'LO6' AS item_code, 54.7 AS qty
-    UNION ALL
-    SELECT 'LO7' AS item_code, 42.8 AS qty
-    UNION ALL
-    SELECT 'LO8' AS item_code, 56.5 AS qty
-    UNION ALL
-    SELECT 'LO9' AS item_code, 58 AS qty
-    UNION ALL
-    SELECT 'LO10' AS item_code, 70 AS qty
-    UNION ALL
-    SELECT 'LO11' AS item_code, 78.3 AS qty
-    UNION ALL
-    SELECT 'LO12' AS item_code, 76.8 AS qty
-    UNION ALL
-    SELECT 'LO13' AS item_code, 120 AS qty
-    UNION ALL
-    SELECT 'LO14' AS item_code, 100 AS qty
-    UNION ALL
-    SELECT 'LO15' AS item_code, 111 AS qty
-    UNION ALL
-    SELECT 'LO16' AS item_code, 120 AS qty
-    UNION ALL
-    SELECT 'LO17' AS item_code, 120 AS qty
-    UNION ALL
-    SELECT 'LO18' AS item_code, 120 AS qty
-    UNION ALL
-    SELECT 'H1' AS item_code, 90 AS qty
-    UNION ALL
-    SELECT 'H13' AS item_code, 121 AS qty
-    UNION ALL
-    SELECT 'H16' AS item_code, 110 AS qty
-    UNION ALL
-    SELECT 'H20' AS item_code, 117.5 AS qty
-    UNION ALL
-    SELECT 'H55' AS item_code, 90.7 AS qty
-) v
-JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code
-WHERE v.qty > 0;
-
--- =====================================================
--- PHẦN 4b: XUẤT VẢI CÔNG TY → SÀI ĐỒNG (Product 8)
--- 7 mã vải (SL tồn > 0), category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
--- =====================================================
-
-INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
-VALUES (
-    'Xuất vải CÔNG TY → SÀI ĐỒNG (HDH)',
-    'Chuyển vải từ kho CÔNG TY sang kho SÀI ĐỒNG',
-    'VAI_NHAP_KHO_THO',
-    'EXECUTED',
-    NULL,
-    '2026-01-15 00:00:00',
-    '2026-01-15 00:00:00'
-);
-
-SET @transfer_set_id = LAST_INSERT_ID();
-SET @sai_dong_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'SÀI ĐỒNG' LIMIT 1);
-
--- Phiếu OUT: kho CÔNG TY
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_set_id,
-    NULL,
-    8,
-    'OUT',
-    'EXECUTED',
-    'Xuất vải chuyển sang kho SÀI ĐỒNG',
-    '2026-01-15 00:00:00',
-    @cong_ty_warehouse_id
-);
-
-SET @transfer_out_request_id = LAST_INSERT_ID();
-
--- Phiếu IN: kho SÀI ĐỒNG
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_set_id,
-    NULL,
-    8,
-    'IN',
-    'EXECUTED',
-    'Nhập vải chuyển từ kho CÔNG TY',
-    '2026-01-15 00:00:00',
-    @sai_dong_warehouse_id
-);
-
-SET @transfer_in_request_id = LAST_INSERT_ID();
+SET @fabric_sai_ong_request_id = LAST_INSERT_ID();
 
 INSERT INTO inventory_request_items (request_id, variant_id, quantity, fabric_note)
-SELECT @transfer_out_request_id, pv.variant_id, v.qty, v.note
+SELECT @fabric_sai_ong_request_id, pv.variant_id, v.qty, v.note
 FROM (
-    SELECT 'B1'  AS item_code, 3295   AS qty, 'HDH22'   AS note
+SELECT 'B1'  AS item_code, 3295   AS qty, 'HDH22'   AS note
     UNION ALL SELECT 'K70',  295,   'HDH 66'
     UNION ALL SELECT 'V11',  9810.6, 'HDH55'
     UNION ALL SELECT 'V8',   1615.2, 'HDH24S'
@@ -2438,70 +1838,46 @@ FROM (
 ) v
 JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
-INSERT INTO inventory_request_items (request_id, variant_id, quantity, fabric_note)
-SELECT @transfer_in_request_id, pv.variant_id, v.qty, v.note
-FROM (
-    SELECT 'B1'  AS item_code, 3295   AS qty, 'HDH22'   AS note
-    UNION ALL SELECT 'K70',  295,   'HDH 66'
-    UNION ALL SELECT 'V11',  9810.6, 'HDH55'
-    UNION ALL SELECT 'V8',   1615.2, 'HDH24S'
-    UNION ALL SELECT 'V87',  969.8,  'HDH67'
-    UNION ALL SELECT 'V88',  1413.5, 'HDH68'
-    UNION ALL SELECT 'V9',   73.3,   'HDH39C'
-) v
-JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
 -- =====================================================
--- PHẦN 4c: XUẤT VẢI CÔNG TY → TRƯỜNG (Product 8)
--- 6 mã vải (SL tồn > 0), category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- PHẦN 4c: TỒN KHO BAN ĐẦU VẢI — TRƯỜNG (Product 8)
+-- Nhập trực tiếp kho thợ (6 mã), không chuyển từ CÔNG TY
 -- =====================================================
 
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
-    'Xuất vải CÔNG TY → TRƯỜNG',
-    'Chuyển vải từ kho CÔNG TY sang kho TRƯỜNG',
-    'VAI_NHAP_KHO_THO',
+    'Tồn kho ban đầu - Vải TRƯỜNG 2026',
+    'Nhập tồn ban đầu trực tiếp kho TRƯỜNG',
+    'VAI_NHAP_KHO',
     'EXECUTED',
     NULL,
-    '2026-01-15 00:00:00',
-    '2026-01-15 00:00:00'
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
 );
 
-SET @transfer_truong_set_id = LAST_INSERT_ID();
-SET @truong_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'TRƯỜNG' LIMIT 1);
+SET @fabric_truong_set_id = LAST_INSERT_ID();
+SET @fabric_truong_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'TRƯỜNG' LIMIT 1);
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_truong_set_id,
-    NULL,
-    8,
-    'OUT',
-    'EXECUTED',
-    'Xuất vải chuyển sang kho TRƯỜNG',
-    '2026-01-15 00:00:00',
-    @cong_ty_warehouse_id
-);
-
-SET @transfer_truong_out_request_id = LAST_INSERT_ID();
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_truong_set_id,
-    NULL,
+SELECT
+    @fabric_truong_set_id,
+    u.unit_id,
     8,
     'IN',
     'EXECUTED',
-    'Nhập vải chuyển từ kho CÔNG TY',
-    '2026-01-15 00:00:00',
-    @truong_warehouse_id
-);
+    'Tồn kho ban đầu vải kho TRƯỜNG',
+    '2026-01-01 00:00:00',
+    @fabric_truong_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
 
-SET @transfer_truong_in_request_id = LAST_INSERT_ID();
+SET @fabric_truong_request_id = LAST_INSERT_ID();
 
 INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_truong_out_request_id, pv.variant_id, v.qty
+SELECT @fabric_truong_request_id, pv.variant_id, v.qty
 FROM (
-    SELECT 'B2'  AS item_code, 5215.1 AS qty
+SELECT 'B2'  AS item_code, 5215.1 AS qty
     UNION ALL SELECT 'V2',  373.05
     UNION ALL SELECT 'V5',  3733
     UNION ALL SELECT 'B27', 186.7
@@ -2510,193 +1886,133 @@ FROM (
 ) v
 JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
-INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_truong_in_request_id, pv.variant_id, v.qty
-FROM (
-    SELECT 'B2'  AS item_code, 5215.1 AS qty
-    UNION ALL SELECT 'V2',  373.05
-    UNION ALL SELECT 'V5',  3733
-    UNION ALL SELECT 'B27', 186.7
-    UNION ALL SELECT 'K70', 147.1
-    UNION ALL SELECT 'V75', 302
-) v
-JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
 -- =====================================================
--- PHẦN 4d: XUẤT VẢI CÔNG TY → PHƯỚC (Product 8)
--- 1 mã vải, category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- PHẦN 4d: TỒN KHO BAN ĐẦU VẢI — PHƯỚC (Product 8)
+-- Nhập trực tiếp kho thợ (1 mã), không chuyển từ CÔNG TY
 -- =====================================================
 
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
-    'Xuất vải CÔNG TY → PHƯỚC',
-    'Chuyển vải từ kho CÔNG TY sang kho PHƯỚC',
-    'VAI_NHAP_KHO_THO',
+    'Tồn kho ban đầu - Vải PHƯỚC 2026',
+    'Nhập tồn ban đầu trực tiếp kho PHƯỚC',
+    'VAI_NHAP_KHO',
     'EXECUTED',
     NULL,
-    '2026-01-15 00:00:00',
-    '2026-01-15 00:00:00'
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
 );
 
-SET @transfer_phuoc_set_id = LAST_INSERT_ID();
-SET @phuoc_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'PHƯỚC' LIMIT 1);
+SET @fabric_phuoc_set_id = LAST_INSERT_ID();
+SET @fabric_phuoc_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'PHƯỚC' LIMIT 1);
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_phuoc_set_id,
-    NULL,
-    8,
-    'OUT',
-    'EXECUTED',
-    'Xuất vải chuyển sang kho PHƯỚC',
-    '2026-01-15 00:00:00',
-    @cong_ty_warehouse_id
-);
-
-SET @transfer_phuoc_out_request_id = LAST_INSERT_ID();
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_phuoc_set_id,
-    NULL,
+SELECT
+    @fabric_phuoc_set_id,
+    u.unit_id,
     8,
     'IN',
     'EXECUTED',
-    'Nhập vải chuyển từ kho CÔNG TY',
-    '2026-01-15 00:00:00',
-    @phuoc_warehouse_id
-);
+    'Tồn kho ban đầu vải kho PHƯỚC',
+    '2026-01-01 00:00:00',
+    @fabric_phuoc_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
 
-SET @transfer_phuoc_in_request_id = LAST_INSERT_ID();
+SET @fabric_phuoc_request_id = LAST_INSERT_ID();
 
 INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_phuoc_out_request_id, pv.variant_id, v.qty
+SELECT @fabric_phuoc_request_id, pv.variant_id, v.qty
 FROM (
-    SELECT 'B12' AS item_code, 505.5 AS qty
+SELECT 'B12' AS item_code, 505.5 AS qty
 ) v
 JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
-INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_phuoc_in_request_id, pv.variant_id, v.qty
-FROM (
-    SELECT 'B12' AS item_code, 505.5 AS qty
-) v
-JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
 -- =====================================================
--- PHẦN 4e: XUẤT VẢI CÔNG TY → THÔNG (Product 8)
--- 2 mã vải, category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- PHẦN 4e: TỒN KHO BAN ĐẦU VẢI — THÔNG (Product 8)
+-- Nhập trực tiếp kho thợ (2 mã), không chuyển từ CÔNG TY
 -- =====================================================
 
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
-    'Xuất vải CÔNG TY → THÔNG',
-    'Chuyển vải từ kho CÔNG TY sang kho THÔNG',
-    'VAI_NHAP_KHO_THO',
+    'Tồn kho ban đầu - Vải THÔNG 2026',
+    'Nhập tồn ban đầu trực tiếp kho THÔNG',
+    'VAI_NHAP_KHO',
     'EXECUTED',
     NULL,
-    '2026-01-15 00:00:00',
-    '2026-01-15 00:00:00'
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
 );
 
-SET @transfer_thong_set_id = LAST_INSERT_ID();
-SET @thong_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'THÔNG' LIMIT 1);
+SET @fabric_thong_set_id = LAST_INSERT_ID();
+SET @fabric_thong_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'THÔNG' LIMIT 1);
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_thong_set_id,
-    NULL,
-    8,
-    'OUT',
-    'EXECUTED',
-    'Xuất vải chuyển sang kho THÔNG',
-    '2026-01-15 00:00:00',
-    @cong_ty_warehouse_id
-);
-
-SET @transfer_thong_out_request_id = LAST_INSERT_ID();
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_thong_set_id,
-    NULL,
+SELECT
+    @fabric_thong_set_id,
+    u.unit_id,
     8,
     'IN',
     'EXECUTED',
-    'Nhập vải chuyển từ kho CÔNG TY',
-    '2026-01-15 00:00:00',
-    @thong_warehouse_id
-);
+    'Tồn kho ban đầu vải kho THÔNG',
+    '2026-01-01 00:00:00',
+    @fabric_thong_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
 
-SET @transfer_thong_in_request_id = LAST_INSERT_ID();
+SET @fabric_thong_request_id = LAST_INSERT_ID();
 
 INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_thong_out_request_id, pv.variant_id, v.qty
+SELECT @fabric_thong_request_id, pv.variant_id, v.qty
 FROM (
-    SELECT 'B12' AS item_code, 35 AS qty
+SELECT 'B12' AS item_code, 35 AS qty
     UNION ALL SELECT 'V20', 8
 ) v
 JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
-INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_thong_in_request_id, pv.variant_id, v.qty
-FROM (
-    SELECT 'B12' AS item_code, 35 AS qty
-    UNION ALL SELECT 'V20', 8
-) v
-JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
 -- =====================================================
--- PHẦN 4f: XUẤT VẢI CÔNG TY → NGỌC GL (Product 8)
--- 6 mã vải, category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- PHẦN 4f: TỒN KHO BAN ĐẦU VẢI — NGỌC GL (Product 8)
+-- Nhập trực tiếp kho thợ (6 mã), không chuyển từ CÔNG TY
 -- =====================================================
 
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
-    'Xuất vải CÔNG TY → NGỌC GL',
-    'Chuyển vải từ kho CÔNG TY sang kho NGỌC GL',
-    'VAI_NHAP_KHO_THO',
+    'Tồn kho ban đầu - Vải NGỌC GL 2026',
+    'Nhập tồn ban đầu trực tiếp kho NGỌC GL',
+    'VAI_NHAP_KHO',
     'EXECUTED',
     NULL,
-    '2026-01-15 00:00:00',
-    '2026-01-15 00:00:00'
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
 );
 
-SET @transfer_ngoc_gl_set_id = LAST_INSERT_ID();
-SET @ngoc_gl_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'NGỌC GL' LIMIT 1);
+SET @fabric_ngoc_gl_set_id = LAST_INSERT_ID();
+SET @fabric_ngoc_gl_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'NGỌC GL' LIMIT 1);
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_ngoc_gl_set_id,
-    NULL,
-    8,
-    'OUT',
-    'EXECUTED',
-    'Xuất vải chuyển sang kho NGỌC GL',
-    '2026-01-15 00:00:00',
-    @cong_ty_warehouse_id
-);
-
-SET @transfer_ngoc_gl_out_request_id = LAST_INSERT_ID();
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_ngoc_gl_set_id,
-    NULL,
+SELECT
+    @fabric_ngoc_gl_set_id,
+    u.unit_id,
     8,
     'IN',
     'EXECUTED',
-    'Nhập vải chuyển từ kho CÔNG TY',
-    '2026-01-15 00:00:00',
-    @ngoc_gl_warehouse_id
-);
+    'Tồn kho ban đầu vải kho NGỌC GL',
+    '2026-01-01 00:00:00',
+    @fabric_ngoc_gl_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
 
-SET @transfer_ngoc_gl_in_request_id = LAST_INSERT_ID();
+SET @fabric_ngoc_gl_request_id = LAST_INSERT_ID();
 
 INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_ngoc_gl_out_request_id, pv.variant_id, v.qty
+SELECT @fabric_ngoc_gl_request_id, pv.variant_id, v.qty
 FROM (
-    SELECT 'B38' AS item_code, 210.4  AS qty
+SELECT 'B38' AS item_code, 210.4  AS qty
     UNION ALL SELECT 'B39',  112.2
     UNION ALL SELECT 'K17',  239.2
     UNION ALL SELECT 'V48',  727.4
@@ -2705,69 +2021,46 @@ FROM (
 ) v
 JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
-INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_ngoc_gl_in_request_id, pv.variant_id, v.qty
-FROM (
-    SELECT 'B38' AS item_code, 210.4  AS qty
-    UNION ALL SELECT 'B39',  112.2
-    UNION ALL SELECT 'K17',  239.2
-    UNION ALL SELECT 'V48',  727.4
-    UNION ALL SELECT 'V50',  1228.14
-    UNION ALL SELECT 'V80',  3363.78
-) v
-JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
 -- =====================================================
--- PHẦN 4g: XUẤT VẢI CÔNG TY → LỤC (Product 8)
--- 8 mã vải, category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- PHẦN 4g: TỒN KHO BAN ĐẦU VẢI — LỤC (Product 8)
+-- Nhập trực tiếp kho thợ (8 mã), không chuyển từ CÔNG TY
 -- =====================================================
 
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
-    'Xuất vải CÔNG TY → LỤC',
-    'Chuyển vải từ kho CÔNG TY sang kho LỤC',
-    'VAI_NHAP_KHO_THO',
+    'Tồn kho ban đầu - Vải LỤC 2026',
+    'Nhập tồn ban đầu trực tiếp kho LỤC',
+    'VAI_NHAP_KHO',
     'EXECUTED',
     NULL,
-    '2026-01-15 00:00:00',
-    '2026-01-15 00:00:00'
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
 );
 
-SET @transfer_luc_set_id = LAST_INSERT_ID();
-SET @luc_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'LỤC' LIMIT 1);
+SET @fabric_luc_set_id = LAST_INSERT_ID();
+SET @fabric_luc_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'LỤC' LIMIT 1);
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_luc_set_id,
-    NULL,
-    8,
-    'OUT',
-    'EXECUTED',
-    'Xuất vải chuyển sang kho LỤC',
-    '2026-01-15 00:00:00',
-    @cong_ty_warehouse_id
-);
-
-SET @transfer_luc_out_request_id = LAST_INSERT_ID();
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_luc_set_id,
-    NULL,
+SELECT
+    @fabric_luc_set_id,
+    u.unit_id,
     8,
     'IN',
     'EXECUTED',
-    'Nhập vải chuyển từ kho CÔNG TY',
-    '2026-01-15 00:00:00',
-    @luc_warehouse_id
-);
+    'Tồn kho ban đầu vải kho LỤC',
+    '2026-01-01 00:00:00',
+    @fabric_luc_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
 
-SET @transfer_luc_in_request_id = LAST_INSERT_ID();
+SET @fabric_luc_request_id = LAST_INSERT_ID();
 
 INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_luc_out_request_id, pv.variant_id, v.qty
+SELECT @fabric_luc_request_id, pv.variant_id, v.qty
 FROM (
-    SELECT 'B7'  AS item_code, 834.8  AS qty
+SELECT 'B7'  AS item_code, 834.8  AS qty
     UNION ALL SELECT 'V53',  103.5
     UNION ALL SELECT 'V71',  1180.8
     UNION ALL SELECT 'V79',  800.1
@@ -2778,71 +2071,46 @@ FROM (
 ) v
 JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
-INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_luc_in_request_id, pv.variant_id, v.qty
-FROM (
-    SELECT 'B7'  AS item_code, 834.8  AS qty
-    UNION ALL SELECT 'V53',  103.5
-    UNION ALL SELECT 'V71',  1180.8
-    UNION ALL SELECT 'V79',  800.1
-    UNION ALL SELECT 'K58',  197
-    UNION ALL SELECT 'V85',  954.3
-    UNION ALL SELECT 'B40',  2218.9
-    UNION ALL SELECT 'V76',  1633
-) v
-JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
 -- =====================================================
--- PHẦN 4h: XUẤT VẢI CÔNG TY → LẠNG (Product 8)
--- 13 mã vải (SL tồn > 0), category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- PHẦN 4h: TỒN KHO BAN ĐẦU VẢI — LẠNG (Product 8)
+-- Nhập trực tiếp kho thợ (13 mã), không chuyển từ CÔNG TY
 -- =====================================================
 
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
-    'Xuất vải CÔNG TY → LẠNG',
-    'Chuyển vải từ kho CÔNG TY sang kho LẠNG',
-    'VAI_NHAP_KHO_THO',
+    'Tồn kho ban đầu - Vải LẠNG 2026',
+    'Nhập tồn ban đầu trực tiếp kho LẠNG',
+    'VAI_NHAP_KHO',
     'EXECUTED',
     NULL,
-    '2026-01-15 00:00:00',
-    '2026-01-15 00:00:00'
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
 );
 
-SET @transfer_lang_set_id = LAST_INSERT_ID();
-SET @lang_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'LẠNG' LIMIT 1);
+SET @fabric_lang_set_id = LAST_INSERT_ID();
+SET @fabric_lang_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'LẠNG' LIMIT 1);
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_lang_set_id,
-    NULL,
-    8,
-    'OUT',
-    'EXECUTED',
-    'Xuất vải chuyển sang kho LẠNG',
-    '2026-01-15 00:00:00',
-    @cong_ty_warehouse_id
-);
-
-SET @transfer_lang_out_request_id = LAST_INSERT_ID();
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_lang_set_id,
-    NULL,
+SELECT
+    @fabric_lang_set_id,
+    u.unit_id,
     8,
     'IN',
     'EXECUTED',
-    'Nhập vải chuyển từ kho CÔNG TY',
-    '2026-01-15 00:00:00',
-    @lang_warehouse_id
-);
+    'Tồn kho ban đầu vải kho LẠNG',
+    '2026-01-01 00:00:00',
+    @fabric_lang_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
 
-SET @transfer_lang_in_request_id = LAST_INSERT_ID();
+SET @fabric_lang_request_id = LAST_INSERT_ID();
 
 INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_lang_out_request_id, pv.variant_id, v.qty
+SELECT @fabric_lang_request_id, pv.variant_id, v.qty
 FROM (
-    SELECT 'B11' AS item_code, 1076.2 AS qty
+SELECT 'B11' AS item_code, 1076.2 AS qty
     UNION ALL SELECT 'B12',  1096.9
     UNION ALL SELECT 'B13',  998.8
     UNION ALL SELECT 'V57',  160.6
@@ -2858,76 +2126,46 @@ FROM (
 ) v
 JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
-INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_lang_in_request_id, pv.variant_id, v.qty
-FROM (
-    SELECT 'B11' AS item_code, 1076.2 AS qty
-    UNION ALL SELECT 'B12',  1096.9
-    UNION ALL SELECT 'B13',  998.8
-    UNION ALL SELECT 'V57',  160.6
-    UNION ALL SELECT 'K16',  755.8
-    UNION ALL SELECT 'V20',  833.4
-    UNION ALL SELECT 'V60',  6948
-    UNION ALL SELECT 'V76',  196
-    UNION ALL SELECT 'V67',  245
-    UNION ALL SELECT 'V82',  316
-    UNION ALL SELECT 'V80',  2781.9
-    UNION ALL SELECT 'K15',  93.4
-    UNION ALL SELECT 'K65',  305.1
-) v
-JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
 -- =====================================================
--- PHẦN 4i: XUẤT VẢI CÔNG TY → HƯỜNG (Product 8)
--- 5 mã vải, category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- PHẦN 4i: TỒN KHO BAN ĐẦU VẢI — HƯỜNG (Product 8)
+-- Nhập trực tiếp kho thợ (5 mã), không chuyển từ CÔNG TY
 -- =====================================================
 
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
-    'Xuất vải CÔNG TY → HƯỜNG',
-    'Chuyển vải từ kho CÔNG TY sang kho HƯỜNG',
-    'VAI_NHAP_KHO_THO',
+    'Tồn kho ban đầu - Vải HƯỜNG 2026',
+    'Nhập tồn ban đầu trực tiếp kho HƯỜNG',
+    'VAI_NHAP_KHO',
     'EXECUTED',
     NULL,
-    '2026-01-15 00:00:00',
-    '2026-01-15 00:00:00'
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
 );
 
-SET @transfer_huong_set_id = LAST_INSERT_ID();
-SET @huong_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'HƯỜNG' LIMIT 1);
+SET @fabric_huong_set_id = LAST_INSERT_ID();
+SET @fabric_huong_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'HƯỜNG' LIMIT 1);
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_huong_set_id,
-    NULL,
-    8,
-    'OUT',
-    'EXECUTED',
-    'Xuất vải chuyển sang kho HƯỜNG',
-    '2026-01-15 00:00:00',
-    @cong_ty_warehouse_id
-);
-
-SET @transfer_huong_out_request_id = LAST_INSERT_ID();
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_huong_set_id,
-    NULL,
+SELECT
+    @fabric_huong_set_id,
+    u.unit_id,
     8,
     'IN',
     'EXECUTED',
-    'Nhập vải chuyển từ kho CÔNG TY',
-    '2026-01-15 00:00:00',
-    @huong_warehouse_id
-);
+    'Tồn kho ban đầu vải kho HƯỜNG',
+    '2026-01-01 00:00:00',
+    @fabric_huong_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
 
-SET @transfer_huong_in_request_id = LAST_INSERT_ID();
+SET @fabric_huong_request_id = LAST_INSERT_ID();
 
 INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_huong_out_request_id, pv.variant_id, v.qty
+SELECT @fabric_huong_request_id, pv.variant_id, v.qty
 FROM (
-    SELECT 'B2'  AS item_code, 1339.7 AS qty
+SELECT 'B2'  AS item_code, 1339.7 AS qty
     UNION ALL SELECT 'V2',  335.4
     UNION ALL SELECT 'V5',  812
     UNION ALL SELECT 'H19', 146.6
@@ -2935,68 +2173,46 @@ FROM (
 ) v
 JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
-INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_huong_in_request_id, pv.variant_id, v.qty
-FROM (
-    SELECT 'B2'  AS item_code, 1339.7 AS qty
-    UNION ALL SELECT 'V2',  335.4
-    UNION ALL SELECT 'V5',  812
-    UNION ALL SELECT 'H19', 146.6
-    UNION ALL SELECT 'V75', 316.9
-) v
-JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
 -- =====================================================
--- PHẦN 4j: XUẤT VẢI CÔNG TY → DUNG (Product 8)
--- 9 mã vải, category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- PHẦN 4j: TỒN KHO BAN ĐẦU VẢI — DUNG (Product 8)
+-- Nhập trực tiếp kho thợ (9 mã), không chuyển từ CÔNG TY
 -- =====================================================
 
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
-    'Xuất vải CÔNG TY → DUNG',
-    'Chuyển vải từ kho CÔNG TY sang kho DUNG',
-    'VAI_NHAP_KHO_THO',
+    'Tồn kho ban đầu - Vải DUNG 2026',
+    'Nhập tồn ban đầu trực tiếp kho DUNG',
+    'VAI_NHAP_KHO',
     'EXECUTED',
     NULL,
-    '2026-01-15 00:00:00',
-    '2026-01-15 00:00:00'
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
 );
 
-SET @transfer_dung_set_id = LAST_INSERT_ID();
-SET @dung_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'DUNG' LIMIT 1);
+SET @fabric_dung_set_id = LAST_INSERT_ID();
+SET @fabric_dung_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'DUNG' LIMIT 1);
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_dung_set_id,
-    NULL,
-    8,
-    'OUT',
-    'EXECUTED',
-    'Xuất vải chuyển sang kho DUNG',
-    '2026-01-15 00:00:00',
-    @cong_ty_warehouse_id
-);
-
-SET @transfer_dung_out_request_id = LAST_INSERT_ID();
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_dung_set_id,
-    NULL,
+SELECT
+    @fabric_dung_set_id,
+    u.unit_id,
     8,
     'IN',
     'EXECUTED',
-    'Nhập vải chuyển từ kho CÔNG TY',
-    '2026-01-15 00:00:00',
-    @dung_warehouse_id
-);
+    'Tồn kho ban đầu vải kho DUNG',
+    '2026-01-01 00:00:00',
+    @fabric_dung_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
 
-SET @transfer_dung_in_request_id = LAST_INSERT_ID();
+SET @fabric_dung_request_id = LAST_INSERT_ID();
 
 INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_dung_out_request_id, pv.variant_id, v.qty
+SELECT @fabric_dung_request_id, pv.variant_id, v.qty
 FROM (
-    SELECT 'B2'  AS item_code, 709.8  AS qty
+SELECT 'B2'  AS item_code, 709.8  AS qty
     UNION ALL SELECT 'H1',  90
     UNION ALL SELECT 'H13', 121
     UNION ALL SELECT 'H16', 110
@@ -3008,72 +2224,46 @@ FROM (
 ) v
 JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
-INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_dung_in_request_id, pv.variant_id, v.qty
-FROM (
-    SELECT 'B2'  AS item_code, 709.8  AS qty
-    UNION ALL SELECT 'H1',  90
-    UNION ALL SELECT 'H13', 121
-    UNION ALL SELECT 'H16', 110
-    UNION ALL SELECT 'H20', 117.5
-    UNION ALL SELECT 'H21', 120.6
-    UNION ALL SELECT 'V2',  385.5
-    UNION ALL SELECT 'V5',  759
-    UNION ALL SELECT 'V75', 224.6
-) v
-JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
 -- =====================================================
--- PHẦN 4k: XUẤT VẢI CÔNG TY → HẰNG (Product 8)
--- 5 mã vải, category VAI_NHAP_KHO_THO = OUT kho chính + IN kho thợ
+-- PHẦN 4k: TỒN KHO BAN ĐẦU VẢI — HẰNG (Product 8)
+-- Nhập trực tiếp kho thợ (5 mã), không chuyển từ CÔNG TY
 -- =====================================================
 
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
-    'Xuất vải CÔNG TY → HẰNG',
-    'Chuyển vải từ kho CÔNG TY sang kho HẰNG',
-    'VAI_NHAP_KHO_THO',
+    'Tồn kho ban đầu - Vải HẰNG 2026',
+    'Nhập tồn ban đầu trực tiếp kho HẰNG',
+    'VAI_NHAP_KHO',
     'EXECUTED',
     NULL,
-    '2026-01-15 00:00:00',
-    '2026-01-15 00:00:00'
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
 );
 
-SET @transfer_hang_set_id = LAST_INSERT_ID();
-SET @hang_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'HẰNG' LIMIT 1);
+SET @fabric_hang_set_id = LAST_INSERT_ID();
+SET @fabric_hang_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'HẰNG' LIMIT 1);
 
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_hang_set_id,
-    NULL,
-    8,
-    'OUT',
-    'EXECUTED',
-    'Xuất vải chuyển sang kho HẰNG',
-    '2026-01-15 00:00:00',
-    @cong_ty_warehouse_id
-);
-
-SET @transfer_hang_out_request_id = LAST_INSERT_ID();
-
-INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
-VALUES (
-    @transfer_hang_set_id,
-    NULL,
+SELECT
+    @fabric_hang_set_id,
+    u.unit_id,
     8,
     'IN',
     'EXECUTED',
-    'Nhập vải chuyển từ kho CÔNG TY',
-    '2026-01-15 00:00:00',
-    @hang_warehouse_id
-);
+    'Tồn kho ban đầu vải kho HẰNG',
+    '2026-01-01 00:00:00',
+    @fabric_hang_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
 
-SET @transfer_hang_in_request_id = LAST_INSERT_ID();
+SET @fabric_hang_request_id = LAST_INSERT_ID();
 
 INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_hang_out_request_id, pv.variant_id, v.qty
+SELECT @fabric_hang_request_id, pv.variant_id, v.qty
 FROM (
-    SELECT 'B11' AS item_code, 5842.2 AS qty
+SELECT 'B11' AS item_code, 5842.2 AS qty
     UNION ALL SELECT 'K15',  169
     UNION ALL SELECT 'K58',  352.7
     UNION ALL SELECT 'V50',  151.7
@@ -3081,16 +2271,6 @@ FROM (
 ) v
 JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
-INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @transfer_hang_in_request_id, pv.variant_id, v.qty
-FROM (
-    SELECT 'B11' AS item_code, 5842.2 AS qty
-    UNION ALL SELECT 'K15',  169
-    UNION ALL SELECT 'K58',  352.7
-    UNION ALL SELECT 'V50',  151.7
-    UNION ALL SELECT 'V80',  2995
-) v
-JOIN product_variants pv ON pv.product_id = 8 AND pv.item_code = v.item_code;
 
 -- =====================================================
 -- PHẦN 8: ORDERS (Dữ liệu mẫu - Lark integration G1+)
