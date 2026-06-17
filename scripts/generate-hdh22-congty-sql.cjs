@@ -1,7 +1,7 @@
 /**
- * Parse HDH22 matrix CSV → SQL seed (PHẦN 8a)
- * Row 4 = tồn thực tế (IN EXECUTED)
- * Row 5 = tồn dự kiến (có thể âm) → ADJUST_IN/OUT APPROVED where diff != 0
+ * Parse HDH22 matrix CSV → SQL seed (PHẦN 8a/8b)
+ * Usage: node generate-hdh22-congty-sql.cjs <csvPath> [productId] [partLabel] [varPrefix] [outFile]
+ * Row 4 = tồn thực tế (IN EXECUTED) | Row 5 = dự kiến (ADJUST, request set APPROVED riêng)
  */
 const fs = require("fs");
 const path = require("path");
@@ -9,6 +9,19 @@ const path = require("path");
 const csvPath =
   process.argv[2] ||
   "c:\\Users\\RemoteUser\\Downloads\\HDH22 - TRẮNG KEM NAM BƯU ĐIỆN (KHÔNG LÉ, KHÔNG THÊU).csv";
+const productId = Number(process.argv[3] || 1);
+const partLabel = process.argv[4] || (productId === 1 ? "8a" : "8b");
+const varPrefix = process.argv[5] || (productId === 1 ? "hdh22" : "hdh22_le");
+const outFile = process.argv[6] || (productId === 1 ? "hdh22-seed.sql" : "hdh22-le-seed.sql");
+
+const PRODUCT_LABELS = {
+  1: "HDH22 - TRẮNG KEM NAM BƯU ĐIỆN (KHÔNG LÉ, KHÔNG THÊU)",
+  18: "HDH22 - TRẮNG KEM NAM BƯU ĐIỆN (CÓ LÉ VÀNG, CÓ THÊU VNPOST)",
+};
+const SET_SHORT = {
+  1: "HDH22",
+  18: "HDH22 lé vàng VNPOST",
+};
 
 const lines = fs
   .readFileSync(csvPath, "utf8")
@@ -16,9 +29,6 @@ const lines = fs
   .split(/\r?\n/)
   .filter((l) => l.trim());
 
-const rowStyles = lines[0].split(",");
-const rowSizes = lines[1].split(",");
-const rowLengths = lines[2].split(",");
 const rowActual = lines[3].split(",");
 const rowExpected = lines[4].split(",");
 
@@ -43,11 +53,8 @@ function parseMatrix() {
         const actual = parseQty(rowActual[col]);
         const expected = parseQty(rowExpected[col]);
         items.push({
-          style,
           styleId: STYLE_IDS[style],
-          size,
           sizeId: SIZE_OFFSET[size],
-          length,
           lengthId: LENGTH_IDS[length],
           actual,
           expected,
@@ -77,24 +84,28 @@ function main() {
   const adjustIn = items.filter((i) => i.diff > 0);
   const adjustOut = items.filter((i) => i.diff < 0);
   const negativeExpected = items.filter((_, idx) => parseQty(rowExpected[idx]) < 0).length;
+  const productLabel = PRODUCT_LABELS[productId] || `Product ${productId}`;
+  const setShort = SET_SHORT[productId] || `SP${productId}`;
+  const csvName = path.basename(csvPath);
 
   const actualUnion = unionRows(items, (i) => i.actual);
   const adjustInUnion = unionRows(adjustIn, (i) => i.diff);
   const adjustOutUnion = unionRows(adjustOut, (i) => -i.diff);
 
+  const p = varPrefix;
   const sql = `-- =====================================================
--- PHẦN 8a: TỒN KHO BAN ĐẦU HDH22 — CÔNG TY (Product 1)
--- Nguồn: HDH22 - TRẮNG KEM NAM BƯU ĐIỆN (KHÔNG LÉ, KHÔNG THÊU).csv
+-- PHẦN ${partLabel}: TỒN KHO BAN ĐẦU ${setShort.toUpperCase()} — CÔNG TY (Product ${productId})
+-- Nguồn: ${csvName}
+-- ${productLabel}
 -- Dòng 4 = thực tế (request set EXECUTED) | Dòng 5 = dự kiến (request set APPROVED riêng)
--- ADJUST chỉ cộng vào tồn dự kiến khi request_set.status IN (PENDING, APPROVED, RECEIVING)
 -- Tổng thực tế: ${totalActual} chiếc | ADJUST_IN: ${adjustIn.length} dòng | ADJUST_OUT: ${adjustOut.length} dòng
 -- Ô dự kiến âm trong CSV: ${negativeExpected} ô (giữ nguyên)
 -- =====================================================
 
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
-    'Tồn kho ban đầu - HDH22 CÔNG TY 2026',
-    'HDH22 - TRẮNG KEM NAM BƯU ĐIỆN: tồn thực tế',
+    'Tồn kho ban đầu - ${setShort} CÔNG TY 2026',
+    '${productLabel}: tồn thực tế',
     'HANG_MAY_SAN',
     'EXECUTED',
     NULL,
@@ -102,43 +113,43 @@ VALUES (
     '2026-01-01 00:00:00'
 );
 
-SET @hdh22_actual_set_id = LAST_INSERT_ID();
-SET @hdh22_cong_ty_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'CÔNG TY' LIMIT 1);
+SET @${p}_actual_set_id = LAST_INSERT_ID();
+SET @${p}_cong_ty_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'CÔNG TY' LIMIT 1);
 
--- 8a-1: Tồn thực tế
+-- ${partLabel}-1: Tồn thực tế
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
 SELECT
-    @hdh22_actual_set_id,
+    @${p}_actual_set_id,
     u.unit_id,
-    1,
+    ${productId},
     'IN',
     'EXECUTED',
-    'Tồn thực tế HDH22 kho CÔNG TY',
+    'Tồn thực tế ${setShort} kho CÔNG TY',
     '2026-01-01 00:00:00',
-    @hdh22_cong_ty_warehouse_id
+    @${p}_cong_ty_warehouse_id
 FROM units u
 WHERE u.unit_name = 'Kho'
 LIMIT 1;
 
-SET @hdh22_in_request_id = LAST_INSERT_ID();
+SET @${p}_in_request_id = LAST_INSERT_ID();
 
 INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @hdh22_in_request_id, pv.variant_id, v.qty
+SELECT @${p}_in_request_id, pv.variant_id, v.qty
 FROM (
 ${actualUnion}
 ) v
-JOIN product_variants pv ON pv.product_id = 1
+JOIN product_variants pv ON pv.product_id = ${productId}
   AND pv.style_id = v.style_id
   AND pv.size_id = v.size_id
   AND pv.length_type_id = v.length_type_id;
 ${
   adjustIn.length || adjustOut.length
     ? `
--- 8a-2: Request set riêng cho điều chỉnh dự kiến (phải APPROVED, không EXECUTED)
+-- ${partLabel}-2: Request set riêng cho điều chỉnh dự kiến (phải APPROVED, không EXECUTED)
 INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
 VALUES (
-    'Dự kiến tồn - HDH22 CÔNG TY 2026',
-    'Điều chỉnh dự kiến HDH22 (ADJUST_IN/OUT)',
+    'Dự kiến tồn - ${setShort} CÔNG TY 2026',
+    'Điều chỉnh dự kiến ${setShort} (ADJUST_IN/OUT)',
     'HANG_MAY_SAN',
     'APPROVED',
     NULL,
@@ -146,36 +157,36 @@ VALUES (
     '2026-01-01 00:00:00'
 );
 
-SET @hdh22_expected_set_id = LAST_INSERT_ID();
+SET @${p}_expected_set_id = LAST_INSERT_ID();
 `
     : ""
 }${
   adjustIn.length
     ? `
--- 8a-3: Điều chỉnh dự kiến nhập (ADJUST_IN)
+-- ${partLabel}-3: Điều chỉnh dự kiến nhập (ADJUST_IN)
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, expected_date, note, created_at, warehouse_id)
 SELECT
-    @hdh22_expected_set_id,
+    @${p}_expected_set_id,
     u.unit_id,
-    1,
+    ${productId},
     'ADJUST_IN',
     'APPROVED',
     '2026-06-30',
-    'Dự kiến tăng tồn HDH22',
+    'Dự kiến tăng tồn ${setShort}',
     '2026-01-01 00:00:00',
-    @hdh22_cong_ty_warehouse_id
+    @${p}_cong_ty_warehouse_id
 FROM units u
 WHERE u.unit_name = 'Kho'
 LIMIT 1;
 
-SET @hdh22_adjust_in_id = LAST_INSERT_ID();
+SET @${p}_adjust_in_id = LAST_INSERT_ID();
 
 INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @hdh22_adjust_in_id, pv.variant_id, v.qty
+SELECT @${p}_adjust_in_id, pv.variant_id, v.qty
 FROM (
 ${adjustInUnion}
 ) v
-JOIN product_variants pv ON pv.product_id = 1
+JOIN product_variants pv ON pv.product_id = ${productId}
   AND pv.style_id = v.style_id
   AND pv.size_id = v.size_id
   AND pv.length_type_id = v.length_type_id;
@@ -184,30 +195,30 @@ JOIN product_variants pv ON pv.product_id = 1
 }${
   adjustOut.length
     ? `
--- 8a-4: Điều chỉnh dự kiến xuất (ADJUST_OUT)
+-- ${partLabel}-4: Điều chỉnh dự kiến xuất (ADJUST_OUT)
 INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, expected_date, note, created_at, warehouse_id)
 SELECT
-    @hdh22_expected_set_id,
+    @${p}_expected_set_id,
     u.unit_id,
-    1,
+    ${productId},
     'ADJUST_OUT',
     'APPROVED',
     '2026-06-30',
-    'Dự kiến giảm tồn HDH22',
+    'Dự kiến giảm tồn ${setShort}',
     '2026-01-01 00:00:00',
-    @hdh22_cong_ty_warehouse_id
+    @${p}_cong_ty_warehouse_id
 FROM units u
 WHERE u.unit_name = 'Kho'
 LIMIT 1;
 
-SET @hdh22_adjust_out_id = LAST_INSERT_ID();
+SET @${p}_adjust_out_id = LAST_INSERT_ID();
 
 INSERT INTO inventory_request_items (request_id, variant_id, quantity)
-SELECT @hdh22_adjust_out_id, pv.variant_id, v.qty
+SELECT @${p}_adjust_out_id, pv.variant_id, v.qty
 FROM (
 ${adjustOutUnion}
 ) v
-JOIN product_variants pv ON pv.product_id = 1
+JOIN product_variants pv ON pv.product_id = ${productId}
   AND pv.style_id = v.style_id
   AND pv.size_id = v.size_id
   AND pv.length_type_id = v.length_type_id;
@@ -216,9 +227,10 @@ JOIN product_variants pv ON pv.product_id = 1
 }
 `;
 
-  const outPath = path.join(__dirname, "hdh22-seed.sql");
+  const outPath = path.join(__dirname, outFile);
   fs.writeFileSync(outPath, sql, "utf8");
 
+  console.log("Product:", productId, partLabel);
   console.log("Items:", items.length);
   console.log("Total actual:", totalActual);
   console.log("ADJUST_IN lines:", adjustIn.length);
