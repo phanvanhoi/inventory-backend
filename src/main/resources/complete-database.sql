@@ -901,13 +901,13 @@ INSERT INTO products (product_name, variant_type, parent_product_id, note, creat
 ('Áo Gile bảo hộ Bưu điện - Kaky vàng', 'STRUCTURED', 6, 'Gile BH 2026 - Bưu điện', NOW());
 -- product_id = 15
 INSERT INTO products (product_name, variant_type, parent_product_id, note, created_at) VALUES
-('Giày BH', 'STRUCTURED', 7, 'Giày bảo hộ size 38-45', NOW());
+('Giày BH', 'STRUCTURED', 7, 'Giày bảo hộ size 37-45', NOW());
 -- product_id = 16
 INSERT INTO products (product_name, variant_type, parent_product_id, note, created_at) VALUES
 ('Bộ áo mưa', 'STRUCTURED', 7, 'Áo mưa size S-4XL', NOW());
 -- product_id = 17
 INSERT INTO products (product_name, variant_type, note, created_at) VALUES
-('BẢO HỘ LAO ĐỘNG 2026', 'ITEM_BASED', 'Mũ, túi, balo...', NOW());
+('BẢO HỘ LAO ĐỘNG 2026', 'ITEM_BASED', '8 mã BHLĐ (mũ, túi, balo, khóa)', NOW());
 
 -- 3.7 Product Variants
 -- ====== Product 1: SƠ MI NAM 2025 (88 biến thể = 4 styles x 11 sizes x 2 lengths) ======
@@ -975,21 +975,26 @@ INSERT INTO product_variants (product_id, size_id, gender) VALUES
 (14, 17, 'NU'), (14, 18, 'NU'), (14, 19, 'NU'), (14, 20, 'NU'), (14, 21, 'NU');
 
 -- ====== Product 7: BẢO HỘ LAO ĐỘNG CÓ SIZE 2026 → Parent ======
--- ====== Product 15: Giày BH (child của SP7) — STRUCTURED, size 38-45 (no gender) ======
--- size_id: 4=38, 5=39, 6=40, 7=41, 8=42, 9=43, 10=44, 11=45
+-- ====== Product 15: Giày BH (child của SP7) — STRUCTURED, size 37-45 (no gender) ======
+-- size_id: 3=37, 4=38, 5=39, 6=40, 7=41, 8=42, 9=43, 10=44, 11=45
 INSERT INTO product_variants (product_id, size_id) VALUES
-(15, 4), (15, 5), (15, 6), (15, 7), (15, 8), (15, 9), (15, 10), (15, 11);
+(15, 3), (15, 4), (15, 5), (15, 6), (15, 7), (15, 8), (15, 9), (15, 10), (15, 11);
 
 -- ====== Product 16: Bộ áo mưa (child của SP7) — STRUCTURED, size S-4XL (no gender) ======
 -- size_id: 13=S, 14=M, 15=L, 16=XL, 17=2XL, 18=3XL, 19=4XL
 INSERT INTO product_variants (product_id, size_id) VALUES
 (16, 13), (16, 14), (16, 15), (16, 16), (16, 17), (16, 18), (16, 19);
 
--- ====== Product 17: BẢO HỘ LAO ĐỘNG 2026 (ITEM_BASED — 3 items) ======
+-- ====== Product 17: BẢO HỘ LAO ĐỘNG 2026 (8 mã — ITEM_BASED) ======
 INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
 (17, 'M1', 'Mũ BHLĐ', 'chiếc'),
-(17, 'TUI1', 'Túi đựng dụng cụ', 'chiếc'),
-(17, 'BL1', 'Balo VNPT', 'chiếc');
+(17, 'TDC1', 'Túi đựng dụng cụ ngang thông thường', 'chiếc'),
+(17, 'TDC2', 'Túi dụng cụ loại to mẫu 2025', 'chiếc'),
+(17, 'BL1', 'Balo VNPT (loại mềm mẫu (31*42*14) dùng cho NET 1', 'chiếc'),
+(17, 'BL2', 'Balo VNPT (LOẠI CỨNG) dùng cho VT Hải Phòng', 'chiếc'),
+(17, 'KHOA1', 'Khóa A3 nhỏ', 'chiếc'),
+(17, 'KHOA2', 'Khóa A3 to', 'chiếc'),
+(17, 'KHOA3', 'Khóa A5', 'chiếc');
 
 -- Product 8: NHẬP XUẤT VẢI 2026 (338 mã — ITEM_BASED, nguồn CSV CÔNG TY)
 INSERT INTO product_variants (product_id, item_code, item_name, unit) VALUES
@@ -2999,6 +3004,153 @@ FROM (
     SELECT 'PK52' AS item_code, 520 AS qty
 ) v
 JOIN product_variants pv ON pv.product_id = 9 AND pv.item_code = v.item_code;
+
+
+-- =====================================================
+-- PHẦN 6: TỒN KHO BAN ĐẦU BẢO HỘ LAO ĐỘNG — CÔNG TY
+-- Giày BH (product 15), Áo mưa (product 16), Phụ kiện BHLĐ (product 17)
+-- Bao gồm cả mã có tồn = 0
+-- =====================================================
+
+-- 6a: Giày BH + Áo mưa (HANG_MAY_SAN)
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Tồn kho ban đầu - BHLĐ có size CÔNG TY 2026',
+    'Giày BH size 37-45 và Bộ áo mưa S-4XL',
+    'HANG_MAY_SAN',
+    'EXECUTED',
+    NULL,
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
+);
+
+SET @bhld_structured_set_id = LAST_INSERT_ID();
+SET @bhld_cong_ty_warehouse_id = (SELECT warehouse_id FROM warehouses WHERE warehouse_name = 'CÔNG TY' LIMIT 1);
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+SELECT
+    @bhld_structured_set_id,
+    u.unit_id,
+    15,
+    'IN',
+    'EXECUTED',
+    'Tồn kho ban đầu Giày BH kho CÔNG TY',
+    '2026-01-01 00:00:00',
+    @bhld_cong_ty_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
+
+SET @bhld_shoes_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @bhld_shoes_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 3 AS size_id, 2 AS qty
+    UNION ALL
+    SELECT 4 AS size_id, 129 AS qty
+    UNION ALL
+    SELECT 5 AS size_id, 58 AS qty
+    UNION ALL
+    SELECT 6 AS size_id, 81 AS qty
+    UNION ALL
+    SELECT 7 AS size_id, 73 AS qty
+    UNION ALL
+    SELECT 8 AS size_id, 70 AS qty
+    UNION ALL
+    SELECT 9 AS size_id, 43 AS qty
+    UNION ALL
+    SELECT 10 AS size_id, 0 AS qty
+    UNION ALL
+    SELECT 11 AS size_id, 0 AS qty
+) v
+JOIN product_variants pv ON pv.product_id = 15 AND pv.size_id = v.size_id;
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+SELECT
+    @bhld_structured_set_id,
+    u.unit_id,
+    16,
+    'IN',
+    'EXECUTED',
+    'Tồn kho ban đầu Bộ áo mưa kho CÔNG TY',
+    '2026-01-01 00:00:00',
+    @bhld_cong_ty_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
+
+SET @bhld_rain_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @bhld_rain_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 13 AS size_id, 0 AS qty
+    UNION ALL
+    SELECT 14 AS size_id, 0 AS qty
+    UNION ALL
+    SELECT 15 AS size_id, 0 AS qty
+    UNION ALL
+    SELECT 16 AS size_id, 44 AS qty
+    UNION ALL
+    SELECT 17 AS size_id, 65 AS qty
+    UNION ALL
+    SELECT 18 AS size_id, 51 AS qty
+    UNION ALL
+    SELECT 19 AS size_id, 0 AS qty
+) v
+JOIN product_variants pv ON pv.product_id = 16 AND pv.size_id = v.size_id;
+
+-- 6b: Mũ, túi, balo, khóa BHLĐ (PHU_KIEN — product 17)
+INSERT INTO request_sets (set_name, description, category, status, created_by, created_at, submitted_at)
+VALUES (
+    'Tồn kho ban đầu - BHLĐ phụ kiện CÔNG TY 2026',
+    'Mũ, túi, balo, khóa BHLĐ',
+    'PHU_KIEN',
+    'EXECUTED',
+    NULL,
+    '2026-01-01 00:00:00',
+    '2026-01-01 00:00:00'
+);
+
+SET @bhld_item_set_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_requests (set_id, unit_id, product_id, request_type, request_status, note, created_at, warehouse_id)
+SELECT
+    @bhld_item_set_id,
+    u.unit_id,
+    17,
+    'IN',
+    'EXECUTED',
+    'Tồn kho ban đầu phụ kiện BHLĐ kho CÔNG TY',
+    '2026-01-01 00:00:00',
+    @bhld_cong_ty_warehouse_id
+FROM units u
+WHERE u.unit_name = 'Kho'
+LIMIT 1;
+
+SET @bhld_item_request_id = LAST_INSERT_ID();
+
+INSERT INTO inventory_request_items (request_id, variant_id, quantity)
+SELECT @bhld_item_request_id, pv.variant_id, v.qty
+FROM (
+    SELECT 'M1' AS item_code, 62 AS qty
+    UNION ALL
+    SELECT 'TDC1' AS item_code, 0 AS qty
+    UNION ALL
+    SELECT 'TDC2' AS item_code, 0 AS qty
+    UNION ALL
+    SELECT 'BL1' AS item_code, 50 AS qty
+    UNION ALL
+    SELECT 'BL2' AS item_code, 6 AS qty
+    UNION ALL
+    SELECT 'KHOA1' AS item_code, 171 AS qty
+    UNION ALL
+    SELECT 'KHOA2' AS item_code, 1 AS qty
+    UNION ALL
+    SELECT 'KHOA3' AS item_code, 0 AS qty
+) v
+JOIN product_variants pv ON pv.product_id = 17 AND pv.item_code = v.item_code;
 
 
 -- =====================================================
