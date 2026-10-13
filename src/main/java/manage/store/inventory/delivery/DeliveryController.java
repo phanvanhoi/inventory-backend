@@ -54,8 +54,17 @@ public class DeliveryController {
     }
 
     @GetMapping(value = "/basemap/style.json", produces = "application/json")
-    public String basemapStyle() {
-        return deliveryService.mapStyle();
+    public String basemapStyle(HttpServletRequest request) {
+        String proto = request.getHeader("X-Forwarded-Proto");
+        if (proto == null || proto.isBlank()) {
+            proto = request.getScheme();
+        }
+        String host = request.getHeader("Host");
+        String style = deliveryService.mapStyle();
+        if (host == null || host.isBlank()) {
+            return style;
+        }
+        return style.replace("/api/delivery/basemap/proxy", proto + "://" + host + "/api/delivery/basemap/proxy");
     }
 
     @GetMapping("/basemap/proxy/**")
