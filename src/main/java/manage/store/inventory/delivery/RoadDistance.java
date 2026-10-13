@@ -17,12 +17,8 @@ import manage.store.inventory.exception.BusinessException;
 @Component
 public class RoadDistance {
 
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-
-    public RoadDistance(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
 
     public int[][] meters(List<DeliveryStop> stops, String baseUrl) {
         if (baseUrl == null || baseUrl.isBlank()) {
