@@ -14,4 +14,8 @@ public final class Geo {
                 * Math.sin(dLon / 2) * Math.sin(dLon / 2);
         return 2 * r * Math.asin(Math.sqrt(a));
     }
+
+    public static int meters(double lat1, double lon1, double lat2, double lon2) {
+        return (int) Math.round(km(lat1, lon1, lat2, lon2) * 1000.0);
+    }
 }

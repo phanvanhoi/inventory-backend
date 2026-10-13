@@ -26,18 +26,27 @@ public class RoadDistance {
 
     private static final Pattern VIETMAP_URL = Pattern.compile("https://maps\\.vietmap\\.vn(/[^\"\\\\]*)");
     private static final String ROOT = "https://maps.vietmap.vn";
+    private static final Pattern QUERY_KEY = Pattern.compile("[A-Za-z0-9_-]{1,40}");
+    private static final Pattern QUERY_VALUE = Pattern.compile("[A-Za-z0-9._~%-]{0,80}");
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .followRedirects(HttpClient.Redirect.NEVER)
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
 
     public int[][] meters(List<DeliveryStop> stops, String apiKey) {
+        return meters(stops, apiKey, ROOT);
+    }
+
+    public int[][] meters(List<DeliveryStop> stops, String apiKey, String root) {
         requireKey(apiKey);
         for (DeliveryStop stop : stops) {
             if (stop.getLatitude() == null || stop.getLongitude() == null) {
                 throw new BusinessException("Điểm " + stop.getStopName() + " chưa có tọa độ.");
             }
         }
-        StringBuilder url = new StringBuilder(ROOT + "/api/matrix/v4?apikey=" + enc(apiKey) + "&annotation=distance&vehicle=car");
+        StringBuilder url = new StringBuilder(matrixRoot(root) + "/api/matrix/v4?apikey=" + enc(apiKey) + "&annotation=distance&vehicle=car");
         for (DeliveryStop stop : stops) {
             url.append("&point=").append(stop.getLatitude()).append(',').append(stop.getLongitude());
         }
@@ -148,10 +157,7 @@ public class RoadDistance {
 
     public HttpResponse<byte[]> asset(String pathAndQuery, String apiKey) {
         requireKey(apiKey);
-        if (pathAndQuery == null || !pathAndQuery.startsWith("/maps/") || pathAndQuery.contains("..")) {
-            throw new BusinessException("Đường dẫn bản đồ không hợp lệ.");
-        }
-        String safe = pathAndQuery.replace(" ", "%20");
+        String safe = safeAssetPath(pathAndQuery);
         String joiner = safe.contains("?") ? "&" : "?";
         URI uri = URI.create(ROOT + safe + joiner + "apikey=" + enc(apiKey));
         try {
@@ -249,8 +255,72 @@ public class RoadDistance {
         } catch (BusinessException ex) {
             throw ex;
         } catch (Exception ex) {
-            throw new BusinessException("Không kết nối được Vietmap: " + ex.getMessage());
+            throw new BusinessException("Không kết nối được Vietmap.");
         }
+    }
+
+    static String safeAssetPath(String pathAndQuery) {
+        if (pathAndQuery == null || pathAndQuery.contains("..") || pathAndQuery.contains("\\") || pathAndQuery.contains("//")) {
+            throw new BusinessException("Đường dẫn bản đồ không hợp lệ.");
+        }
+        String path = pathAndQuery;
+        String query = "";
+        int split = pathAndQuery.indexOf('?');
+        if (split >= 0) {
+            path = pathAndQuery.substring(0, split);
+            query = pathAndQuery.substring(split + 1);
+        }
+        path = path.replace(" ", "%20");
+        if (!allowedAsset(path)) {
+            throw new BusinessException("Đường dẫn bản đồ không hợp lệ.");
+        }
+        String filtered = filterQuery(query);
+        return filtered.isEmpty() ? path : path + "?" + filtered;
+    }
+
+    private static boolean allowedAsset(String path) {
+        return path.startsWith("/maps/styles/")
+                || path.startsWith("/maps/tiles/")
+                || path.startsWith("/maps/fonts/")
+                || path.startsWith("/maps/glyphs/")
+                || path.startsWith("/maps/sprites/");
+    }
+
+    private static String filterQuery(String query) {
+        if (query == null || query.isBlank()) {
+            return "";
+        }
+        StringBuilder kept = new StringBuilder();
+        for (String part : query.split("&")) {
+            int eq = part.indexOf('=');
+            String key = eq >= 0 ? part.substring(0, eq) : part;
+            String value = eq >= 0 ? part.substring(eq + 1) : "";
+            if (key.isEmpty() || "apikey".equalsIgnoreCase(key)) {
+                continue;
+            }
+            if (!QUERY_KEY.matcher(key).matches() || !QUERY_VALUE.matcher(value).matches()) {
+                continue;
+            }
+            if (!kept.isEmpty()) {
+                kept.append('&');
+            }
+            kept.append(key);
+            if (eq >= 0) {
+                kept.append('=').append(value);
+            }
+        }
+        return kept.toString();
+    }
+
+    private static String matrixRoot(String root) {
+        if (root == null || root.isBlank()) {
+            return ROOT;
+        }
+        String trimmed = root.endsWith("/") ? root.substring(0, root.length() - 1) : root;
+        if (!trimmed.equals(ROOT) && !trimmed.startsWith(ROOT + "/")) {
+            throw new BusinessException("Nguồn km phải là maps.vietmap.vn.");
+        }
+        return trimmed;
     }
 
     private static void requireKey(String apiKey) {

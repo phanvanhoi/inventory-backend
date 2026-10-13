@@ -64,6 +64,45 @@ class RoutePlannerTest {
     }
 
     @Test
+    @DisplayName("Một tài xế vẫn xếp được hai chuyến")
+    void oneDriver() {
+        List<Trip> trips = List.of(new Trip(10, 1, 2), new Trip(11, 2, 3));
+        List<Route> routes = new RoutePlanner().plan(trips, 1L, line(), 1, true);
+        assertEquals(1, routes.size());
+        assertEquals(2, RoutePlanner.tripsOf(routes.get(0).visits()).size());
+        assertTrue(RoutePlanner.precedenceOk(routes.get(0).visits()));
+        assertTrue(routes.get(0).meters() > 0);
+    }
+
+    @Test
+    @DisplayName("Xe gánh quá hai phần ba km thì nhường một chuyến ngắn")
+    void balancesWhenOneDriverHoldsMostDistance() {
+        Distance distance = (from, to) -> {
+            if (from == to) {
+                return 0;
+            }
+            if ((from == 1L && to == 2L) || (from == 2L && to == 1L)) {
+                return 500;
+            }
+            if ((from == 2L && to == 3L) || (from == 3L && to == 2L)) {
+                return 9000;
+            }
+            if ((from == 3L && to == 1L) || (from == 1L && to == 3L)) {
+                return 500;
+            }
+            return 1000;
+        };
+        List<Trip> trips = List.of(new Trip(10, 2, 3), new Trip(11, 2, 2));
+        List<Route> routes = new RoutePlanner().plan(trips, 1L, distance, 2, true);
+        long busy = routes.stream().filter(route -> !route.visits().isEmpty()).count();
+        assertEquals(2, busy);
+        assertTrue(routes.stream().anyMatch(route -> route.reasons().stream().anyMatch(reason -> reason.contains("cân km"))));
+        for (Route route : routes) {
+            assertTrue(RoutePlanner.precedenceOk(route.visits()));
+        }
+    }
+
+    @Test
     @DisplayName("Chèn tiện chuyến chỉ tính đoạn còn lại")
     void detourOnRemaining() {
         Visit first = new Visit(1L);
