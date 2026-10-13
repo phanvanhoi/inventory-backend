@@ -33,6 +33,18 @@ class RoadDistanceTest {
     }
 
     @Test
+    void geoJsonLineBecomesLatitudeFirst() throws Exception {
+        var points = new ObjectMapper().readTree(
+                "{\"type\":\"LineString\",\"coordinates\":[[105.79,21.03],[105.80,21.04]]}");
+        var pairs = RoadDistance.latLngPairs(points);
+        assertEquals(2, pairs.size());
+        assertEquals(21.03, pairs.get(0).get(0));
+        assertEquals(105.79, pairs.get(0).get(1));
+        assertEquals(21.04, pairs.get(1).get(0));
+        assertEquals(105.80, pairs.get(1).get(1));
+    }
+
+    @Test
     void routePointsBecomeLatitudeFirst() throws Exception {
         var points = new ObjectMapper().readTree("[[106.67,10.75],[10.76,106.68]]");
         var pairs = RoadDistance.latLngPairs(points);

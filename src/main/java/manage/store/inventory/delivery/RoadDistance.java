@@ -206,6 +206,9 @@ public class RoadDistance {
 
     static List<List<Double>> latLngPairs(JsonNode points) {
         List<List<Double>> pairs = new ArrayList<>();
+        if (points.isObject()) {
+            points = points.path("coordinates");
+        }
         if (!points.isArray()) {
             return pairs;
         }
