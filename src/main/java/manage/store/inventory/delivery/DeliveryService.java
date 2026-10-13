@@ -99,6 +99,9 @@ public class DeliveryService {
             setting = new DeliverySetting();
             em.persist(setting);
         }
+        if (setting.getDistanceBaseUrl() == null || setting.getDistanceBaseUrl().isBlank()) {
+            setting.setDistanceBaseUrl("https://router.project-osrm.org");
+        }
         return setting;
     }
 
@@ -415,7 +418,34 @@ public class DeliveryService {
         view.put("visits", visits);
         long cost = Math.round(plan.getTotalMeters() / 1000.0 * settings().getCostPerKm());
         view.put("estimatedCost", cost);
+        view.put("route", routeLine(plan, visits));
         return view;
+    }
+
+    public List<Map<String, Object>> geocode(String query) {
+        return roadDistance.geocode(query);
+    }
+
+    private List<List<Double>> routeLine(DriverDayPlan plan, List<Map<String, Object>> visitRows) {
+        List<DeliveryStop> line = new ArrayList<>();
+        for (Map<String, Object> row : visitRows) {
+            DeliveryStop stop = (DeliveryStop) row.get("stop");
+            if (stop.getLatitude() != null && stop.getLongitude() != null) {
+                line.add(stop);
+            }
+        }
+        if (plan.isReturnToShop()) {
+            DeliveryStop shop = stops().stream().filter(DeliveryStop::isShop).findFirst().orElse(null);
+            if (shop != null && shop.getLatitude() != null
+                    && (line.isEmpty() || !shop.getStopId().equals(line.get(line.size() - 1).getStopId()))) {
+                line.add(shop);
+            }
+        }
+        try {
+            return roadDistance.line(line, settings().getDistanceBaseUrl());
+        } catch (RuntimeException ex) {
+            return List.of();
+        }
     }
 
     private boolean trySuddenInsert(DeliveryBook book, DeliveryTrip trip, boolean allowEnRoute) {

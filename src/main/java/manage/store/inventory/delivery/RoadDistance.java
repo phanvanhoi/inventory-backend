@@ -1,11 +1,16 @@
 package manage.store.inventory.delivery;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
@@ -62,6 +67,72 @@ public class RoadDistance {
             throw ex;
         } catch (Exception ex) {
             throw new BusinessException("Không tính được km đường bộ: " + ex.getMessage());
+        }
+    }
+
+    public List<List<Double>> line(List<DeliveryStop> stops, String baseUrl) {
+        List<List<Double>> points = new ArrayList<>();
+        if (baseUrl == null || baseUrl.isBlank() || stops.size() < 2) {
+            return points;
+        }
+        StringBuilder path = new StringBuilder();
+        for (int i = 0; i < stops.size(); i++) {
+            if (stops.get(i).getLatitude() == null || stops.get(i).getLongitude() == null) {
+                return points;
+            }
+            if (i > 0) {
+                path.append(';');
+            }
+            path.append(stops.get(i).getLongitude()).append(',').append(stops.get(i).getLatitude());
+        }
+        String root = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        URI uri = URI.create(root + "/route/v1/driving/" + path + "?overview=full&geometries=geojson");
+        try {
+            HttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(20)).GET().build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 300) {
+                return points;
+            }
+            JsonNode coordinates = objectMapper.readTree(response.body()).path("routes").path(0).path("geometry").path("coordinates");
+            if (!coordinates.isArray()) {
+                return points;
+            }
+            for (JsonNode pair : coordinates) {
+                points.add(List.of(pair.get(1).asDouble(), pair.get(0).asDouble()));
+            }
+            return points;
+        } catch (Exception ex) {
+            return points;
+        }
+    }
+
+    public List<Map<String, Object>> geocode(String query) {
+        List<Map<String, Object>> found = new ArrayList<>();
+        if (query == null || query.trim().length() < 3) {
+            return found;
+        }
+        String url = "https://nominatim.openstreetmap.org/search?format=json&countrycodes=vn&accept-language=vi&limit=5&q="
+                + URLEncoder.encode(query.trim(), StandardCharsets.UTF_8);
+        try {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                    .timeout(Duration.ofSeconds(8))
+                    .header("User-Agent", "HangFashionDelivery/1.0")
+                    .GET()
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 300) {
+                return found;
+            }
+            for (JsonNode node : objectMapper.readTree(response.body())) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("label", node.path("display_name").asText());
+                row.put("latitude", node.path("lat").asDouble());
+                row.put("longitude", node.path("lon").asDouble());
+                found.add(row);
+            }
+            return found;
+        } catch (Exception ex) {
+            return found;
         }
     }
 }
