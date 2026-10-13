@@ -4,6 +4,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.servlet.http.HttpServletRequest;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import manage.store.inventory.delivery.DeliveryService.BookRequest;
+import manage.store.inventory.exception.BusinessException;
 import manage.store.inventory.security.CurrentUser;
 
 @RestController
@@ -34,8 +38,55 @@ public class DeliveryController {
     }
 
     @GetMapping("/geocode")
-    public List<Map<String, Object>> geocode(@RequestParam(defaultValue = "") String q) {
-        return deliveryService.geocode(q);
+    public List<Map<String, Object>> geocode(@RequestParam(defaultValue = "") String q,
+            @RequestParam(required = false) String focus) {
+        return deliveryService.geocode(q, focus);
+    }
+
+    @GetMapping("/place")
+    public Map<String, Object> place(@RequestParam String refId) {
+        return deliveryService.place(refId);
+    }
+
+    @GetMapping("/reverse")
+    public Map<String, Object> reverse(@RequestParam double lat, @RequestParam double lng) {
+        return deliveryService.reverse(lat, lng);
+    }
+
+    @GetMapping(value = "/basemap/style.json", produces = "application/json")
+    public String basemapStyle() {
+        return deliveryService.mapStyle();
+    }
+
+    @GetMapping("/basemap/proxy/**")
+    public ResponseEntity<byte[]> basemap(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        int at = uri.indexOf("/basemap/proxy");
+        String path = at >= 0 ? uri.substring(at + "/basemap/proxy".length()) : "";
+        String query = request.getQueryString();
+        if (query != null && !query.isBlank()) {
+            path = path + "?" + query;
+        }
+        var response = deliveryService.mapAsset(path);
+        if (response.statusCode() >= 300) {
+            throw new BusinessException("Không tải được mảnh bản đồ Vietmap (" + response.statusCode() + ").");
+        }
+        String type = response.headers().firstValue("content-type").orElse(tileType(path));
+        return ResponseEntity.ok()
+                .header("Content-Type", type)
+                .header("Cache-Control", "public, max-age=86400")
+                .body(response.body());
+    }
+
+    private static String tileType(String path) {
+        String file = path.contains("?") ? path.substring(0, path.indexOf('?')) : path;
+        if (file.endsWith(".png")) {
+            return "image/png";
+        }
+        if (file.endsWith(".json")) {
+            return "application/json";
+        }
+        return "application/octet-stream";
     }
 
     @PostMapping("/stops")
