@@ -14,6 +14,7 @@ import java.util.Objects;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +48,9 @@ public class DeliveryService {
 
     private final RoadDistance roadDistance;
     private final RoutePlanner routePlanner = new RoutePlanner();
+
+    @Value("${vietmap.api-key:}")
+    private String vietmapEnvKey;
 
     public DeliveryService(RoadDistance roadDistance) {
         this.roadDistance = roadDistance;
@@ -99,17 +103,21 @@ public class DeliveryService {
             setting = new DeliverySetting();
             em.persist(setting);
         }
-        if (setting.getDistanceBaseUrl() == null || setting.getDistanceBaseUrl().isBlank()) {
-            setting.setDistanceBaseUrl("https://router.project-osrm.org");
-        }
+        setting.setVietmapReady(!vietmapKey(setting).isBlank());
         return setting;
     }
 
     public DeliverySetting saveSettings(DeliverySetting input) {
         DeliverySetting setting = settings();
-        setting.setDistanceBaseUrl(input.getDistanceBaseUrl());
+        if (input.getDistanceBaseUrl() != null && !input.getDistanceBaseUrl().isBlank()) {
+            setting.setDistanceBaseUrl(input.getDistanceBaseUrl());
+        }
         setting.setDetourLimitMeters(input.getDetourLimitMeters() > 0 ? input.getDetourLimitMeters() : 5000);
         setting.setCostPerKm(Math.max(0, input.getCostPerKm()));
+        if (input.getVietmapApiKey() != null && !input.getVietmapApiKey().isBlank()) {
+            setting.setVietmapApiKey(input.getVietmapApiKey().trim());
+        }
+        setting.setVietmapReady(!vietmapKey(setting).isBlank());
         return setting;
     }
 
@@ -240,7 +248,7 @@ public class DeliveryService {
             return day(date);
         }
         List<DeliveryStop> stops = stopsFor(trips, shop);
-        int[][] matrix = roadDistance.meters(stops, settings().getDistanceBaseUrl());
+        int[][] matrix = roadDistance.meters(stops, vietmapKey());
         Map<Long, Integer> index = new HashMap<>();
         for (int i = 0; i < stops.size(); i++) {
             index.put(stops.get(i).getStopId(), i);
@@ -422,8 +430,35 @@ public class DeliveryService {
         return view;
     }
 
-    public List<Map<String, Object>> geocode(String query) {
-        return roadDistance.geocode(query);
+    public List<Map<String, Object>> geocode(String query, String focus) {
+        return roadDistance.geocode(query, focus, vietmapKey());
+    }
+
+    public Map<String, Object> place(String refId) {
+        return roadDistance.place(refId, vietmapKey());
+    }
+
+    public Map<String, Object> reverse(double latitude, double longitude) {
+        return roadDistance.reverse(latitude, longitude, vietmapKey());
+    }
+
+    public String mapStyle() {
+        return roadDistance.style(vietmapKey());
+    }
+
+    public java.net.http.HttpResponse<byte[]> mapAsset(String pathAndQuery) {
+        return roadDistance.asset(pathAndQuery, vietmapKey());
+    }
+
+    private String vietmapKey() {
+        return vietmapKey(settings());
+    }
+
+    private String vietmapKey(DeliverySetting setting) {
+        if (setting.getVietmapApiKey() != null && !setting.getVietmapApiKey().isBlank()) {
+            return setting.getVietmapApiKey().trim();
+        }
+        return vietmapEnvKey == null ? "" : vietmapEnvKey.trim();
     }
 
     private List<List<Double>> routeLine(DriverDayPlan plan, List<Map<String, Object>> visitRows) {
@@ -442,7 +477,7 @@ public class DeliveryService {
             }
         }
         try {
-            return roadDistance.line(line, settings().getDistanceBaseUrl());
+            return roadDistance.line(line, vietmapKey());
         } catch (RuntimeException ex) {
             return List.of();
         }
@@ -553,7 +588,7 @@ public class DeliveryService {
             stops.add(shop);
         }
         List<DeliveryStop> used = stops.stream().filter(stop -> stop.getLatitude() != null).toList();
-        int[][] matrix = roadDistance.meters(used, settings().getDistanceBaseUrl());
+        int[][] matrix = roadDistance.meters(used, vietmapKey());
         Map<Long, Integer> index = new HashMap<>();
         for (int i = 0; i < used.size(); i++) {
             index.put(used.get(i).getStopId(), i);

@@ -35,3 +35,6 @@ jwt:
 # CORS
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+vietmap:
+  api-key: ${VIETMAP_API_KEY:}
