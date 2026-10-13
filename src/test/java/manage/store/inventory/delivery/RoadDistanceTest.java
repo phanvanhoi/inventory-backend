@@ -2,6 +2,9 @@ package manage.store.inventory.delivery;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import manage.store.inventory.exception.BusinessException;
 
 import org.junit.jupiter.api.Test;
 
@@ -37,5 +40,17 @@ class RoadDistanceTest {
         assertEquals(106.67, pairs.get(0).get(1));
         assertEquals(10.76, pairs.get(1).get(0));
         assertEquals(106.68, pairs.get(1).get(1));
+    }
+
+    @Test
+    void proxyRejectsParentSegmentsAndForeignPaths() {
+        assertThrows(BusinessException.class, () -> RoadDistance.safeAssetPath("/maps/../secret"));
+        assertThrows(BusinessException.class, () -> RoadDistance.safeAssetPath("/api/route/v4"));
+        assertThrows(BusinessException.class, () -> RoadDistance.safeAssetPath("/maps/tiles/../style.json"));
+        String safe = RoadDistance.safeAssetPath("/maps/styles/tm/sprite.png?apikey=secret&foo=bar");
+        assertFalse(safe.contains("secret"));
+        assertFalse(safe.contains("apikey"));
+        assertEquals(true, safe.contains("foo=bar"));
+        assertEquals("/maps/tiles/tm/1/2/3.pbf", RoadDistance.safeAssetPath("/maps/tiles/tm/1/2/3.pbf"));
     }
 }

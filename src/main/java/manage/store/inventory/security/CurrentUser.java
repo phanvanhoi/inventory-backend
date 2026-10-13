@@ -38,4 +38,9 @@ public class CurrentUser {
     public boolean isUser() {
         return get().isUser();
     }
+
+    public boolean isCoordinator() {
+        UserPrincipal principal = get();
+        return principal.isAdmin() || principal.hasRole("DISPATCHER");
+    }
 }

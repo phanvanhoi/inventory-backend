@@ -5,18 +5,23 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import manage.store.inventory.delivery.RoutePlanner.Distance;
 import manage.store.inventory.delivery.RoutePlanner.Insertion;
@@ -27,7 +32,6 @@ import manage.store.inventory.exception.BusinessException;
 import manage.store.inventory.exception.ResourceNotFoundException;
 
 @Service
-@Transactional
 public class DeliveryService {
 
     private static final String WAITING = "WAITING";
@@ -37,29 +41,37 @@ public class DeliveryService {
     private static final String CANCELLED = "CANCELLED";
     private static final String OPEN = "OPEN";
     private static final String ASSIGNED = "ASSIGNED";
+    private static final String CLOSED = "CLOSED";
     private static final String DRAFT = "DRAFT";
     private static final String PUBLISHED = "PUBLISHED";
     private static final String LOCKED = "LOCKED";
     private static final String EN_ROUTE = "EN_ROUTE";
     private static final String DONE = "DONE";
+    private static final String STRAIGHT = "Đang dùng đường thẳng vì không lấy được km Vietmap.";
+    private static final double PASS_RADIUS_KM = 0.15;
 
     @PersistenceContext
     private EntityManager em;
 
     private final RoadDistance roadDistance;
     private final RoutePlanner routePlanner = new RoutePlanner();
+    private final TransactionTemplate tx;
+    private final Map<String, List<List<Double>>> routeCache = new ConcurrentHashMap<>();
 
     @Value("${vietmap.api-key:}")
     private String vietmapEnvKey;
 
-    public DeliveryService(RoadDistance roadDistance) {
+    public DeliveryService(RoadDistance roadDistance, PlatformTransactionManager transactions) {
         this.roadDistance = roadDistance;
+        this.tx = new TransactionTemplate(transactions);
     }
 
+    @Transactional(readOnly = true)
     public List<DeliveryStop> stops() {
         return em.createQuery("select s from DeliveryStop s order by s.shop desc, s.stopName", DeliveryStop.class).getResultList();
     }
 
+    @Transactional
     public DeliveryStop saveStop(DeliveryStop input) {
         if (input.isShop()) {
             em.createQuery("update DeliveryStop s set s.shop = false").executeUpdate();
@@ -80,13 +92,27 @@ public class DeliveryService {
         return stop;
     }
 
+    @Transactional(readOnly = true)
     public List<DeliveryDriver> drivers() {
         return em.createQuery("select d from DeliveryDriver d order by d.driverId", DeliveryDriver.class).getResultList();
     }
 
+    @Transactional
     public DeliveryDriver saveDriver(DeliveryDriver input) {
+        if (input.getUserId() != null) {
+            List<DeliveryDriver> taken = em.createQuery("select d from DeliveryDriver d where d.userId = :userId", DeliveryDriver.class)
+                    .setParameter("userId", input.getUserId())
+                    .getResultList();
+            boolean used = taken.stream().anyMatch(driver -> !driver.getDriverId().equals(input.getDriverId()));
+            if (used) {
+                throw new BusinessException("User này đã gắn với tài xế khác.");
+            }
+        }
         if (input.getDriverId() == null) {
             input.setCreatedAt(LocalDateTime.now());
+            if (!input.isActive()) {
+                input.setActive(true);
+            }
             em.persist(input);
             return input;
         }
@@ -94,9 +120,11 @@ public class DeliveryService {
         driver.setDriverName(input.getDriverName());
         driver.setPhone(input.getPhone());
         driver.setActive(input.isActive());
+        driver.setUserId(input.getUserId());
         return driver;
     }
 
+    @Transactional
     public DeliverySetting settings() {
         DeliverySetting setting = em.find(DeliverySetting.class, (byte) 1);
         if (setting == null) {
@@ -107,6 +135,7 @@ public class DeliveryService {
         return setting;
     }
 
+    @Transactional
     public DeliverySetting saveSettings(DeliverySetting input) {
         DeliverySetting setting = settings();
         if (input.getDistanceBaseUrl() != null && !input.getDistanceBaseUrl().isBlank()) {
@@ -125,6 +154,212 @@ public class DeliveryService {
     }
 
     public DeliveryBook createBook(BookRequest request, Long userId) {
+        NewBook created = tx.execute(status -> persistBook(request, userId));
+        if (created.place()) {
+            placeOnRoute(created.bookId(), false, true);
+        }
+        return tx.execute(status -> book(created.bookId()));
+    }
+
+    public void cancelBook(Long bookId) {
+        CancelPreview preview = tx.execute(status -> previewCancel(bookId));
+        MatrixDistance matrix = preview.recompute()
+                ? matrixOf(preview.stops(), preview.apiKey(), preview.root())
+                : null;
+        int meters = preview.recompute()
+                ? RoutePlanner.pathMeters(preview.originId(), preview.next(), matrix, preview.returnTo())
+                : 0;
+        tx.executeWithoutResult(status -> commitCancel(bookId, preview, meters));
+    }
+
+    @Transactional
+    public void confirmSender(Long bookId, boolean onBehalf, Long userId) {
+        DeliveryBook book = book(bookId);
+        if (CANCELLED.equals(book.getStatus())) {
+            throw new BusinessException("Book đã hủy.");
+        }
+        if (DELIVERED.equals(book.getStatus())) {
+            throw new BusinessException("Book đã giao.");
+        }
+        if (book.getSenderConfirmedAt() != null) {
+            return;
+        }
+        if (!WAITING.equals(book.getStatus()) && !PLANNED.equals(book.getStatus())) {
+            throw new BusinessException("Book không còn ở bước người gửi xác nhận.");
+        }
+        book.setSenderConfirmedAt(LocalDateTime.now());
+        book.setSenderConfirmedBy(userId);
+        book.setSenderOnBehalf(onBehalf);
+        book.setStatus(SENDER_CONFIRMED);
+    }
+
+    @Transactional
+    public void confirmReceiver(Long bookId, boolean onBehalf, Long userId) {
+        DeliveryBook book = book(bookId);
+        if (CANCELLED.equals(book.getStatus())) {
+            throw new BusinessException("Book đã hủy.");
+        }
+        if (DELIVERED.equals(book.getStatus()) || book.getReceiverConfirmedAt() != null) {
+            return;
+        }
+        if (book.getSenderConfirmedAt() == null) {
+            throw new BusinessException("Người gửi chưa xác nhận đã đưa hàng.");
+        }
+        book.setReceiverConfirmedAt(LocalDateTime.now());
+        book.setReceiverConfirmedBy(userId);
+        book.setReceiverOnBehalf(onBehalf);
+        book.setStatus(DELIVERED);
+    }
+
+    public String acceptDetour(Long bookId) {
+        AcceptPrep prep = tx.execute(status -> prepAccept(bookId));
+        if (prep.message() != null) {
+            return prep.message();
+        }
+        placeOnRoute(prep.bookId(), true, true);
+        return tx.execute(status -> acceptMessage(prep.bookId(), prep.originalDate()));
+    }
+
+    public Map<String, Object> plan(LocalDate date) {
+        PlanInput input = tx.execute(status -> readPlan(date));
+        MatrixDistance matrix = input.trips().isEmpty() ? null : matrixOf(input.stops(), input.apiKey(), input.root());
+        tx.executeWithoutResult(status -> writePlan(date, input, matrix));
+        return day(date);
+    }
+
+    public Map<String, Object> publish(LocalDate date) {
+        tx.executeWithoutResult(status -> {
+            List<DriverDayPlan> list = requirePlans(date, DRAFT);
+            for (DriverDayPlan plan : list) {
+                plan.setStatus(PUBLISHED);
+                notice(plan.getDriverId(), date, slipText(plan));
+            }
+        });
+        return day(date);
+    }
+
+    public Map<String, Object> lock(LocalDate date, Long startStopId) {
+        LockRead read = tx.execute(status -> readLock(date, startStopId));
+        List<LockResult> results = new ArrayList<>();
+        for (LockJob job : read.jobs()) {
+            if (job.own().isEmpty()) {
+                results.add(new LockResult(job.planId(), null, null, 0));
+                continue;
+            }
+            MatrixDistance matrix = matrixOf(job.stops(), read.apiKey(), read.root());
+            Long returnTo = job.returnToShop() ? read.shopId() : null;
+            Route route = routePlanner.plan(job.own(), read.startId(), matrix, 1, returnTo).get(0);
+            if (!route.visits().isEmpty() && route.visits().get(0).pickups().isEmpty()) {
+                throw new BusinessException("Điểm đầu phải là điểm lấy vì xe đang trống.");
+            }
+            results.add(new LockResult(job.planId(), route.visits(), explain(route.reasons(), matrix.straight()), route.meters()));
+        }
+        tx.executeWithoutResult(status -> applyLock(read.startId(), results));
+        return day(date);
+    }
+
+    @Transactional
+    public void depart(Long planId) {
+        DriverDayPlan plan = plan(planId);
+        if (!LOCKED.equals(plan.getStatus())) {
+            throw new BusinessException("Chỉ xuất phát lịch đã khóa.");
+        }
+        plan.setStatus(EN_ROUTE);
+    }
+
+    public void finish(Long planId) {
+        List<Long> moved = tx.execute(status -> closeRoute(planId));
+        for (Long bookId : moved) {
+            placeOnRoute(bookId, false, false);
+        }
+    }
+
+    public void dropReturn(Long planId) {
+        DropRead read = tx.execute(status -> readDrop(planId));
+        MatrixDistance matrix = matrixOf(read.stops(), read.apiKey(), read.root());
+        int meters = RoutePlanner.pathMeters(read.originId(), read.visits(), matrix, null);
+        tx.executeWithoutResult(status -> {
+            DriverDayPlan plan = plan(planId);
+            if (EN_ROUTE.equals(plan.getStatus()) || DONE.equals(plan.getStatus())) {
+                throw new BusinessException("Lịch đã chạy thì không bỏ đoạn về.");
+            }
+            plan.setReturnToShop(false);
+            plan.setTotalMeters(meters);
+        });
+    }
+
+    @Transactional
+    public void ping(Long driverId, double latitude, double longitude, Long userId, boolean coordinator) {
+        DeliveryDriver person = driver(driverId);
+        if (!coordinator && (person.getUserId() == null || !person.getUserId().equals(userId))) {
+            throw new AccessDeniedException("Chỉ tài xế của xe này mới gửi được vị trí.");
+        }
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+            throw new BusinessException("Tọa độ không hợp lệ.");
+        }
+        DriverLocation location = em.find(DriverLocation.class, driverId);
+        if (location == null) {
+            location = new DriverLocation();
+            location.setDriverId(driverId);
+            location.setLatitude(latitude);
+            location.setLongitude(longitude);
+            location.setRecordedAt(LocalDateTime.now());
+            em.persist(location);
+        } else {
+            location.setLatitude(latitude);
+            location.setLongitude(longitude);
+            location.setRecordedAt(LocalDateTime.now());
+        }
+        syncEnRoute(driverId, latitude, longitude);
+    }
+
+    @Transactional
+    public void ack(Long noticeId) {
+        DispatchNotice notice = em.find(DispatchNotice.class, noticeId);
+        if (notice == null) {
+            throw new ResourceNotFoundException("Không thấy phiếu cần báo");
+        }
+        notice.setAcknowledgedAt(LocalDateTime.now());
+    }
+
+    @Transactional(readOnly = true)
+    public List<DispatchNotice> notices() {
+        return em.createQuery("select n from DispatchNotice n where n.acknowledgedAt is null order by n.createdAt desc", DispatchNotice.class)
+                .getResultList();
+    }
+
+    public Map<String, Object> day(LocalDate date) {
+        DayLoad load = tx.execute(status -> loadDay(date));
+        attachRoutes(load.body(), load.apiKey());
+        return load.body();
+    }
+
+    public List<Map<String, Object>> geocode(String query, String focus) {
+        String key = tx.execute(status -> vietmapKey());
+        return roadDistance.geocode(query, focus, key);
+    }
+
+    public Map<String, Object> place(String refId) {
+        String key = tx.execute(status -> vietmapKey());
+        return roadDistance.place(refId, key);
+    }
+
+    public Map<String, Object> reverse(double latitude, double longitude) {
+        String key = tx.execute(status -> vietmapKey());
+        return roadDistance.reverse(latitude, longitude, key);
+    }
+
+    public String mapStyle() {
+        String key = tx.execute(status -> vietmapKey());
+        return roadDistance.style(key);
+    }
+
+    public java.net.http.HttpResponse<byte[]> mapAsset(String pathAndQuery) {
+        String key = tx.execute(status -> tileKey());
+        return roadDistance.asset(pathAndQuery, key);
+    }
+
+    private NewBook persistBook(BookRequest request, Long userId) {
         if (request.pickupStopId().equals(request.dropoffStopId())) {
             throw new BusinessException("Điểm lấy và điểm giao phải khác nhau.");
         }
@@ -132,6 +367,14 @@ public class DeliveryService {
         stop(request.dropoffStopId());
         if (request.lines() == null || request.lines().isEmpty()) {
             throw new BusinessException("Book cần ít nhất một dòng hàng.");
+        }
+        for (LineRequest line : request.lines()) {
+            if (line.description() == null || line.description().isBlank()) {
+                throw new BusinessException("Dòng hàng cần mô tả.");
+            }
+            if (line.quantity() == null || line.quantity().signum() <= 0) {
+                throw new BusinessException("Số lượng phải lớn hơn 0.");
+            }
         }
         DeliveryBook book = new DeliveryBook();
         book.setPickupStopId(request.pickupStopId());
@@ -146,16 +389,11 @@ public class DeliveryService {
         DeliveryTrip trip = openTrip(request.serviceDate(), request.pickupStopId(), request.dropoffStopId());
         boolean merged = trip != null && !passed(trip);
         if (!merged) {
-            trip = new DeliveryTrip();
-            trip.setServiceDate(request.serviceDate());
-            trip.setPickupStopId(request.pickupStopId());
-            trip.setDropoffStopId(request.dropoffStopId());
-            trip.setStatus(OPEN);
-            em.persist(trip);
-            em.flush();
+            trip = newTrip(request.serviceDate(), request.pickupStopId(), request.dropoffStopId());
         }
         book.setTripId(trip.getTripId());
-        if (ASSIGNED.equals(trip.getStatus())) {
+        boolean live = merged && ASSIGNED.equals(trip.getStatus());
+        if (live) {
             book.setStatus(PLANNED);
         }
         em.persist(book);
@@ -163,66 +401,107 @@ public class DeliveryService {
         for (LineRequest line : request.lines()) {
             DeliveryBookLine entity = new DeliveryBookLine();
             entity.setBookId(book.getBookId());
-            entity.setDescription(line.description());
+            entity.setDescription(line.description().trim());
             entity.setQuantity(line.quantity());
             entity.setUnitLabel(line.unitLabel());
             em.persist(entity);
         }
-        if (merged && ASSIGNED.equals(trip.getStatus())) {
+        if (live) {
             noticeForTrip(trip, "Ghép thêm hàng vào chuyến đã có, km không tăng.");
-        } else if (!merged) {
-            trySuddenInsert(book, trip, false);
         }
-        return book;
+        return new NewBook(book.getBookId(), !merged);
     }
 
-    public void cancelBook(Long bookId) {
+    private DeliveryTrip newTrip(LocalDate date, Long pickup, Long dropoff) {
+        DeliveryTrip trip = new DeliveryTrip();
+        trip.setServiceDate(date);
+        trip.setPickupStopId(pickup);
+        trip.setDropoffStopId(dropoff);
+        trip.setStatus(OPEN);
+        em.persist(trip);
+        em.flush();
+        return trip;
+    }
+
+    private CancelPreview previewCancel(Long bookId) {
+        DeliveryBook book = book(bookId);
+        if (book.getSenderConfirmedAt() != null || CANCELLED.equals(book.getStatus()) || DELIVERED.equals(book.getStatus())) {
+            throw new BusinessException("Book đã xác nhận đưa hàng thì không hủy.");
+        }
+        DriverDayPlan plan = planOfTrip(book.getTripId());
+        if (plan == null) {
+            return CancelPreview.simple(book.getTripId());
+        }
+        boolean others = booksOfTrip(book.getTripId()).stream()
+                .anyMatch(other -> !other.getBookId().equals(book.getBookId()) && !CANCELLED.equals(other.getStatus()));
+        List<Visit> visits = toVisits(plan.getPlanId());
+        String seen = sequence(visits);
+        if (others || alreadyPassed(plan, visits, book.getTripId())) {
+            return CancelPreview.keep(book.getTripId(), plan.getPlanId(), seen, !DRAFT.equals(plan.getStatus()));
+        }
+        List<Visit> next = withoutTrip(visits, book.getTripId());
+        boolean deleteDraft = next.isEmpty() && DRAFT.equals(plan.getStatus());
+        long origin = originId(plan);
+        Long returnTo = plan.isReturnToShop() ? shop().getStopId() : null;
+        List<DeliveryStop> stops = deleteDraft ? List.of() : snaps(ids(origin, next, returnTo));
+        return new CancelPreview(book.getTripId(), plan.getPlanId(), seen, next, true, deleteDraft,
+                !DRAFT.equals(plan.getStatus()), origin, returnTo, stops, vietmapKey(), matrixRoot());
+    }
+
+    private void commitCancel(Long bookId, CancelPreview preview, int meters) {
         DeliveryBook book = book(bookId);
         if (book.getSenderConfirmedAt() != null || CANCELLED.equals(book.getStatus()) || DELIVERED.equals(book.getStatus())) {
             throw new BusinessException("Book đã xác nhận đưa hàng thì không hủy.");
         }
         book.setStatus(CANCELLED);
-        DriverDayPlan plan = planOfTrip(book.getTripId());
-        if (plan != null && !DRAFT.equals(plan.getStatus())) {
-            stripCancelledTrip(plan, book);
-            notice(plan.getDriverId(), plan.getServiceDate(), "Hủy book " + bookId + ". Gỡ hàng khỏi phiếu nếu bác chưa lấy. " + slipText(plan));
+        if (preview.planId() != null) {
+            DriverDayPlan plan = plan(preview.planId());
+            List<Visit> visits = toVisits(plan.getPlanId());
+            if (!preview.seen().equals(sequence(visits))) {
+                throw new BusinessException("Lịch vừa đổi, hủy lại.");
+            }
+            if (preview.strip()) {
+                if (preview.deleteDraft()) {
+                    deletePlan(plan);
+                } else {
+                    replaceVisits(plan.getPlanId(), preview.next());
+                    plan.setTotalMeters(meters);
+                }
+            }
+            if (preview.tell() && !preview.deleteDraft()) {
+                notice(plan.getDriverId(), plan.getServiceDate(), "Hủy book " + bookId + ". Gỡ hàng khỏi phiếu nếu bác chưa lấy. " + slipText(plan));
+            } else if (preview.tell() && preview.deleteDraft()) {
+                notice(plan.getDriverId(), plan.getServiceDate(), "Hủy book " + bookId + ". Lịch nháp không còn điểm dừng.");
+            }
         }
+        closeTripIfEmpty(book.getTripId());
     }
 
-    public void confirmSender(Long bookId, boolean onBehalf, Long userId) {
+    private AcceptPrep prepAccept(Long bookId) {
         DeliveryBook book = book(bookId);
-        if (CANCELLED.equals(book.getStatus())) {
-            throw new BusinessException("Book đã hủy.");
+        if (CANCELLED.equals(book.getStatus()) || DELIVERED.equals(book.getStatus())) {
+            throw new BusinessException("Book không còn chờ gắn.");
         }
-        book.setSenderConfirmedAt(LocalDateTime.now());
-        book.setSenderConfirmedBy(userId);
-        book.setSenderOnBehalf(onBehalf);
-        book.setStatus(SENDER_CONFIRMED);
-    }
-
-    public void confirmReceiver(Long bookId, boolean onBehalf, Long userId) {
-        DeliveryBook book = book(bookId);
-        if (book.getSenderConfirmedAt() == null) {
-            throw new BusinessException("Người gửi chưa xác nhận đã đưa hàng.");
-        }
-        book.setReceiverConfirmedAt(LocalDateTime.now());
-        book.setReceiverConfirmedBy(userId);
-        book.setReceiverOnBehalf(onBehalf);
-        book.setStatus(DELIVERED);
-    }
-
-    public String acceptDetour(Long bookId) {
-        DeliveryBook book = book(bookId);
-        LocalDate original = book.getServiceDate();
         DeliveryTrip trip = book.getTripId() == null ? null : em.find(DeliveryTrip.class, book.getTripId());
         if (trip == null) {
             throw new BusinessException("Book chưa gắn chuyến.");
         }
-        if (ASSIGNED.equals(trip.getStatus())) {
-            return "Chuyến đã nằm trong lịch.";
+        DriverDayPlan owner = planOfTrip(trip.getTripId());
+        if (ASSIGNED.equals(trip.getStatus()) && owner != null && !DONE.equals(owner.getStatus())) {
+            return new AcceptPrep(bookId, book.getServiceDate(), "Chuyến đã nằm trong lịch.");
         }
-        boolean attached = trySuddenInsert(book, trip, true);
-        if (attached) {
+        if (ASSIGNED.equals(trip.getStatus()) || CLOSED.equals(trip.getStatus())) {
+            DeliveryTrip fresh = newTrip(book.getServiceDate(), book.getPickupStopId(), book.getDropoffStopId());
+            book.setTripId(fresh.getTripId());
+            book.setStatus(WAITING);
+            closeTripIfEmpty(trip.getTripId());
+        }
+        return new AcceptPrep(bookId, book.getServiceDate(), null);
+    }
+
+    private String acceptMessage(Long bookId, LocalDate original) {
+        DeliveryBook book = book(bookId);
+        if (PLANNED.equals(book.getStatus()) || book.isSudden()) {
             return "Đã gắn tiện chuyến.";
         }
         if (!original.equals(book.getServiceDate())) {
@@ -231,7 +510,180 @@ public class DeliveryService {
         throw new BusinessException("Không gắn được. Kiểm tra lịch trong ngày và nguồn km.");
     }
 
-    public Map<String, Object> plan(LocalDate date) {
+    private void placeOnRoute(long bookId, boolean allowEnRoute, boolean shiftWhenBlocked) {
+        SuddenView view = tx.execute(status -> suddenView(bookId, allowEnRoute));
+        if (view.kind() == SuddenKind.SKIP) {
+            return;
+        }
+        if (view.kind() == SuddenKind.IDLE) {
+            tx.executeWithoutResult(status -> noticeIfSealed(bookId));
+            return;
+        }
+        if (view.kind() == SuddenKind.NOTICE) {
+            tx.executeWithoutResult(status -> notice(view.noticeDriverId(), view.serviceDate(), view.notice()));
+            return;
+        }
+        MatrixDistance matrix = matrixOf(view.stops(), view.apiKey(), view.root());
+        InsertDecision decision = decide(view, matrix, shiftWhenBlocked);
+        tx.executeWithoutResult(status -> applySudden(bookId, decision));
+    }
+
+    private SuddenView suddenView(long bookId, boolean allowEnRoute) {
+        DeliveryBook book = book(bookId);
+        if (CANCELLED.equals(book.getStatus()) || DELIVERED.equals(book.getStatus()) || book.getTripId() == null) {
+            return SuddenView.skip();
+        }
+        DeliveryTrip trip = em.find(DeliveryTrip.class, book.getTripId());
+        if (trip == null) {
+            return SuddenView.skip();
+        }
+        List<DriverDayPlan> dayPlans = plans(book.getServiceDate()).stream()
+                .filter(plan -> !DRAFT.equals(plan.getStatus()) && !DONE.equals(plan.getStatus()))
+                .toList();
+        if (dayPlans.isEmpty()) {
+            return SuddenView.idle();
+        }
+        boolean enRoute = dayPlans.stream().anyMatch(plan -> EN_ROUTE.equals(plan.getStatus()));
+        if (enRoute && !allowEnRoute) {
+            return SuddenView.notice(dayPlans.get(0).getDriverId(), book.getServiceDate(), callNotice(book, dayPlans));
+        }
+        DeliveryStop shop = shop();
+        List<Candidate> candidates = new ArrayList<>();
+        LinkedHashSet<Long> stopIds = new LinkedHashSet<>();
+        for (DriverDayPlan plan : dayPlans) {
+            List<Visit> visits = toVisits(plan.getPlanId());
+            int from = firstOpenIndex(plan, visits);
+            long origin = originId(plan);
+            Long returnTo = plan.isReturnToShop() ? shop.getStopId() : null;
+            candidates.add(new Candidate(plan.getPlanId(), plan.getDriverId(), plan.getStatus(), origin, returnTo, from, visits, sequence(visits)));
+            stopIds.add(origin);
+            if (returnTo != null) {
+                stopIds.add(returnTo);
+            }
+            for (Visit visit : visits) {
+                stopIds.add(visit.stopId());
+            }
+        }
+        stopIds.add(trip.getPickupStopId());
+        stopIds.add(trip.getDropoffStopId());
+        return SuddenView.ready(book.getBookId(), book.getServiceDate(), trip.getTripId(), trip.getPickupStopId(), trip.getDropoffStopId(),
+                candidates, snaps(stopIds), settings().getDetourLimitMeters(), vietmapKey(), matrixRoot());
+    }
+
+    private InsertDecision decide(SuddenView view, MatrixDistance matrix, boolean shiftWhenBlocked) {
+        int bestExtra = Integer.MAX_VALUE;
+        Candidate best = null;
+        Insertion bestInsert = null;
+        for (Candidate candidate : view.candidates()) {
+            Insertion insertion = routePlanner.insertIntoRemaining(
+                    candidate.visits(), candidate.from(),
+                    new Trip(view.tripId(), view.pickup(), view.dropoff()),
+                    candidate.origin(), matrix, candidate.returnTo());
+            if (insertion.extraMeters() < bestExtra) {
+                bestExtra = insertion.extraMeters();
+                best = candidate;
+                bestInsert = insertion;
+            }
+        }
+        if (best == null || bestExtra > view.limit()) {
+            if (!shiftWhenBlocked) {
+                Long driverId = best != null ? best.driverId() : view.candidates().get(0).driverId();
+                String text = "Book " + view.bookId() + " vượt ngưỡng vòng, để chờ trên ngày " + view.serviceDate() + ". Điều phối cần xếp hoặc gọi.";
+                return InsertDecision.notice(driverId, view.serviceDate(), text);
+            }
+            return InsertDecision.shift();
+        }
+        int total = RoutePlanner.pathMeters(best.origin(), bestInsert.visits(), matrix, best.returnTo());
+        DeliveryDriver person = driver(best.driverId());
+        String lead = EN_ROUTE.equals(best.status())
+                ? "Tiện chuyến khi đang đi, thêm " + bestExtra + " m. Gọi " + person.getDriverName() + " " + person.getPhone() + " rồi in lại phiếu. "
+                : "Tiện chuyến book " + view.bookId() + ", thêm " + bestExtra + " m. Nói với bác trước khi đi. ";
+        if (matrix.straight()) {
+            lead = STRAIGHT + " " + lead;
+        }
+        return InsertDecision.attach(best.planId(), best.seen(), bestInsert.visits(), total, best.driverId(), view.serviceDate(), lead);
+    }
+
+    private void applySudden(long bookId, InsertDecision decision) {
+        if (decision.kind() == SuddenKind.NOTICE) {
+            notice(decision.driverId(), decision.serviceDate(), decision.notice());
+            return;
+        }
+        DeliveryBook book = book(bookId);
+        if (CANCELLED.equals(book.getStatus()) || DELIVERED.equals(book.getStatus()) || book.getTripId() == null) {
+            return;
+        }
+        DeliveryTrip trip = em.find(DeliveryTrip.class, book.getTripId());
+        if (trip == null) {
+            return;
+        }
+        if (decision.kind() == SuddenKind.SHIFT) {
+            book.setServiceDate(book.getServiceDate().plusDays(1));
+            trip.setServiceDate(book.getServiceDate());
+            return;
+        }
+        DriverDayPlan plan = plan(decision.planId());
+        if (DRAFT.equals(plan.getStatus()) || DONE.equals(plan.getStatus())) {
+            return;
+        }
+        if (!decision.seen().equals(sequence(toVisits(plan.getPlanId())))) {
+            throw new BusinessException("Lịch vừa đổi, thử lại.");
+        }
+        replaceVisits(plan.getPlanId(), decision.visits());
+        plan.setTotalMeters(decision.totalMeters());
+        trip.setStatus(ASSIGNED);
+        if (WAITING.equals(book.getStatus())) {
+            book.setStatus(PLANNED);
+        }
+        book.setSudden(true);
+        notice(plan.getDriverId(), plan.getServiceDate(), decision.notice() + slipText(plan));
+    }
+
+    private void noticeIfSealed(long bookId) {
+        DeliveryBook book = book(bookId);
+        List<DriverDayPlan> all = plans(book.getServiceDate());
+        boolean sealed = !all.isEmpty() && all.stream().anyMatch(plan -> !DRAFT.equals(plan.getStatus()));
+        if (!sealed || !WAITING.equals(book.getStatus())) {
+            return;
+        }
+        notice(all.get(0).getDriverId(), book.getServiceDate(),
+                "Book " + bookId + " chờ trên ngày đã chốt " + book.getServiceDate() + ". Cần xếp lại hoặc gọi.");
+    }
+
+    private String callNotice(DeliveryBook book, List<DriverDayPlan> dayPlans) {
+        StringBuilder text = new StringBuilder();
+        text.append("Có book mới ").append(book.getBookId()).append(" khi bác đang đi. Gọi điện, rồi bấm gắn nếu còn tiện. ");
+        for (DriverDayPlan plan : dayPlans) {
+            if (!EN_ROUTE.equals(plan.getStatus())) {
+                continue;
+            }
+            DeliveryDriver person = driver(plan.getDriverId());
+            text.append("Gọi ").append(person.getDriverName()).append(" ").append(person.getPhone());
+            text.append(": có hàng tiện đường, chỉ nhận nếu lệch thêm không quá ");
+            text.append(settings().getDetourLimitMeters()).append(" mét. ");
+        }
+        return text.toString();
+    }
+
+    private PlanInput readPlan(LocalDate date) {
+        List<DriverDayPlan> existing = plans(date);
+        if (existing.stream().anyMatch(plan -> !DRAFT.equals(plan.getStatus()))) {
+            throw new BusinessException("Ngày này đã chốt lịch. Không xếp lại.");
+        }
+        List<Long> fleet = drivers().stream().filter(DeliveryDriver::isActive).map(DeliveryDriver::getDriverId).toList();
+        if (fleet.isEmpty()) {
+            throw new BusinessException("Chưa có tài xế.");
+        }
+        DeliveryStop shop = shop();
+        List<DeliveryTrip> trips = trips(date).stream().filter(this::hasActiveBook).toList();
+        if (trips.isEmpty()) {
+            return PlanInput.empty(fleet);
+        }
+        List<Trip> inputs = trips.stream().map(trip -> new Trip(trip.getTripId(), trip.getPickupStopId(), trip.getDropoffStopId())).toList();
+        return new PlanInput(fleet, inputs, snaps(stopsFor(trips, shop)), vietmapKey(), matrixRoot());
+    }
+
+    private void writePlan(LocalDate date, PlanInput input, MatrixDistance matrix) {
         List<DriverDayPlan> existing = plans(date);
         if (existing.stream().anyMatch(plan -> !DRAFT.equals(plan.getStatus()))) {
             throw new BusinessException("Ngày này đã chốt lịch. Không xếp lại.");
@@ -240,39 +692,35 @@ public class DeliveryService {
             deletePlan(plan);
         }
         em.flush();
-
+        if (input.trips().isEmpty()) {
+            return;
+        }
+        List<Long> live = trips(date).stream().filter(this::hasActiveBook).map(DeliveryTrip::getTripId).sorted().toList();
+        List<Long> expected = input.trips().stream().map(Trip::id).sorted().toList();
+        if (!live.equals(expected)) {
+            throw new BusinessException("Chuyến trong ngày vừa đổi, xếp lại.");
+        }
         DeliveryStop shop = shop();
-        List<DeliveryDriver> fleet = drivers().stream().filter(DeliveryDriver::isActive).limit(2).toList();
-        if (fleet.isEmpty()) {
-            throw new BusinessException("Chưa có tài xế.");
-        }
-        List<DeliveryTrip> trips = trips(date).stream().filter(this::hasActiveBook).toList();
-        if (trips.isEmpty()) {
-            return day(date);
-        }
-        List<DeliveryStop> stops = stopsFor(trips, shop);
-        int[][] matrix = roadDistance.meters(stops, vietmapKey());
-        Map<Long, Integer> index = new HashMap<>();
-        for (int i = 0; i < stops.size(); i++) {
-            index.put(stops.get(i).getStopId(), i);
-        }
-        Distance distance = (from, to) -> matrix[index.get(from)][index.get(to)];
-        List<Trip> inputs = trips.stream().map(trip -> new Trip(trip.getTripId(), trip.getPickupStopId(), trip.getDropoffStopId())).toList();
-        List<Route> routes = routePlanner.plan(inputs, shop.getStopId(), distance, fleet.size(), true);
+        List<Route> routes = routePlanner.plan(input.trips(), shop.getStopId(), matrix, input.fleet().size(), true);
         for (int i = 0; i < routes.size(); i++) {
             Route route = routes.get(i);
             if (route.visits().isEmpty()) {
                 continue;
             }
             DriverDayPlan plan = new DriverDayPlan();
-            plan.setDriverId(fleet.get(i).getDriverId());
+            plan.setDriverId(input.fleet().get(i));
             plan.setServiceDate(date);
             plan.setStatus(DRAFT);
             plan.setReturnToShop(true);
+            plan.setStartStopId(shop.getStopId());
             plan.setTotalMeters(route.meters());
-            plan.setExplanation(String.join("\n", route.reasons()));
+            plan.setExplanation(explain(route.reasons(), matrix.straight()));
             em.persist(plan);
-            em.flush();
+            try {
+                em.flush();
+            } catch (DataIntegrityViolationException ex) {
+                throw new BusinessException("Tài xế đã có lịch trong ngày này.");
+            }
             saveVisits(plan.getPlanId(), route.visits());
             for (Visit visit : route.visits()) {
                 for (Long tripId : visit.pickups()) {
@@ -280,59 +728,64 @@ public class DeliveryService {
                 }
             }
         }
-        return day(date);
     }
 
-    public Map<String, Object> publish(LocalDate date) {
-        List<DriverDayPlan> list = requirePlans(date, DRAFT);
-        for (DriverDayPlan plan : list) {
-            plan.setStatus(PUBLISHED);
-            notice(plan.getDriverId(), date, slipText(plan));
-        }
-        return day(date);
-    }
-
-    public Map<String, Object> lock(LocalDate date, Long startStopId) {
+    private LockRead readLock(LocalDate date, Long startStopId) {
         List<DriverDayPlan> list = requirePlans(date, PUBLISHED);
         DeliveryStop shop = shop();
         DeliveryStop start = startStopId == null ? shop : stop(startStopId);
+        List<LockJob> jobs = new ArrayList<>();
         for (DriverDayPlan plan : list) {
             List<Visit> current = toVisits(plan.getPlanId());
-            String before = sequence(current);
             List<Trip> own = RoutePlanner.tripsOf(current);
-            if (!own.isEmpty()) {
-                Long returnTo = plan.isReturnToShop() ? shop.getStopId() : null;
-                Route route = routePlanner.plan(own, start.getStopId(), cachedDistance(date, shop), 1, returnTo).get(0);
-                if (!route.visits().isEmpty() && route.visits().get(0).pickups().isEmpty()) {
-                    throw new BusinessException("Điểm đầu phải là điểm lấy vì xe đang trống.");
-                }
-                replaceVisits(plan.getPlanId(), route.visits());
-                plan.setTotalMeters(route.meters());
-                plan.setExplanation(String.join("\n", route.reasons()));
-                String after = sequence(route.visits());
-                plan.setStatus(LOCKED);
-                String lead = before.equals(after)
-                        ? "Khóa thứ tự, không đổi. "
-                        : "Thứ tự buổi sáng đổi. In lại phiếu hoặc nói lại. ";
-                notice(plan.getDriverId(), date, lead + slipText(plan));
-            } else {
-                plan.setStatus(LOCKED);
+            LinkedHashSet<Long> ids = new LinkedHashSet<>();
+            ids.add(start.getStopId());
+            if (plan.isReturnToShop()) {
+                ids.add(shop.getStopId());
             }
+            for (Visit visit : current) {
+                ids.add(visit.stopId());
+            }
+            for (Trip trip : own) {
+                ids.add(trip.pickup());
+                ids.add(trip.dropoff());
+            }
+            jobs.add(new LockJob(plan.getPlanId(), own, plan.isReturnToShop(), snaps(ids)));
         }
-        return day(date);
+        return new LockRead(start.getStopId(), shop.getStopId(), jobs, vietmapKey(), matrixRoot());
     }
 
-    public void depart(Long planId) {
-        DriverDayPlan plan = plan(planId);
-        if (!LOCKED.equals(plan.getStatus())) {
-            throw new BusinessException("Chỉ xuất phát lịch đã khóa.");
+    private void applyLock(long startId, List<LockResult> results) {
+        for (LockResult result : results) {
+            DriverDayPlan plan = plan(result.planId());
+            if (!PUBLISHED.equals(plan.getStatus())) {
+                throw new BusinessException("Lịch vừa đổi, khóa lại.");
+            }
+            plan.setStartStopId(startId);
+            if (result.visits() == null) {
+                plan.setStatus(LOCKED);
+                continue;
+            }
+            String before = sequence(toVisits(plan.getPlanId()));
+            replaceVisits(plan.getPlanId(), result.visits());
+            plan.setTotalMeters(result.meters());
+            plan.setExplanation(result.explanation());
+            plan.setStatus(LOCKED);
+            String after = sequence(result.visits());
+            String lead = before.equals(after)
+                    ? "Khóa thứ tự, không đổi. "
+                    : "Thứ tự buổi sáng đổi. In lại phiếu hoặc nói lại. ";
+            notice(plan.getDriverId(), plan.getServiceDate(), lead + slipText(plan));
         }
-        plan.setStatus(EN_ROUTE);
     }
 
-    public void finish(Long planId) {
+    private List<Long> closeRoute(Long planId) {
         DriverDayPlan plan = plan(planId);
+        if (!EN_ROUTE.equals(plan.getStatus())) {
+            throw new BusinessException("Chỉ kết thúc lịch đang đi.");
+        }
         plan.setStatus(DONE);
+        List<Long> moved = new ArrayList<>();
         for (DeliveryBook book : books(plan.getServiceDate())) {
             if (CANCELLED.equals(book.getStatus()) || DELIVERED.equals(book.getStatus()) || book.getSenderConfirmedAt() != null) {
                 continue;
@@ -341,57 +794,28 @@ public class DeliveryService {
             if (owner == null || !owner.getPlanId().equals(plan.getPlanId())) {
                 continue;
             }
-            DeliveryTrip fresh = new DeliveryTrip();
-            fresh.setServiceDate(plan.getServiceDate().plusDays(1));
-            fresh.setPickupStopId(book.getPickupStopId());
-            fresh.setDropoffStopId(book.getDropoffStopId());
-            fresh.setStatus(OPEN);
-            em.persist(fresh);
-            em.flush();
+            Long previous = book.getTripId();
+            DeliveryTrip fresh = newTrip(plan.getServiceDate().plusDays(1), book.getPickupStopId(), book.getDropoffStopId());
             book.setTripId(fresh.getTripId());
             book.setServiceDate(fresh.getServiceDate());
             book.setStatus(WAITING);
+            closeTripIfEmpty(previous);
+            moved.add(book.getBookId());
         }
+        return moved;
     }
 
-    public void dropReturn(Long planId) {
+    private DropRead readDrop(Long planId) {
         DriverDayPlan plan = plan(planId);
         if (EN_ROUTE.equals(plan.getStatus()) || DONE.equals(plan.getStatus())) {
             throw new BusinessException("Lịch đã chạy thì không bỏ đoạn về.");
         }
-        plan.setReturnToShop(false);
         List<Visit> visits = toVisits(plan.getPlanId());
-        DeliveryStop shop = shop();
-        plan.setTotalMeters(RoutePlanner.pathMeters(shop.getStopId(), visits, cachedDistance(plan.getServiceDate(), shop), null));
+        long origin = originId(plan);
+        return new DropRead(origin, visits, snaps(ids(origin, visits, null)), vietmapKey(), matrixRoot());
     }
 
-    public void ping(Long driverId, double latitude, double longitude) {
-        driver(driverId);
-        DriverLocation location = em.find(DriverLocation.class, driverId);
-        if (location == null) {
-            location = new DriverLocation();
-            location.setDriverId(driverId);
-            em.persist(location);
-        }
-        location.setLatitude(latitude);
-        location.setLongitude(longitude);
-        location.setRecordedAt(LocalDateTime.now());
-    }
-
-    public void ack(Long noticeId) {
-        DispatchNotice notice = em.find(DispatchNotice.class, noticeId);
-        if (notice == null) {
-            throw new ResourceNotFoundException("Không thấy phiếu cần báo");
-        }
-        notice.setAcknowledgedAt(LocalDateTime.now());
-    }
-
-    public List<DispatchNotice> notices() {
-        return em.createQuery("select n from DispatchNotice n where n.acknowledgedAt is null order by n.createdAt desc", DispatchNotice.class)
-                .getResultList();
-    }
-
-    public Map<String, Object> day(LocalDate date) {
+    private DayLoad loadDay(LocalDate date) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("date", date);
         body.put("shop", stops().stream().filter(DeliveryStop::isShop).findFirst().orElse(null));
@@ -402,7 +826,7 @@ public class DeliveryService {
         DeliverySetting setting = settings();
         body.put("costPerKm", setting.getCostPerKm());
         body.put("detourLimitMeters", setting.getDetourLimitMeters());
-        return body;
+        return new DayLoad(body, vietmapKey());
     }
 
     private Map<String, Object> bookView(DeliveryBook book) {
@@ -418,6 +842,9 @@ public class DeliveryService {
         Map<String, Object> view = new LinkedHashMap<>();
         view.put("plan", plan);
         view.put("driver", driver(plan.getDriverId()));
+        if (plan.getStartStopId() != null) {
+            view.put("start", stop(plan.getStartStopId()));
+        }
         List<Map<String, Object>> visits = new ArrayList<>();
         for (PlanVisit visit : visits(plan.getPlanId())) {
             Map<String, Object> row = new LinkedHashMap<>();
@@ -429,28 +856,53 @@ public class DeliveryService {
         view.put("visits", visits);
         long cost = Math.round(plan.getTotalMeters() / 1000.0 * settings().getCostPerKm());
         view.put("estimatedCost", cost);
-        view.put("route", routeLine(plan, visits));
         return view;
     }
 
-    public List<Map<String, Object>> geocode(String query, String focus) {
-        return roadDistance.geocode(query, focus, vietmapKey());
+    private void attachRoutes(Map<String, Object> body, String apiKey) {
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> plans = (List<Map<String, Object>>) body.get("plans");
+        DeliveryStop shop = (DeliveryStop) body.get("shop");
+        for (Map<String, Object> view : plans) {
+            DriverDayPlan plan = (DriverDayPlan) view.get("plan");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> visits = (List<Map<String, Object>>) view.get("visits");
+            view.put("route", routeGeometry(plan, visits, shop, (DeliveryStop) view.get("start"), apiKey));
+        }
     }
 
-    public Map<String, Object> place(String refId) {
-        return roadDistance.place(refId, vietmapKey());
-    }
-
-    public Map<String, Object> reverse(double latitude, double longitude) {
-        return roadDistance.reverse(latitude, longitude, vietmapKey());
-    }
-
-    public String mapStyle() {
-        return roadDistance.style(vietmapKey());
-    }
-
-    public java.net.http.HttpResponse<byte[]> mapAsset(String pathAndQuery) {
-        return roadDistance.asset(pathAndQuery, tileKey());
+    private List<List<Double>> routeGeometry(DriverDayPlan plan, List<Map<String, Object>> visitRows, DeliveryStop shop, DeliveryStop start, String apiKey) {
+        List<DeliveryStop> line = new ArrayList<>();
+        if (start != null && start.getLatitude() != null && start.getLongitude() != null) {
+            line.add(start);
+        }
+        for (Map<String, Object> row : visitRows) {
+            DeliveryStop stop = (DeliveryStop) row.get("stop");
+            if (stop.getLatitude() == null || stop.getLongitude() == null) {
+                continue;
+            }
+            if (!line.isEmpty() && stop.getStopId().equals(line.get(line.size() - 1).getStopId())) {
+                continue;
+            }
+            line.add(stop);
+        }
+        if (plan.isReturnToShop() && shop != null && shop.getLatitude() != null && shop.getLongitude() != null
+                && (line.isEmpty() || !shop.getStopId().equals(line.get(line.size() - 1).getStopId()))) {
+            line.add(shop);
+        }
+        if (line.size() < 2) {
+            return List.of();
+        }
+        String key = plan.getPlanId() + ":" + line.stream().map(stop -> String.valueOf(stop.getStopId())).reduce((a, b) -> a + "," + b).orElse("");
+        List<List<Double>> cached = routeCache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        List<List<Double>> fresh = roadDistance.line(line, apiKey);
+        if (!fresh.isEmpty()) {
+            routeCache.put(key, fresh);
+        }
+        return fresh;
     }
 
     private String vietmapKey() {
@@ -472,144 +924,77 @@ public class DeliveryService {
         return vietmapKey(setting);
     }
 
+    private String matrixRoot() {
+        String url = settings().getDistanceBaseUrl();
+        if (url == null || url.isBlank()) {
+            return "https://maps.vietmap.vn";
+        }
+        String trimmed = url.trim();
+        if (trimmed.endsWith("/")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1);
+        }
+        if (trimmed.equals("https://maps.vietmap.vn") || trimmed.startsWith("https://maps.vietmap.vn/")) {
+            return trimmed;
+        }
+        return "https://maps.vietmap.vn";
+    }
+
     private void markVietmap(DeliverySetting setting) {
         setting.setVietmapReady(!vietmapKey(setting).isBlank());
         setting.setVietmapTileReady(setting.getVietmapTileKey() != null && !setting.getVietmapTileKey().isBlank());
     }
 
-    private List<List<Double>> routeLine(DriverDayPlan plan, List<Map<String, Object>> visitRows) {
-        List<DeliveryStop> line = new ArrayList<>();
-        for (Map<String, Object> row : visitRows) {
-            DeliveryStop stop = (DeliveryStop) row.get("stop");
-            if (stop.getLatitude() != null && stop.getLongitude() != null) {
-                line.add(stop);
-            }
-        }
-        if (plan.isReturnToShop()) {
-            DeliveryStop shop = stops().stream().filter(DeliveryStop::isShop).findFirst().orElse(null);
-            if (shop != null && shop.getLatitude() != null
-                    && (line.isEmpty() || !shop.getStopId().equals(line.get(line.size() - 1).getStopId()))) {
-                line.add(shop);
+    private MatrixDistance matrixOf(List<DeliveryStop> stops, String apiKey, String root) {
+        for (DeliveryStop stop : stops) {
+            if (stop.getLatitude() == null || stop.getLongitude() == null) {
+                throw new BusinessException("Điểm " + stop.getStopName() + " chưa có tọa độ.");
             }
         }
         try {
-            return roadDistance.line(line, vietmapKey());
+            return MatrixDistance.of(stops, roadDistance.meters(stops, apiKey, root), false);
         } catch (RuntimeException ex) {
-            return List.of();
+            if (ex instanceof BusinessException business && business.getMessage() != null && business.getMessage().contains("chưa có tọa độ")) {
+                throw business;
+            }
+            return MatrixDistance.of(stops, straight(stops), true);
         }
     }
 
-    private boolean trySuddenInsert(DeliveryBook book, DeliveryTrip trip, boolean allowEnRoute) {
-        List<DriverDayPlan> dayPlans = plans(book.getServiceDate()).stream()
-                .filter(plan -> !DRAFT.equals(plan.getStatus()) && !DONE.equals(plan.getStatus()))
-                .toList();
-        if (dayPlans.isEmpty()) {
-            return false;
-        }
-        boolean enRoute = dayPlans.stream().anyMatch(plan -> EN_ROUTE.equals(plan.getStatus()));
-        if (enRoute && !allowEnRoute) {
-            StringBuilder text = new StringBuilder();
-            text.append("Có book mới ").append(book.getBookId()).append(" khi bác đang đi. Gọi điện, rồi bấm gắn nếu còn tiện. ");
-            for (DriverDayPlan plan : dayPlans) {
-                if (!EN_ROUTE.equals(plan.getStatus())) {
+    private int[][] straight(List<DeliveryStop> stops) {
+        int n = stops.size();
+        int[][] matrix = new int[n][n];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (i == j) {
                     continue;
                 }
-                DeliveryDriver person = driver(plan.getDriverId());
-                text.append("Gọi ").append(person.getDriverName()).append(" ").append(person.getPhone());
-                text.append(": có hàng tiện đường, chỉ nhận nếu lệch thêm không quá ");
-                text.append(settings().getDetourLimitMeters()).append(" mét. ");
+                matrix[i][j] = Geo.meters(stops.get(i).getLatitude(), stops.get(i).getLongitude(),
+                        stops.get(j).getLatitude(), stops.get(j).getLongitude());
             }
-            notice(dayPlans.get(0).getDriverId(), book.getServiceDate(), text.toString());
+        }
+        return matrix;
+    }
+
+    private String explain(List<String> reasons, boolean straight) {
+        String text = String.join("\n", reasons);
+        if (!straight) {
+            return text;
+        }
+        return text.isBlank() ? STRAIGHT : STRAIGHT + "\n" + text;
+    }
+
+    private boolean alreadyPassed(DriverDayPlan plan, List<Visit> visits, Long tripId) {
+        if (!EN_ROUTE.equals(plan.getStatus()) || tripId == null) {
             return false;
         }
-        DeliveryStop shop = shop();
-        int bestExtra = Integer.MAX_VALUE;
-        DriverDayPlan bestPlan = null;
-        Insertion best = null;
-        for (DriverDayPlan plan : dayPlans) {
-            List<Visit> visits = toVisits(plan.getPlanId());
-            int from = firstOpenIndex(plan, visits);
-            Insertion insertion = routePlanner.insertIntoRemaining(
-                    visits, from, new Trip(trip.getTripId(), trip.getPickupStopId(), trip.getDropoffStopId()),
-                    shop.getStopId(), cachedDistance(book.getServiceDate(), shop), plan.isReturnToShop());
-            if (insertion.extraMeters() < bestExtra) {
-                bestExtra = insertion.extraMeters();
-                bestPlan = plan;
-                best = insertion;
+        int open = firstOpenIndex(plan, visits);
+        for (int i = 0; i < open; i++) {
+            Visit visit = visits.get(i);
+            if (visit.pickups().contains(tripId) || visit.dropoffs().contains(tripId)) {
+                return true;
             }
         }
-        if (bestPlan == null || bestExtra > settings().getDetourLimitMeters()) {
-            book.setServiceDate(book.getServiceDate().plusDays(1));
-            trip.setServiceDate(book.getServiceDate());
-            return false;
-        }
-        replaceVisits(bestPlan.getPlanId(), best.visits());
-        bestPlan.setTotalMeters(bestPlan.getTotalMeters() + bestExtra);
-        trip.setStatus(ASSIGNED);
-        book.setStatus(PLANNED);
-        book.setSudden(true);
-        DeliveryDriver person = driver(bestPlan.getDriverId());
-        String lead = EN_ROUTE.equals(bestPlan.getStatus())
-                ? "Tiện chuyến khi đang đi, thêm " + bestExtra + " m. Gọi " + person.getDriverName() + " " + person.getPhone() + " rồi in lại phiếu. "
-                : "Tiện chuyến book " + book.getBookId() + ", thêm " + bestExtra + " m. Nói với bác trước khi đi. ";
-        notice(bestPlan.getDriverId(), bestPlan.getServiceDate(), lead + slipText(bestPlan));
-        return true;
-    }
-
-    private void stripCancelledTrip(DriverDayPlan plan, DeliveryBook book) {
-        if (book.getTripId() == null) {
-            return;
-        }
-        boolean others = booksOfTrip(book.getTripId()).stream()
-                .anyMatch(other -> !other.getBookId().equals(book.getBookId()) && !CANCELLED.equals(other.getStatus()));
-        if (others) {
-            return;
-        }
-        List<Visit> visits = toVisits(plan.getPlanId());
-        if (EN_ROUTE.equals(plan.getStatus())) {
-            int open = firstOpenIndex(plan, visits);
-            for (int i = 0; i < open; i++) {
-                Visit visit = visits.get(i);
-                if (visit.pickups().contains(book.getTripId()) || visit.dropoffs().contains(book.getTripId())) {
-                    return;
-                }
-            }
-        }
-        List<Visit> next = new ArrayList<>();
-        for (Visit visit : visits) {
-            Visit copy = visit.copy();
-            copy.pickups().remove(book.getTripId());
-            copy.dropoffs().remove(book.getTripId());
-            if (!copy.pickups().isEmpty() || !copy.dropoffs().isEmpty()) {
-                next.add(copy);
-            }
-        }
-        replaceVisits(plan.getPlanId(), next);
-        DeliveryStop shop = shop();
-        Long returnTo = plan.isReturnToShop() ? shop.getStopId() : null;
-        plan.setTotalMeters(RoutePlanner.pathMeters(shop.getStopId(), next, cachedDistance(plan.getServiceDate(), shop), returnTo));
-    }
-
-    private String sequence(List<Visit> visits) {
-        StringBuilder text = new StringBuilder();
-        for (Visit visit : visits) {
-            text.append(visit.stopId()).append(':').append(visit.pickups()).append(visit.dropoffs()).append('|');
-        }
-        return text.toString();
-    }
-
-    private Distance cachedDistance(LocalDate date, DeliveryStop shop) {
-        List<DeliveryStop> stops = new ArrayList<>(stops());
-        if (stops.stream().noneMatch(stop -> stop.getStopId().equals(shop.getStopId()))) {
-            stops.add(shop);
-        }
-        List<DeliveryStop> used = stops.stream().filter(stop -> stop.getLatitude() != null).toList();
-        int[][] matrix = roadDistance.meters(used, vietmapKey());
-        Map<Long, Integer> index = new HashMap<>();
-        for (int i = 0; i < used.size(); i++) {
-            index.put(used.get(i).getStopId(), i);
-        }
-        return (from, to) -> matrix[index.get(from)][index.get(to)];
+        return false;
     }
 
     private int firstOpenIndex(DriverDayPlan plan, List<Visit> visits) {
@@ -618,22 +1003,46 @@ public class DeliveryService {
         }
         DriverLocation location = em.find(DriverLocation.class, plan.getDriverId());
         if (location == null) {
-            return 0;
+            return Math.min(plan.getPassedSeq(), visits.size());
         }
-        int closest = 0;
-        double best = Double.MAX_VALUE;
-        for (int i = 0; i < visits.size(); i++) {
-            DeliveryStop stop = stop(visits.get(i).stopId());
-            if (stop.getLatitude() == null) {
-                continue;
-            }
-            double km = Geo.km(location.getLatitude(), location.getLongitude(), stop.getLatitude(), stop.getLongitude());
-            if (km < best) {
-                best = km;
-                closest = i;
+        return advance(plan, visits, location.getLatitude(), location.getLongitude());
+    }
+
+    private void syncEnRoute(Long driverId, double latitude, double longitude) {
+        List<DriverDayPlan> moving = em.createQuery(
+                        "select p from DriverDayPlan p where p.driverId = :driverId and p.status = :status", DriverDayPlan.class)
+                .setParameter("driverId", driverId)
+                .setParameter("status", EN_ROUTE)
+                .getResultList();
+        for (DriverDayPlan plan : moving) {
+            advance(plan, toVisits(plan.getPlanId()), latitude, longitude);
+        }
+    }
+
+    private int advance(DriverDayPlan plan, List<Visit> visits, double latitude, double longitude) {
+        int open = Math.min(Math.max(plan.getPassedSeq(), 0), visits.size());
+        if (open >= visits.size()) {
+            plan.setPassedSeq(open);
+            return open;
+        }
+        DeliveryStop here = stop(visits.get(open).stopId());
+        if (here.getLatitude() == null || here.getLongitude() == null) {
+            return open;
+        }
+        double km = Geo.km(latitude, longitude, here.getLatitude(), here.getLongitude());
+        if (km <= PASS_RADIUS_KM) {
+            plan.setTouchedOpenStop(true);
+            return open;
+        }
+        if (plan.isTouchedOpenStop()) {
+            open += 1;
+            plan.setPassedSeq(open);
+            plan.setTouchedOpenStop(false);
+            if (open < visits.size()) {
+                return advance(plan, visits, latitude, longitude);
             }
         }
-        return closest;
+        return open;
     }
 
     private boolean passed(DeliveryTrip trip) {
@@ -642,15 +1051,18 @@ public class DeliveryService {
                 continue;
             }
             List<Visit> visits = toVisits(plan.getPlanId());
-            int open = firstOpenIndex(plan, visits);
-            for (int i = 0; i < open; i++) {
-                Visit visit = visits.get(i);
-                if (visit.pickups().contains(trip.getTripId()) || visit.dropoffs().contains(trip.getTripId())) {
-                    return true;
-                }
+            if (alreadyPassed(plan, visits, trip.getTripId())) {
+                return true;
             }
         }
         return false;
+    }
+
+    private long originId(DriverDayPlan plan) {
+        if (plan.getStartStopId() != null) {
+            return plan.getStartStopId();
+        }
+        return shop().getStopId();
     }
 
     private void saveVisits(Long planId, List<Visit> visits) {
@@ -716,6 +1128,19 @@ public class DeliveryService {
         return visits;
     }
 
+    private List<Visit> withoutTrip(List<Visit> visits, Long tripId) {
+        List<Visit> next = new ArrayList<>();
+        for (Visit visit : visits) {
+            Visit copy = visit.copy();
+            copy.pickups().remove(tripId);
+            copy.dropoffs().remove(tripId);
+            if (!copy.pickups().isEmpty() || !copy.dropoffs().isEmpty()) {
+                next.add(copy);
+            }
+        }
+        return next;
+    }
+
     private void markAssigned(Long tripId) {
         DeliveryTrip trip = em.find(DeliveryTrip.class, tripId);
         trip.setStatus(ASSIGNED);
@@ -723,6 +1148,20 @@ public class DeliveryService {
             if (WAITING.equals(book.getStatus())) {
                 book.setStatus(PLANNED);
             }
+        }
+    }
+
+    private void closeTripIfEmpty(Long tripId) {
+        if (tripId == null) {
+            return;
+        }
+        boolean live = booksOfTrip(tripId).stream().anyMatch(book -> !CANCELLED.equals(book.getStatus()));
+        if (live) {
+            return;
+        }
+        DeliveryTrip trip = em.find(DeliveryTrip.class, tripId);
+        if (trip != null) {
+            trip.setStatus(CLOSED);
         }
     }
 
@@ -791,7 +1230,20 @@ public class DeliveryService {
                 .setParameter("pickup", pickup)
                 .setParameter("dropoff", dropoff)
                 .getResultList();
-        return found.stream().filter(this::hasActiveBook).min(Comparator.comparing(DeliveryTrip::getTripId)).orElse(found.isEmpty() ? null : found.get(0));
+        return found.stream()
+                .filter(trip -> !CLOSED.equals(trip.getStatus()))
+                .filter(this::hasActiveBook)
+                .filter(this::stillOnRoute)
+                .min(Comparator.comparing(DeliveryTrip::getTripId))
+                .orElse(null);
+    }
+
+    private boolean stillOnRoute(DeliveryTrip trip) {
+        if (!ASSIGNED.equals(trip.getStatus())) {
+            return true;
+        }
+        DriverDayPlan plan = planOfTrip(trip.getTripId());
+        return plan != null && !DONE.equals(plan.getStatus());
     }
 
     private boolean hasActiveBook(DeliveryTrip trip) {
@@ -799,13 +1251,51 @@ public class DeliveryService {
     }
 
     private List<DeliveryStop> stopsFor(List<DeliveryTrip> trips, DeliveryStop shop) {
-        Map<Long, DeliveryStop> map = new HashMap<>();
+        Map<Long, DeliveryStop> map = new LinkedHashMap<>();
         map.put(shop.getStopId(), shop);
         for (DeliveryTrip trip : trips) {
             map.put(trip.getPickupStopId(), stop(trip.getPickupStopId()));
             map.put(trip.getDropoffStopId(), stop(trip.getDropoffStopId()));
         }
         return new ArrayList<>(map.values());
+    }
+
+    private List<DeliveryStop> snaps(Iterable<Long> ids) {
+        List<DeliveryStop> stops = new ArrayList<>();
+        for (Long id : ids) {
+            stops.add(snap(stop(id)));
+        }
+        return stops;
+    }
+
+    private List<DeliveryStop> snaps(List<DeliveryStop> stops) {
+        List<DeliveryStop> copies = new ArrayList<>();
+        for (DeliveryStop stop : stops) {
+            copies.add(snap(stop));
+        }
+        return copies;
+    }
+
+    private DeliveryStop snap(DeliveryStop stop) {
+        DeliveryStop copy = new DeliveryStop();
+        copy.setStopId(stop.getStopId());
+        copy.setStopName(stop.getStopName());
+        copy.setLatitude(stop.getLatitude());
+        copy.setLongitude(stop.getLongitude());
+        copy.setShop(stop.isShop());
+        return copy;
+    }
+
+    private LinkedHashSet<Long> ids(long origin, List<Visit> visits, Long returnTo) {
+        LinkedHashSet<Long> ids = new LinkedHashSet<>();
+        ids.add(origin);
+        for (Visit visit : visits) {
+            ids.add(visit.stopId());
+        }
+        if (returnTo != null) {
+            ids.add(returnTo);
+        }
+        return ids;
     }
 
     private List<DriverDayPlan> requirePlans(LocalDate date, String status) {
@@ -910,6 +1400,14 @@ public class DeliveryService {
         return visit == null ? null : em.find(DriverDayPlan.class, visit.getPlanId());
     }
 
+    private String sequence(List<Visit> visits) {
+        StringBuilder text = new StringBuilder();
+        for (Visit visit : visits) {
+            text.append(visit.stopId()).append(':').append(visit.pickups()).append(visit.dropoffs()).append('|');
+        }
+        return text.toString();
+    }
+
     public record LineRequest(String description, BigDecimal quantity, String unitLabel) {}
 
     public record BookRequest(Long pickupStopId, Long dropoffStopId, LocalDate serviceDate, String note, Long requestSetId, List<LineRequest> lines) {
@@ -917,6 +1415,101 @@ public class DeliveryService {
             Objects.requireNonNull(pickupStopId);
             Objects.requireNonNull(dropoffStopId);
             Objects.requireNonNull(serviceDate);
+        }
+    }
+
+    private record NewBook(long bookId, boolean place) {}
+
+    private record DayLoad(Map<String, Object> body, String apiKey) {}
+
+    private record PlanInput(List<Long> fleet, List<Trip> trips, List<DeliveryStop> stops, String apiKey, String root) {
+        static PlanInput empty(List<Long> fleet) {
+            return new PlanInput(fleet, List.of(), List.of(), "", "");
+        }
+    }
+
+    private record LockJob(Long planId, List<Trip> own, boolean returnToShop, List<DeliveryStop> stops) {}
+
+    private record LockRead(long startId, long shopId, List<LockJob> jobs, String apiKey, String root) {}
+
+    private record LockResult(Long planId, List<Visit> visits, String explanation, int meters) {}
+
+    private record DropRead(long originId, List<Visit> visits, List<DeliveryStop> stops, String apiKey, String root) {}
+
+    private record AcceptPrep(long bookId, LocalDate originalDate, String message) {}
+
+    private record CancelPreview(Long tripId, Long planId, String seen, List<Visit> next, boolean strip, boolean deleteDraft,
+                                 boolean tell, long originId, Long returnTo, List<DeliveryStop> stops, String apiKey, String root) {
+        boolean recompute() {
+            return strip && !deleteDraft;
+        }
+
+        static CancelPreview simple(Long tripId) {
+            return new CancelPreview(tripId, null, "", List.of(), false, false, false, 0, null, List.of(), "", "");
+        }
+
+        static CancelPreview keep(Long tripId, Long planId, String seen, boolean notify) {
+            return new CancelPreview(tripId, planId, seen, List.of(), false, false, notify, 0, null, List.of(), "", "");
+        }
+    }
+
+    private enum SuddenKind { SKIP, IDLE, NOTICE, READY, SHIFT, ATTACH }
+
+    private record Candidate(Long planId, Long driverId, String status, long origin, Long returnTo, int from, List<Visit> visits, String seen) {}
+
+    private record SuddenView(SuddenKind kind, long bookId, LocalDate serviceDate, long tripId, long pickup, long dropoff,
+                              List<Candidate> candidates, List<DeliveryStop> stops, int limit, String apiKey, String root,
+                              Long noticeDriverId, String notice) {
+        static SuddenView skip() {
+            return new SuddenView(SuddenKind.SKIP, 0, null, 0, 0, 0, List.of(), List.of(), 0, "", "", null, null);
+        }
+
+        static SuddenView idle() {
+            return new SuddenView(SuddenKind.IDLE, 0, null, 0, 0, 0, List.of(), List.of(), 0, "", "", null, null);
+        }
+
+        static SuddenView notice(Long driverId, LocalDate date, String text) {
+            return new SuddenView(SuddenKind.NOTICE, 0, date, 0, 0, 0, List.of(), List.of(), 0, "", "", driverId, text);
+        }
+
+        static SuddenView ready(long bookId, LocalDate date, long tripId, long pickup, long dropoff, List<Candidate> candidates,
+                                List<DeliveryStop> stops, int limit, String apiKey, String root) {
+            return new SuddenView(SuddenKind.READY, bookId, date, tripId, pickup, dropoff, candidates, stops, limit, apiKey, root, null, null);
+        }
+    }
+
+    private record InsertDecision(SuddenKind kind, Long planId, String seen, List<Visit> visits, int totalMeters,
+                                  Long driverId, LocalDate serviceDate, String notice) {
+        static InsertDecision shift() {
+            return new InsertDecision(SuddenKind.SHIFT, null, null, List.of(), 0, null, null, null);
+        }
+
+        static InsertDecision notice(Long driverId, LocalDate date, String text) {
+            return new InsertDecision(SuddenKind.NOTICE, null, null, List.of(), 0, driverId, date, text);
+        }
+
+        static InsertDecision attach(Long planId, String seen, List<Visit> visits, int totalMeters, Long driverId, LocalDate date, String text) {
+            return new InsertDecision(SuddenKind.ATTACH, planId, seen, visits, totalMeters, driverId, date, text);
+        }
+    }
+
+    private record MatrixDistance(Map<Long, Integer> index, int[][] matrix, boolean straight) implements Distance {
+        static MatrixDistance of(List<DeliveryStop> stops, int[][] matrix, boolean straight) {
+            Map<Long, Integer> index = new LinkedHashMap<>();
+            for (int i = 0; i < stops.size(); i++) {
+                index.put(stops.get(i).getStopId(), i);
+            }
+            return new MatrixDistance(index, matrix, straight);
+        }
+
+        @Override
+        public int meters(long from, long to) {
+            Integer left = index.get(from);
+            Integer right = index.get(to);
+            if (left == null || right == null) {
+                throw new BusinessException("Thiếu tọa độ của một điểm trên tuyến.");
+            }
+            return matrix[left][right];
         }
     }
 }

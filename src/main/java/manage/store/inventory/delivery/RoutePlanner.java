@@ -98,11 +98,18 @@ public final class RoutePlanner {
         balance(routes, reasons, startId, distance, returnStopId);
         for (int driver = 0; driver < driverCount; driver++) {
             routes.set(driver, improve(routes.get(driver), startId, distance, returnStopId));
+            if (!routes.get(driver).isEmpty()) {
+                reasons.get(driver).add("Thứ tự cuối: " + orderText(routes.get(driver)));
+            }
         }
         return toResult(routes, reasons, startId, distance, returnStopId);
     }
 
     public Insertion insertIntoRemaining(List<Visit> visits, int fromIndex, Trip trip, long startId, Distance distance, boolean returnToStart) {
+        return insertIntoRemaining(visits, fromIndex, trip, startId, distance, returnToStart ? Long.valueOf(startId) : null);
+    }
+
+    public Insertion insertIntoRemaining(List<Visit> visits, int fromIndex, Trip trip, long startId, Distance distance, Long returnStopId) {
         List<Visit> remaining = new ArrayList<>();
         for (int i = Math.max(0, fromIndex); i < visits.size(); i++) {
             remaining.add(visits.get(i).copy());
@@ -112,10 +119,9 @@ public final class RoutePlanner {
             head.add(visits.get(i).copy());
         }
         long anchor = head.isEmpty() ? startId : head.get(head.size() - 1).stopId();
-        Long returnTo = returnToStart ? startId : null;
-        int before = pathMeters(anchor, remaining, distance, returnTo);
-        List<Visit> inserted = bestInsertion(remaining, trip, anchor, distance, returnTo);
-        int after = pathMeters(anchor, inserted, distance, returnTo);
+        int before = pathMeters(anchor, remaining, distance, returnStopId);
+        List<Visit> inserted = bestInsertion(remaining, trip, anchor, distance, returnStopId);
+        int after = pathMeters(anchor, inserted, distance, returnStopId);
         List<Visit> combined = new ArrayList<>(head);
         combined.addAll(inserted);
         return new Insertion(combined, after - before);
@@ -124,6 +130,9 @@ public final class RoutePlanner {
     public record Insertion(List<Visit> visits, int extraMeters) {}
 
     private void balance(List<List<Visit>> routes, List<List<String>> reasons, long startId, Distance distance, Long returnStopId) {
+        if (routes.size() < 2) {
+            return;
+        }
         int[] meters = new int[routes.size()];
         int total = 0;
         for (int i = 0; i < routes.size(); i++) {
@@ -350,6 +359,17 @@ public final class RoutePlanner {
             copy.add(visit.copy());
         }
         return copy;
+    }
+
+    private static String orderText(List<Visit> visits) {
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < visits.size(); i++) {
+            if (i > 0) {
+                text.append(" → ");
+            }
+            text.append(visits.get(i).stopId());
+        }
+        return text.toString();
     }
 
     private static String reason(Trip trip, int[] extras, int chosen) {

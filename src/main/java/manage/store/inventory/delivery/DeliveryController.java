@@ -7,6 +7,8 @@ import java.util.Map;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,7 +24,10 @@ import manage.store.inventory.security.CurrentUser;
 
 @RestController
 @RequestMapping("/api/delivery")
+@PreAuthorize("isAuthenticated()")
 public class DeliveryController {
+
+    private static final String DISPATCH = "hasAnyRole('ADMIN','DISPATCHER')";
 
     private final DeliveryService deliveryService;
     private final CurrentUser currentUser;
@@ -103,6 +108,9 @@ public class DeliveryController {
 
     @PostMapping("/stops")
     public DeliveryStop saveStop(@RequestBody DeliveryStop stop) {
+        if (stop.isShop() && !currentUser.isCoordinator()) {
+            throw new AccessDeniedException("Chỉ điều phối được đặt cửa hàng.");
+        }
         return deliveryService.saveStop(stop);
     }
 
@@ -112,6 +120,7 @@ public class DeliveryController {
     }
 
     @PostMapping("/drivers")
+    @PreAuthorize(DISPATCH)
     public DeliveryDriver saveDriver(@RequestBody DeliveryDriver driver) {
         return deliveryService.saveDriver(driver);
     }
@@ -122,6 +131,7 @@ public class DeliveryController {
     }
 
     @PutMapping("/settings")
+    @PreAuthorize(DISPATCH)
     public DeliverySetting saveSettings(@RequestBody DeliverySetting setting) {
         return deliveryService.saveSettings(setting);
     }
@@ -138,15 +148,22 @@ public class DeliveryController {
 
     @PostMapping("/books/{id}/sender-confirm")
     public void senderConfirm(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean onBehalf) {
+        if (onBehalf && !currentUser.isCoordinator()) {
+            throw new AccessDeniedException("Chỉ điều phối được xác nhận hộ.");
+        }
         deliveryService.confirmSender(id, onBehalf, currentUser.getUserId());
     }
 
     @PostMapping("/books/{id}/receiver-confirm")
     public void receiverConfirm(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean onBehalf) {
+        if (onBehalf && !currentUser.isCoordinator()) {
+            throw new AccessDeniedException("Chỉ điều phối được xác nhận hộ.");
+        }
         deliveryService.confirmReceiver(id, onBehalf, currentUser.getUserId());
     }
 
     @PostMapping("/books/{id}/accept-detour")
+    @PreAuthorize(DISPATCH)
     public String acceptDetour(@PathVariable Long id) {
         return deliveryService.acceptDetour(id);
     }
@@ -157,31 +174,37 @@ public class DeliveryController {
     }
 
     @PostMapping("/days/{date}/plan")
+    @PreAuthorize(DISPATCH)
     public Map<String, Object> plan(@PathVariable LocalDate date) {
         return deliveryService.plan(date);
     }
 
     @PostMapping("/days/{date}/publish")
+    @PreAuthorize(DISPATCH)
     public Map<String, Object> publish(@PathVariable LocalDate date) {
         return deliveryService.publish(date);
     }
 
     @PostMapping("/days/{date}/lock")
+    @PreAuthorize(DISPATCH)
     public Map<String, Object> lock(@PathVariable LocalDate date, @RequestParam(required = false) Long startStopId) {
         return deliveryService.lock(date, startStopId);
     }
 
     @PostMapping("/plans/{id}/depart")
+    @PreAuthorize(DISPATCH)
     public void depart(@PathVariable Long id) {
         deliveryService.depart(id);
     }
 
     @PostMapping("/plans/{id}/finish")
+    @PreAuthorize(DISPATCH)
     public void finish(@PathVariable Long id) {
         deliveryService.finish(id);
     }
 
     @PostMapping("/plans/{id}/drop-return")
+    @PreAuthorize(DISPATCH)
     public void dropReturn(@PathVariable Long id) {
         deliveryService.dropReturn(id);
     }
@@ -198,6 +221,9 @@ public class DeliveryController {
 
     @PostMapping("/drivers/{id}/location")
     public void ping(@PathVariable Long id, @RequestBody Map<String, Double> body) {
-        deliveryService.ping(id, body.get("latitude"), body.get("longitude"));
+        if (body == null || body.get("latitude") == null || body.get("longitude") == null) {
+            throw new BusinessException("Thiếu tọa độ.");
+        }
+        deliveryService.ping(id, body.get("latitude"), body.get("longitude"), currentUser.getUserId(), currentUser.isCoordinator());
     }
 }

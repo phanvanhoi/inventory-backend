@@ -1,4 +1,8 @@
 spring:
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 21
   jpa:
     hibernate:
       ddl-auto: validate

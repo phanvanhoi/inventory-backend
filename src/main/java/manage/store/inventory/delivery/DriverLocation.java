@@ -21,5 +21,5 @@ public class DriverLocation {
     private double longitude;
 
     @Column(name = "recorded_at", nullable = false)
-    private LocalDateTime recordedAt;
+    private LocalDateTime recordedAt = LocalDateTime.now();
 }
