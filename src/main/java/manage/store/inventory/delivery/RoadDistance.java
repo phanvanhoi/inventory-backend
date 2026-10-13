@@ -139,11 +139,19 @@ public class RoadDistance {
 
     public String style(String apiKey) {
         requireKey(apiKey);
-        HttpResponse<String> response = send(ROOT + "/maps/styles/tm/style.json?apikey=" + enc(apiKey));
-        if (response.statusCode() >= 300) {
-            throw new BusinessException("Không tải được bản đồ Vietmap (" + response.statusCode() + ").");
-        }
-        return rewriteStyle(response.body());
+        return streetStyle();
+    }
+
+    /**
+     * Street pictures, not the encrypted vector tiles. MapLibre can paint these PNGs;
+     * the vector .pbf files are not standard tiles, so they stay a flat color.
+     */
+    static String streetStyle() {
+        return "{\"version\":8,"
+                + "\"sources\":{\"streets\":{\"type\":\"raster\","
+                + "\"tiles\":[\"/api/delivery/basemap/proxy/maps/tiles/tm/{z}/{x}/{y}.png\"],"
+                + "\"tileSize\":256,\"minzoom\":0,\"maxzoom\":19,\"attribution\":\"Vietmap\"}},"
+                + "\"layers\":[{\"id\":\"streets\",\"type\":\"raster\",\"source\":\"streets\"}]}";
     }
 
     public HttpResponse<byte[]> asset(String pathAndQuery, String apiKey) {

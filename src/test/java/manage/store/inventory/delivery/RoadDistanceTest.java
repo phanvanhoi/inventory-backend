@@ -10,6 +10,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 class RoadDistanceTest {
 
     @Test
+    void streetStyleUsesRasterPictures() {
+        String style = RoadDistance.streetStyle();
+        assertEquals(true, style.contains("\"type\":\"raster\""));
+        assertEquals(true, style.contains("/api/delivery/basemap/proxy/maps/tiles/tm/{z}/{x}/{y}.png"));
+        assertFalse(style.contains(".pbf"));
+        assertFalse(style.contains("apikey"));
+    }
+
+    @Test
     void styleUrlsDropTheApiKey() {
         String rewritten = RoadDistance.rewriteStyle(
                 "{\"sprite\":\"https://maps.vietmap.vn/maps/styles/tm/sprite?apikey=secret\","
