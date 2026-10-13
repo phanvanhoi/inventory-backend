@@ -68,6 +68,9 @@ public class DeliveryController {
             path = path + "?" + query;
         }
         var response = deliveryService.mapAsset(path);
+        if (response.statusCode() == 423) {
+            throw new BusinessException("Vietmap chặn bản đồ nền. Dán khóa Tilemap, khóa thứ hai trong email đăng ký.");
+        }
         if (response.statusCode() >= 300) {
             throw new BusinessException("Không tải được mảnh bản đồ Vietmap (" + response.statusCode() + ").");
         }
