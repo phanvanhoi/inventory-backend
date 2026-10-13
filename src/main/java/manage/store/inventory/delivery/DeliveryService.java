@@ -103,7 +103,7 @@ public class DeliveryService {
             setting = new DeliverySetting();
             em.persist(setting);
         }
-        setting.setVietmapReady(!vietmapKey(setting).isBlank());
+        markVietmap(setting);
         return setting;
     }
 
@@ -117,7 +117,10 @@ public class DeliveryService {
         if (input.getVietmapApiKey() != null && !input.getVietmapApiKey().isBlank()) {
             setting.setVietmapApiKey(input.getVietmapApiKey().trim());
         }
-        setting.setVietmapReady(!vietmapKey(setting).isBlank());
+        if (input.getVietmapTileKey() != null && !input.getVietmapTileKey().isBlank()) {
+            setting.setVietmapTileKey(input.getVietmapTileKey().trim());
+        }
+        markVietmap(setting);
         return setting;
     }
 
@@ -447,7 +450,7 @@ public class DeliveryService {
     }
 
     public java.net.http.HttpResponse<byte[]> mapAsset(String pathAndQuery) {
-        return roadDistance.asset(pathAndQuery, vietmapKey());
+        return roadDistance.asset(pathAndQuery, tileKey());
     }
 
     private String vietmapKey() {
@@ -459,6 +462,19 @@ public class DeliveryService {
             return setting.getVietmapApiKey().trim();
         }
         return vietmapEnvKey == null ? "" : vietmapEnvKey.trim();
+    }
+
+    private String tileKey() {
+        DeliverySetting setting = settings();
+        if (setting.getVietmapTileKey() != null && !setting.getVietmapTileKey().isBlank()) {
+            return setting.getVietmapTileKey().trim();
+        }
+        return vietmapKey(setting);
+    }
+
+    private void markVietmap(DeliverySetting setting) {
+        setting.setVietmapReady(!vietmapKey(setting).isBlank());
+        setting.setVietmapTileReady(setting.getVietmapTileKey() != null && !setting.getVietmapTileKey().isBlank());
     }
 
     private List<List<Double>> routeLine(DriverDayPlan plan, List<Map<String, Object>> visitRows) {

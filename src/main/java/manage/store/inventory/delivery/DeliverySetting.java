@@ -48,4 +48,22 @@ public class DeliverySetting {
     public void setVietmapApiKey(String vietmapApiKey) {
         this.vietmapApiKey = vietmapApiKey;
     }
+
+    @Column(name = "vietmap_tile_key")
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private String vietmapTileKey;
+
+    @Transient
+    private boolean vietmapTileReady;
+
+    @JsonIgnore
+    public String getVietmapTileKey() {
+        return vietmapTileKey;
+    }
+
+    @JsonProperty("vietmapTileKey")
+    public void setVietmapTileKey(String vietmapTileKey) {
+        this.vietmapTileKey = vietmapTileKey;
+    }
 }
