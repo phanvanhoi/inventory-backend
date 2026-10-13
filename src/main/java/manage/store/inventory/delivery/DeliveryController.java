@@ -33,6 +33,11 @@ public class DeliveryController {
         return deliveryService.stops();
     }
 
+    @GetMapping("/geocode")
+    public List<Map<String, Object>> geocode(@RequestParam(defaultValue = "") String q) {
+        return deliveryService.geocode(q);
+    }
+
     @PostMapping("/stops")
     public DeliveryStop saveStop(@RequestBody DeliveryStop stop) {
         return deliveryService.saveStop(stop);
