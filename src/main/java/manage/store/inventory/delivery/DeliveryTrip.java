@@ -31,4 +31,7 @@ public class DeliveryTrip {
 
     @Column(nullable = false)
     private String status;
+
+    @Column(name = "assigned_driver_id")
+    private Long assignedDriverId;
 }

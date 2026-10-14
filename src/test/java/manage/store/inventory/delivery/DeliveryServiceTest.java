@@ -94,9 +94,9 @@ class DeliveryServiceTest {
         DeliveryStop shop = stop("Cửa hàng", 10, 106, true);
         DeliveryStop pickup = stop("Lấy", 10.01, 106.01, false);
         DeliveryStop drop = stop("Giao", 10.02, 106.02, false);
-        driver();
-        book(pickup, drop, date);
-        book(pickup, stop("Giao 2", 10.03, 106.03, false), date);
+        Long driverId = driver();
+        hand(book(pickup, drop, date), driverId);
+        hand(book(pickup, stop("Giao 2", 10.03, 106.03, false), date), driverId);
         Map<String, Object> day = service.plan(date);
         List<Map<String, Object>> plans = plans(day);
         assertEquals(1, plans.size());
@@ -112,8 +112,9 @@ class DeliveryServiceTest {
         stop("Cửa hàng", 10, 106, true);
         DeliveryStop pickup = stop("Lấy", 10.01, 106.01, false);
         DeliveryStop drop = stop("Giao", 10.02, 106.02, false);
-        driver();
+        Long driverId = driver();
         DeliveryBook first = book(pickup, drop, date);
+        hand(first, driverId);
         service.plan(date);
         service.publish(date);
         Long closedId = first.getTripId();
@@ -133,8 +134,9 @@ class DeliveryServiceTest {
         stop("Cửa hàng", 10, 106, true);
         DeliveryStop pickup = stop("Lấy", 10.01, 106.01, false);
         DeliveryStop drop = stop("Giao", 10.02, 106.02, false);
-        driver();
+        Long driverId = driver();
         DeliveryBook first = book(pickup, drop, date);
+        hand(first, driverId);
         service.plan(date);
         service.publish(date);
         service.lock(date, null);
@@ -157,8 +159,8 @@ class DeliveryServiceTest {
         stop("Cửa hàng", 10, 106, true);
         DeliveryStop pickup = stop("Lấy", 10.01, 106.01, false);
         DeliveryStop drop = stop("Giao", 10.02, 106.02, false);
-        driver();
-        book(pickup, drop, date);
+        Long driverId = driver();
+        hand(book(pickup, drop, date), driverId);
         service.plan(date);
         Long planId = ((DriverDayPlan) plans(service.day(date)).get(0).get("plan")).getPlanId();
         BusinessException error = assertThrows(BusinessException.class, () -> service.finish(planId));
@@ -172,8 +174,8 @@ class DeliveryServiceTest {
         stop("Cửa hàng", 10, 106, true);
         DeliveryStop pickup = stop("Lấy", 10.01, 106.01, false);
         DeliveryStop drop = stop("Giao", 10.02, 106.02, false);
-        driver();
-        book(pickup, drop, date);
+        Long driverId = driver();
+        hand(book(pickup, drop, date), driverId);
         service.plan(date);
         service.publish(date);
         hop = 100000;
@@ -209,8 +211,8 @@ class DeliveryServiceTest {
         doThrow(new BusinessException("Không kết nối được Vietmap.")).when(roadDistance).meters(any(), any(), any());
         LocalDate date = LocalDate.of(2026, 10, 26);
         stop("Cửa hàng", 10, 106, true);
-        driver();
-        book(stop("Lấy", 10.01, 106.01, false), stop("Giao", 10.02, 106.02, false), date);
+        Long driverId = driver();
+        hand(book(stop("Lấy", 10.01, 106.01, false), stop("Giao", 10.02, 106.02, false), date), driverId);
         Map<String, Object> day = service.plan(date);
         DriverDayPlan plan = (DriverDayPlan) plans(day).get(0).get("plan");
         assertTrue(plan.getExplanation().contains("đường thẳng"));
@@ -225,6 +227,7 @@ class DeliveryServiceTest {
         DeliveryStop drop = stop("Giao", 11, 107, false);
         Long driverId = driver();
         DeliveryBook book = book(pickup, drop, date);
+        hand(book, driverId);
         service.plan(date);
         service.publish(date);
         service.lock(date, null);
@@ -240,10 +243,71 @@ class DeliveryServiceTest {
         LocalDate date = LocalDate.of(2026, 10, 27);
         stop("Cửa hàng", 10, 106, true);
         DeliveryStop pickup = place("Lấy", null, null, false);
-        driver();
-        book(pickup, stop("Giao", 10.02, 106.02, false), date);
+        Long driverId = driver();
+        hand(book(pickup, stop("Giao", 10.02, 106.02, false), date), driverId);
         BusinessException error = assertThrows(BusinessException.class, () -> service.plan(date));
         assertTrue(error.getMessage().contains("tọa độ"));
+    }
+
+    @Test
+    void planRoutesOnlyAssignedDrivers() {
+        LocalDate date = LocalDate.of(2026, 10, 29);
+        stop("Cửa hàng", 10, 106, true);
+        DeliveryStop pickup = stop("Lấy", 10.01, 106.01, false);
+        Long first = driver("Bác An", 42L);
+        Long second = driver("Bác Hai", 43L);
+        DeliveryBook kept = book(pickup, stop("Giao", 10.02, 106.02, false), date);
+        DeliveryBook other = book(pickup, stop("Giao 2", 10.03, 106.03, false), date);
+        DeliveryBook loose = book(pickup, stop("Giao 3", 10.04, 106.04, false), date);
+        hand(kept, first);
+        hand(other, second);
+        Map<String, Object> day = service.plan(date);
+        assertEquals(2, plans(day).size());
+        assertTrue(onRoute(day, kept.getTripId()));
+        assertTrue(onRoute(day, other.getTripId()));
+        assertFalse(onRoute(day, loose.getTripId()));
+    }
+
+    @Test
+    void unconfirmedSuddenLeavesTodayWhenLocked() {
+        LocalDate date = LocalDate.of(2026, 10, 30);
+        stop("Cửa hàng", 10, 106, true);
+        DeliveryStop pickup = stop("Lấy", 10.01, 106.01, false);
+        Long driverId = driver();
+        hand(book(pickup, stop("Giao", 10.02, 106.02, false), date), driverId);
+        service.plan(date);
+        service.publish(date);
+        DeliveryBook extra = book(stop("Gần", 10.015, 106.015, false), stop("Gần hơn", 10.016, 106.016, false), date);
+        assertTrue(extra.isSudden());
+        assertFalse(extra.isSuddenConfirmed());
+        assertEquals(date, extra.getServiceDate());
+        service.lock(date, null);
+        DeliveryBook moved = find(DeliveryBook.class, extra.getBookId());
+        assertEquals(date.plusDays(1), moved.getServiceDate());
+        assertEquals("WAITING", moved.getStatus());
+        assertFalse(moved.isSudden());
+        assertNull(find(DeliveryTrip.class, moved.getTripId()).getAssignedDriverId());
+    }
+
+    @Test
+    void confirmedSuddenStaysWhenLocked() {
+        LocalDate date = LocalDate.of(2026, 10, 31);
+        stop("Cửa hàng", 10, 106, true);
+        Long driverId = driver();
+        hand(book(stop("Lấy", 10.01, 106.01, false), stop("Giao", 10.02, 106.02, false), date), driverId);
+        service.plan(date);
+        service.publish(date);
+        DeliveryBook extra = book(stop("Gần", 10.015, 106.015, false), stop("Gần hơn", 10.016, 106.016, false), date);
+        service.confirmSudden(extra.getBookId());
+        service.lock(date, null);
+        DeliveryBook stayed = find(DeliveryBook.class, extra.getBookId());
+        assertEquals(date, stayed.getServiceDate());
+        assertTrue(stayed.isSuddenConfirmed());
+        assertTrue(onRoute(service.day(date), stayed.getTripId()));
+    }
+
+    private void hand(DeliveryBook book, Long driverId) {
+        service.assign(book.getBookId(), driverId);
     }
 
     private DeliveryBook book(DeliveryStop pickup, DeliveryStop drop, LocalDate date) {
@@ -270,12 +334,16 @@ class DeliveryServiceTest {
     }
 
     private Long driver() {
+        return driver("Bác An", 42L);
+    }
+
+    private Long driver(String name, Long userId) {
         return new TransactionTemplate(transactions).execute(status -> {
             DeliveryDriver driver = new DeliveryDriver();
-            driver.setDriverName("Bác An");
+            driver.setDriverName(name);
             driver.setPhone("0900000000");
             driver.setActive(true);
-            driver.setUserId(42L);
+            driver.setUserId(userId);
             driver.setCreatedAt(LocalDateTime.now());
             em.persist(driver);
             em.flush();

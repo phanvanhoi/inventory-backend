@@ -67,4 +67,7 @@ public class DeliveryBook {
 
     @Column(nullable = false)
     private boolean sudden;
+
+    @Column(name = "sudden_confirmed", nullable = false)
+    private boolean suddenConfirmed;
 }

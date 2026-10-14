@@ -222,9 +222,60 @@ public class DeliveryService {
 
     public Map<String, Object> plan(LocalDate date) {
         PlanInput input = tx.execute(status -> readPlan(date));
-        MatrixDistance matrix = input.trips().isEmpty() ? null : matrixOf(input.stops(), input.apiKey(), input.root());
+        MatrixDistance matrix = input.batches().isEmpty() ? null : matrixOf(input.stops(), input.apiKey(), input.root());
         tx.executeWithoutResult(status -> writePlan(date, input, matrix));
         return day(date);
+    }
+
+    @Transactional
+    public void assign(Long bookId, Long driverId) {
+        DeliveryBook book = book(bookId);
+        if (book.getSenderConfirmedAt() != null || CANCELLED.equals(book.getStatus()) || DELIVERED.equals(book.getStatus())) {
+            throw new BusinessException("Việc này không còn giao được cho bác tài.");
+        }
+        if (driverId != null && !driver(driverId).isActive()) {
+            throw new BusinessException("Tài xế đang nghỉ.");
+        }
+        DeliveryTrip trip = book.getTripId() == null ? null : em.find(DeliveryTrip.class, book.getTripId());
+        if (trip == null) {
+            throw new BusinessException("Việc chưa gắn chuyến.");
+        }
+        DriverDayPlan owner = planOfTrip(trip.getTripId());
+        if (owner != null && !DRAFT.equals(owner.getStatus())) {
+            throw new BusinessException("Lịch đã chốt. Hãy xác nhận hoặc không nhận việc đột xuất.");
+        }
+        for (DriverDayPlan plan : plans(book.getServiceDate())) {
+            if (DRAFT.equals(plan.getStatus())) {
+                deletePlan(plan);
+            }
+        }
+        trip.setAssignedDriverId(driverId);
+        trip.setStatus(OPEN);
+        if (PLANNED.equals(book.getStatus())) {
+            book.setStatus(WAITING);
+        }
+        book.setSudden(false);
+        book.setSuddenConfirmed(false);
+    }
+
+    @Transactional
+    public void confirmSudden(Long bookId) {
+        DeliveryBook book = book(bookId);
+        if (!book.isSudden() || CANCELLED.equals(book.getStatus()) || DELIVERED.equals(book.getStatus())) {
+            throw new BusinessException("Việc này không đang chờ xác nhận.");
+        }
+        book.setSuddenConfirmed(true);
+    }
+
+    public void deferSudden(Long bookId) {
+        CancelPreview preview = tx.execute(status -> previewDefer(bookId));
+        MatrixDistance matrix = preview.recompute()
+                ? matrixOf(preview.stops(), preview.apiKey(), preview.root())
+                : null;
+        int meters = preview.recompute()
+                ? RoutePlanner.pathMeters(preview.originId(), preview.next(), matrix, preview.returnTo())
+                : 0;
+        tx.executeWithoutResult(status -> commitDefer(bookId, preview, meters));
     }
 
     public Map<String, Object> publish(LocalDate date) {
@@ -239,6 +290,10 @@ public class DeliveryService {
     }
 
     public Map<String, Object> lock(LocalDate date, Long startStopId) {
+        List<Long> pending = tx.execute(status -> pendingSudden(date));
+        for (Long bookId : pending) {
+            deferSudden(bookId);
+        }
         LockRead read = tx.execute(status -> readLock(date, startStopId));
         List<LockResult> results = new ArrayList<>();
         for (LockJob job : read.jobs()) {
@@ -477,6 +532,89 @@ public class DeliveryService {
         closeTripIfEmpty(book.getTripId());
     }
 
+    private List<Long> pendingSudden(LocalDate date) {
+        List<Long> ids = new ArrayList<>();
+        for (DeliveryBook book : books(date)) {
+            if (!book.isSudden() || book.isSuddenConfirmed() || book.getSenderConfirmedAt() != null) {
+                continue;
+            }
+            if (CANCELLED.equals(book.getStatus()) || DELIVERED.equals(book.getStatus())) {
+                continue;
+            }
+            DriverDayPlan owner = planOfTrip(book.getTripId());
+            if (owner != null && (EN_ROUTE.equals(owner.getStatus()) || DONE.equals(owner.getStatus()))) {
+                continue;
+            }
+            ids.add(book.getBookId());
+        }
+        return ids;
+    }
+
+    private CancelPreview previewDefer(Long bookId) {
+        DeliveryBook book = book(bookId);
+        if (!book.isSudden() || book.isSuddenConfirmed() || book.getSenderConfirmedAt() != null
+                || CANCELLED.equals(book.getStatus()) || DELIVERED.equals(book.getStatus())) {
+            throw new BusinessException("Việc này không còn chờ xác nhận.");
+        }
+        DriverDayPlan plan = planOfTrip(book.getTripId());
+        if (plan == null) {
+            return CancelPreview.simple(book.getTripId());
+        }
+        if (EN_ROUTE.equals(plan.getStatus()) || DONE.equals(plan.getStatus())) {
+            throw new BusinessException("Bác tài đã xuất phát, không chuyển việc này sang ngày mai.");
+        }
+        boolean others = booksOfTrip(book.getTripId()).stream()
+                .anyMatch(other -> !other.getBookId().equals(book.getBookId()) && !CANCELLED.equals(other.getStatus()));
+        List<Visit> visits = toVisits(plan.getPlanId());
+        if (others) {
+            return CancelPreview.keep(book.getTripId(), plan.getPlanId(), sequence(visits), true);
+        }
+        List<Visit> next = withoutTrip(visits, book.getTripId());
+        boolean deleteDraft = next.isEmpty() && DRAFT.equals(plan.getStatus());
+        long origin = originId(plan);
+        Long returnTo = plan.isReturnToShop() ? shop().getStopId() : null;
+        List<DeliveryStop> stops = deleteDraft ? List.of() : snaps(ids(origin, next, returnTo));
+        return new CancelPreview(book.getTripId(), plan.getPlanId(), sequence(visits), next, true, deleteDraft,
+                true, origin, returnTo, stops, vietmapKey(), matrixRoot());
+    }
+
+    private void commitDefer(Long bookId, CancelPreview preview, int meters) {
+        DeliveryBook book = book(bookId);
+        if (!book.isSudden() || book.isSuddenConfirmed() || book.getSenderConfirmedAt() != null
+                || CANCELLED.equals(book.getStatus()) || DELIVERED.equals(book.getStatus())) {
+            throw new BusinessException("Việc này không còn chờ xác nhận.");
+        }
+        if (preview.planId() != null && preview.strip()) {
+            DriverDayPlan plan = plan(preview.planId());
+            List<Visit> visits = toVisits(plan.getPlanId());
+            if (!preview.seen().equals(sequence(visits))) {
+                throw new BusinessException("Lịch vừa đổi, thử lại.");
+            }
+            if (preview.deleteDraft()) {
+                deletePlan(plan);
+            } else {
+                replaceVisits(plan.getPlanId(), preview.next());
+                plan.setTotalMeters(meters);
+            }
+            notice(plan.getDriverId(), plan.getServiceDate(),
+                    "Việc " + bookId + " chưa xác nhận, chuyển sang ngày mai.");
+        }
+        LocalDate next = book.getServiceDate().plusDays(1);
+        DeliveryTrip trip = book.getTripId() == null ? null : em.find(DeliveryTrip.class, book.getTripId());
+        if (preview.planId() != null && !preview.strip()) {
+            DeliveryTrip fresh = newTrip(next, book.getPickupStopId(), book.getDropoffStopId());
+            book.setTripId(fresh.getTripId());
+        } else if (trip != null) {
+            trip.setServiceDate(next);
+            trip.setStatus(OPEN);
+            trip.setAssignedDriverId(null);
+        }
+        book.setServiceDate(next);
+        book.setStatus(WAITING);
+        book.setSudden(false);
+        book.setSuddenConfirmed(false);
+    }
+
     private AcceptPrep prepAccept(Long bookId) {
         DeliveryBook book = book(bookId);
         if (CANCELLED.equals(book.getStatus()) || DELIVERED.equals(book.getStatus())) {
@@ -538,7 +676,7 @@ public class DeliveryService {
             return SuddenView.skip();
         }
         List<DriverDayPlan> dayPlans = plans(book.getServiceDate()).stream()
-                .filter(plan -> !DRAFT.equals(plan.getStatus()) && !DONE.equals(plan.getStatus()))
+                .filter(plan -> !DONE.equals(plan.getStatus()))
                 .toList();
         if (dayPlans.isEmpty()) {
             return SuddenView.idle();
@@ -623,7 +761,7 @@ public class DeliveryService {
             return;
         }
         DriverDayPlan plan = plan(decision.planId());
-        if (DRAFT.equals(plan.getStatus()) || DONE.equals(plan.getStatus())) {
+        if (DONE.equals(plan.getStatus())) {
             return;
         }
         if (!decision.seen().equals(sequence(toVisits(plan.getPlanId())))) {
@@ -632,10 +770,12 @@ public class DeliveryService {
         replaceVisits(plan.getPlanId(), decision.visits());
         plan.setTotalMeters(decision.totalMeters());
         trip.setStatus(ASSIGNED);
+        trip.setAssignedDriverId(plan.getDriverId());
         if (WAITING.equals(book.getStatus())) {
             book.setStatus(PLANNED);
         }
         book.setSudden(true);
+        book.setSuddenConfirmed(false);
         notice(plan.getDriverId(), plan.getServiceDate(), decision.notice() + slipText(plan));
     }
 
@@ -670,17 +810,28 @@ public class DeliveryService {
         if (existing.stream().anyMatch(plan -> !DRAFT.equals(plan.getStatus()))) {
             throw new BusinessException("Ngày này đã chốt lịch. Không xếp lại.");
         }
-        List<Long> fleet = drivers().stream().filter(DeliveryDriver::isActive).map(DeliveryDriver::getDriverId).toList();
-        if (fleet.isEmpty()) {
+        if (drivers().stream().noneMatch(DeliveryDriver::isActive)) {
             throw new BusinessException("Chưa có tài xế.");
         }
         DeliveryStop shop = shop();
-        List<DeliveryTrip> trips = trips(date).stream().filter(this::hasActiveBook).toList();
-        if (trips.isEmpty()) {
-            return PlanInput.empty(fleet);
+        List<DeliveryTrip> active = trips(date).stream().filter(this::hasActiveBook).toList();
+        if (active.isEmpty()) {
+            return PlanInput.empty();
         }
-        List<Trip> inputs = trips.stream().map(trip -> new Trip(trip.getTripId(), trip.getPickupStopId(), trip.getDropoffStopId())).toList();
-        return new PlanInput(fleet, inputs, snaps(stopsFor(trips, shop)), vietmapKey(), matrixRoot());
+        List<DeliveryTrip> assigned = active.stream().filter(trip -> trip.getAssignedDriverId() != null).toList();
+        if (assigned.isEmpty()) {
+            throw new BusinessException("Hãy giao việc cho bác tài trước khi xếp lộ trình.");
+        }
+        Map<Long, List<Trip>> grouped = new LinkedHashMap<>();
+        for (DeliveryTrip trip : assigned) {
+            grouped.computeIfAbsent(trip.getAssignedDriverId(), id -> new ArrayList<>())
+                    .add(new Trip(trip.getTripId(), trip.getPickupStopId(), trip.getDropoffStopId()));
+        }
+        List<AssignedBatch> batches = new ArrayList<>();
+        for (Map.Entry<Long, List<Trip>> entry : grouped.entrySet()) {
+            batches.add(new AssignedBatch(entry.getKey(), List.copyOf(entry.getValue())));
+        }
+        return new PlanInput(batches, snaps(stopsFor(assigned, shop)), vietmapKey(), matrixRoot());
     }
 
     private void writePlan(LocalDate date, PlanInput input, MatrixDistance matrix) {
@@ -692,23 +843,33 @@ public class DeliveryService {
             deletePlan(plan);
         }
         em.flush();
-        if (input.trips().isEmpty()) {
+        if (input.batches().isEmpty()) {
             return;
         }
-        List<Long> live = trips(date).stream().filter(this::hasActiveBook).map(DeliveryTrip::getTripId).sorted().toList();
-        List<Long> expected = input.trips().stream().map(Trip::id).sorted().toList();
+        List<Long> live = trips(date).stream()
+                .filter(this::hasActiveBook)
+                .filter(trip -> trip.getAssignedDriverId() != null)
+                .map(DeliveryTrip::getTripId)
+                .sorted()
+                .toList();
+        List<Long> expected = new ArrayList<>();
+        for (AssignedBatch batch : input.batches()) {
+            for (Trip trip : batch.trips()) {
+                expected.add(trip.id());
+            }
+        }
+        expected.sort(Long::compareTo);
         if (!live.equals(expected)) {
             throw new BusinessException("Chuyến trong ngày vừa đổi, xếp lại.");
         }
         DeliveryStop shop = shop();
-        List<Route> routes = routePlanner.plan(input.trips(), shop.getStopId(), matrix, input.fleet().size(), true);
-        for (int i = 0; i < routes.size(); i++) {
-            Route route = routes.get(i);
+        for (AssignedBatch batch : input.batches()) {
+            Route route = routePlanner.plan(batch.trips(), shop.getStopId(), matrix, 1, true).get(0);
             if (route.visits().isEmpty()) {
                 continue;
             }
             DriverDayPlan plan = new DriverDayPlan();
-            plan.setDriverId(input.fleet().get(i));
+            plan.setDriverId(batch.driverId());
             plan.setServiceDate(date);
             plan.setStatus(DRAFT);
             plan.setReturnToShop(true);
@@ -835,6 +996,15 @@ public class DeliveryService {
         view.put("lines", lines(book.getBookId()));
         view.put("pickup", stop(book.getPickupStopId()));
         view.put("dropoff", stop(book.getDropoffStopId()));
+        DeliveryTrip trip = book.getTripId() == null ? null : em.find(DeliveryTrip.class, book.getTripId());
+        Long assigned = trip == null ? null : trip.getAssignedDriverId();
+        if (assigned == null) {
+            DriverDayPlan owner = planOfTrip(book.getTripId());
+            if (owner != null) {
+                assigned = owner.getDriverId();
+            }
+        }
+        view.put("assignedDriverId", assigned);
         return view;
     }
 
@@ -1422,9 +1592,11 @@ public class DeliveryService {
 
     private record DayLoad(Map<String, Object> body, String apiKey) {}
 
-    private record PlanInput(List<Long> fleet, List<Trip> trips, List<DeliveryStop> stops, String apiKey, String root) {
-        static PlanInput empty(List<Long> fleet) {
-            return new PlanInput(fleet, List.of(), List.of(), "", "");
+    private record AssignedBatch(Long driverId, List<Trip> trips) {}
+
+    private record PlanInput(List<AssignedBatch> batches, List<DeliveryStop> stops, String apiKey, String root) {
+        static PlanInput empty() {
+            return new PlanInput(List.of(), List.of(), "", "");
         }
     }
 

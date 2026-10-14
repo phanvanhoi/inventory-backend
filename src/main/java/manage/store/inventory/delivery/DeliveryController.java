@@ -168,6 +168,24 @@ public class DeliveryController {
         return deliveryService.acceptDetour(id);
     }
 
+    @PostMapping("/books/{id}/assign")
+    @PreAuthorize(DISPATCH)
+    public void assign(@PathVariable Long id, @RequestParam(required = false) Long driverId) {
+        deliveryService.assign(id, driverId);
+    }
+
+    @PostMapping("/books/{id}/confirm-sudden")
+    @PreAuthorize(DISPATCH)
+    public void confirmSudden(@PathVariable Long id) {
+        deliveryService.confirmSudden(id);
+    }
+
+    @PostMapping("/books/{id}/reject-sudden")
+    @PreAuthorize(DISPATCH)
+    public void rejectSudden(@PathVariable Long id) {
+        deliveryService.deferSudden(id);
+    }
+
     @GetMapping("/days/{date}")
     public Map<String, Object> day(@PathVariable LocalDate date) {
         return deliveryService.day(date);
