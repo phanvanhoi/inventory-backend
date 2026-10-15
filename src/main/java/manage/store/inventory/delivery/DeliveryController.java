@@ -82,11 +82,11 @@ public class DeliveryController {
             path = path + "?" + query;
         }
         var response = deliveryService.mapAsset(path);
-        if (response.statusCode() == 423) {
-            throw new BusinessException("Vietmap chặn bản đồ nền. Dán khóa Tilemap, khóa thứ hai trong email đăng ký.");
+        if (response.statusCode() == 401 || response.statusCode() == 403) {
+            throw new BusinessException("Goong từ chối khóa bản đồ. Dán khóa Map tiles từ account.goong.io.");
         }
         if (response.statusCode() >= 300) {
-            throw new BusinessException("Không tải được mảnh bản đồ Vietmap (" + response.statusCode() + ").");
+            throw new BusinessException("Không tải được mảnh bản đồ Goong (" + response.statusCode() + ").");
         }
         String type = response.headers().firstValue("content-type").orElse(tileType(path));
         return ResponseEntity.ok()
@@ -102,6 +102,9 @@ public class DeliveryController {
         }
         if (file.endsWith(".json")) {
             return "application/json";
+        }
+        if (file.endsWith(".pbf")) {
+            return "application/x-protobuf";
         }
         return "application/octet-stream";
     }

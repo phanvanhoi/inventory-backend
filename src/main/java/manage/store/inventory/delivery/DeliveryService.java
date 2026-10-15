@@ -47,7 +47,7 @@ public class DeliveryService {
     private static final String LOCKED = "LOCKED";
     private static final String EN_ROUTE = "EN_ROUTE";
     private static final String DONE = "DONE";
-    private static final String STRAIGHT = "Đang dùng đường thẳng vì không lấy được km Vietmap.";
+    private static final String STRAIGHT = "Đang dùng đường thẳng vì không lấy được km Goong.";
     private static final double PASS_RADIUS_KM = 0.15;
 
     @PersistenceContext
@@ -58,7 +58,7 @@ public class DeliveryService {
     private final TransactionTemplate tx;
     private final Map<String, List<List<Double>>> routeCache = new ConcurrentHashMap<>();
 
-    @Value("${vietmap.api-key:}")
+    @Value("${goong.api-key:}")
     private String vietmapEnvKey;
 
     public DeliveryService(RoadDistance roadDistance, PlatformTransactionManager transactions) {
@@ -145,6 +145,9 @@ public class DeliveryService {
         setting.setCostPerKm(Math.max(0, input.getCostPerKm()));
         if (input.getVietmapApiKey() != null && !input.getVietmapApiKey().isBlank()) {
             setting.setVietmapApiKey(input.getVietmapApiKey().trim());
+            if (input.getVietmapTileKey() == null || input.getVietmapTileKey().isBlank()) {
+                setting.setVietmapTileKey(null);
+            }
         }
         if (input.getVietmapTileKey() != null && !input.getVietmapTileKey().isBlank()) {
             setting.setVietmapTileKey(input.getVietmapTileKey().trim());
@@ -405,7 +408,7 @@ public class DeliveryService {
     }
 
     public String mapStyle() {
-        String key = tx.execute(status -> vietmapKey());
+        String key = tx.execute(status -> tileKey());
         return roadDistance.style(key);
     }
 
@@ -1095,18 +1098,7 @@ public class DeliveryService {
     }
 
     private String matrixRoot() {
-        String url = settings().getDistanceBaseUrl();
-        if (url == null || url.isBlank()) {
-            return "https://maps.vietmap.vn";
-        }
-        String trimmed = url.trim();
-        if (trimmed.endsWith("/")) {
-            trimmed = trimmed.substring(0, trimmed.length() - 1);
-        }
-        if (trimmed.equals("https://maps.vietmap.vn") || trimmed.startsWith("https://maps.vietmap.vn/")) {
-            return trimmed;
-        }
-        return "https://maps.vietmap.vn";
+        return "https://rsapi.goong.io";
     }
 
     private void markVietmap(DeliverySetting setting) {

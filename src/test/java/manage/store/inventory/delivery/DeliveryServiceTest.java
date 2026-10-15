@@ -208,7 +208,7 @@ class DeliveryServiceTest {
 
     @Test
     void straightLineFallbackIsExplained() {
-        doThrow(new BusinessException("Không kết nối được Vietmap.")).when(roadDistance).meters(any(), any(), any());
+        doThrow(new BusinessException("Không kết nối được Goong.")).when(roadDistance).meters(any(), any(), any());
         LocalDate date = LocalDate.of(2026, 10, 26);
         stop("Cửa hàng", 10, 106, true);
         Long driverId = driver();

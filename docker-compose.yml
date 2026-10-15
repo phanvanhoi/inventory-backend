@@ -32,6 +32,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: 86400000
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost}
+      GOONG_API_KEY: ${GOONG_API_KEY:-}
       JAVA_OPTS: -Xms256m -Xmx512m
       SPRING_PROFILES_ACTIVE: prod
     healthcheck:

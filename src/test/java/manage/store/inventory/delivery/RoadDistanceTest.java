@@ -13,23 +13,26 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 class RoadDistanceTest {
 
     @Test
-    void streetStyleUsesRasterPictures() {
-        String style = RoadDistance.streetStyle();
-        assertEquals(true, style.contains("\"type\":\"raster\""));
-        assertEquals(true, style.contains("/api/delivery/basemap/proxy/maps/tiles/tm/{z}/{x}/{y}.png"));
-        assertFalse(style.contains(".pbf"));
-        assertFalse(style.contains("apikey"));
+    void styleUrlsDropTheApiKey() {
+        String rewritten = RoadDistance.rewriteStyle(
+                "{\"sprite\":\"https://tiles.goong.io/assets/sprites/goong?api_key=secret\","
+                        + "\"tiles\":[\"https://tiles.goong.io/sources/goong/{z}/{x}/{y}.pbf?api_key=secret\"]}");
+        assertFalse(rewritten.contains("secret"));
+        assertFalse(rewritten.contains("tiles.goong.io"));
+        assertEquals(true, rewritten.contains("/api/delivery/basemap/proxy/assets/sprites/goong"));
+        assertEquals(true, rewritten.contains("/api/delivery/basemap/proxy/sources/goong/{z}/{x}/{y}.pbf"));
     }
 
     @Test
-    void styleUrlsDropTheApiKey() {
-        String rewritten = RoadDistance.rewriteStyle(
-                "{\"sprite\":\"https://maps.vietmap.vn/maps/styles/tm/sprite?apikey=secret\","
-                        + "\"tiles\":[\"https://maps.vietmap.vn/maps/tiles/tm/{z}/{x}/{y}.pbf?apikey=secret\"]}");
-        assertFalse(rewritten.contains("secret"));
-        assertFalse(rewritten.contains("maps.vietmap.vn"));
-        assertEquals(true, rewritten.contains("/api/delivery/basemap/proxy/maps/styles/tm/sprite"));
-        assertEquals(true, rewritten.contains("/api/delivery/basemap/proxy/maps/tiles/tm/{z}/{x}/{y}.pbf"));
+    void encodedPolylineBecomesLatitudeFirst() {
+        var pairs = RoadDistance.decodePolyline("_p~iF~ps|U_ulLnnqC_mqNvxq`@");
+        assertEquals(3, pairs.size());
+        assertEquals(38.5, pairs.get(0).get(0), 0.00001);
+        assertEquals(-120.2, pairs.get(0).get(1), 0.00001);
+        assertEquals(40.7, pairs.get(1).get(0), 0.00001);
+        assertEquals(-120.95, pairs.get(1).get(1), 0.00001);
+        assertEquals(43.252, pairs.get(2).get(0), 0.00001);
+        assertEquals(-126.453, pairs.get(2).get(1), 0.00001);
     }
 
     @Test
@@ -59,10 +62,10 @@ class RoadDistanceTest {
         assertThrows(BusinessException.class, () -> RoadDistance.safeAssetPath("/maps/../secret"));
         assertThrows(BusinessException.class, () -> RoadDistance.safeAssetPath("/api/route/v4"));
         assertThrows(BusinessException.class, () -> RoadDistance.safeAssetPath("/maps/tiles/../style.json"));
-        String safe = RoadDistance.safeAssetPath("/maps/styles/tm/sprite.png?apikey=secret&foo=bar");
+        String safe = RoadDistance.safeAssetPath("/assets/sprites/goong.png?api_key=secret&foo=bar");
         assertFalse(safe.contains("secret"));
-        assertFalse(safe.contains("apikey"));
+        assertFalse(safe.contains("api_key"));
         assertEquals(true, safe.contains("foo=bar"));
-        assertEquals("/maps/tiles/tm/1/2/3.pbf", RoadDistance.safeAssetPath("/maps/tiles/tm/1/2/3.pbf"));
+        assertEquals("/sources/goong/1/2/3.pbf", RoadDistance.safeAssetPath("/sources/goong/1/2/3.pbf"));
     }
 }
