@@ -67,5 +67,21 @@ class RoadDistanceTest {
         assertFalse(safe.contains("api_key"));
         assertEquals(true, safe.contains("foo=bar"));
         assertEquals("/sources/goong/1/2/3.pbf", RoadDistance.safeAssetPath("/sources/goong/1/2/3.pbf"));
+        assertEquals("/tiles/composite/12/3252/1803.pbf", RoadDistance.safeAssetPath("/tiles/composite/12/3252/1803.pbf"));
+        assertEquals("/sprite@2x.png", RoadDistance.safeAssetPath("/sprite@2x.png"));
+        assertEquals("/fonts/Roboto%20Regular/0-255.pbf", RoadDistance.safeAssetPath("/fonts/Roboto Regular/0-255.pbf"));
+    }
+
+    @Test
+    void tileJsonUsesThePageScheme() {
+        String rewritten = RoadDistance.rewriteStyle(
+                "{\"tiles\":[\"https://tiles.goong.io/tiles/composite/{z}/{x}/{y}.pbf?api_key=secret\"]}");
+        String pointed = RoadDistance.pointAtProxy(rewritten, "adspyvn.com");
+        assertFalse(pointed.contains("secret"));
+        assertFalse(pointed.contains("tiles.goong.io"));
+        assertFalse(pointed.contains("http://"));
+        assertEquals(true, pointed.contains("//adspyvn.com/api/delivery/basemap/proxy/tiles/composite/{z}/{x}/{y}.pbf"));
+        String relative = RoadDistance.pointAtProxy(rewritten, "bad host");
+        assertEquals(true, relative.startsWith("{\"tiles\":[\"/api/delivery/basemap/proxy/tiles/"));
     }
 }

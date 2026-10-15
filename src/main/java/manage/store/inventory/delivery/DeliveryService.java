@@ -412,7 +412,7 @@ public class DeliveryService {
         return roadDistance.style(key);
     }
 
-    public java.net.http.HttpResponse<byte[]> mapAsset(String pathAndQuery) {
+    public RoadDistance.AssetFile mapAsset(String pathAndQuery) {
         String key = tx.execute(status -> tileKey());
         return roadDistance.asset(pathAndQuery, key);
     }

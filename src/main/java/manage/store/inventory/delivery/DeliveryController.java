@@ -1,5 +1,6 @@
 package manage.store.inventory.delivery;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -60,16 +61,8 @@ public class DeliveryController {
 
     @GetMapping(value = "/basemap/style.json", produces = "application/json")
     public String basemapStyle(HttpServletRequest request) {
-        String proto = request.getHeader("X-Forwarded-Proto");
-        if (proto == null || proto.isBlank()) {
-            proto = request.getScheme();
-        }
-        String host = request.getHeader("Host");
-        String style = deliveryService.mapStyle();
-        if (host == null || host.isBlank()) {
-            return style;
-        }
-        return style.replace("/api/delivery/basemap/proxy", proto + "://" + host + "/api/delivery/basemap/proxy");
+        // Scheme-relative: origin behind Cloudflare is HTTP, so http:// tile URLs are blocked on the HTTPS page.
+        return RoadDistance.pointAtProxy(deliveryService.mapStyle(), request.getHeader("Host"));
     }
 
     @GetMapping("/basemap/proxy/**")
@@ -88,11 +81,16 @@ public class DeliveryController {
         if (response.statusCode() >= 300) {
             throw new BusinessException("Không tải được mảnh bản đồ Goong (" + response.statusCode() + ").");
         }
-        String type = response.headers().firstValue("content-type").orElse(tileType(path));
+        byte[] body = response.body();
+        String type = response.contentType() == null || response.contentType().isBlank() ? tileType(path) : response.contentType();
+        if (type.contains("json")) {
+            body = RoadDistance.pointAtProxy(new String(body, StandardCharsets.UTF_8), request.getHeader("Host"))
+                    .getBytes(StandardCharsets.UTF_8);
+        }
         return ResponseEntity.ok()
                 .header("Content-Type", type)
                 .header("Cache-Control", "public, max-age=86400")
-                .body(response.body());
+                .body(body);
     }
 
     private static String tileType(String path) {

@@ -30,7 +30,7 @@ public class RoadDistance {
     private static final String STYLE_PATH = "/assets/goong_map_web.json";
     private static final Pattern QUERY_KEY = Pattern.compile("[A-Za-z0-9_-]{1,40}");
     private static final Pattern QUERY_VALUE = Pattern.compile("[A-Za-z0-9._~%-]{0,80}");
-    private static final Pattern ASSET_PATH = Pattern.compile("/[A-Za-z0-9._~%,{}\\-/]+");
+    private static final Pattern ASSET_PATH = Pattern.compile("/[A-Za-z0-9._~%,{}@\\-/]+");
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -208,19 +208,43 @@ public class RoadDistance {
         return rewritten;
     }
 
-    public HttpResponse<byte[]> asset(String pathAndQuery, String apiKey) {
+    public AssetFile asset(String pathAndQuery, String apiKey) {
         requireKey(apiKey);
         String safe = safeAssetPath(pathAndQuery);
         String joiner = safe.contains("?") ? "&" : "?";
         URI uri = URI.create(TILE_ROOT + safe + joiner + "api_key=" + enc(apiKey));
         try {
             HttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(20)).GET().build();
-            return httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            String type = response.headers().firstValue("content-type").orElse("");
+            byte[] body = response.body() == null ? new byte[0] : response.body();
+            String pathOnly = safe.contains("?") ? safe.substring(0, safe.indexOf('?')) : safe;
+            if (response.statusCode() < 300 && (pathOnly.endsWith(".json") || type.contains("json"))) {
+                body = rewriteStyle(new String(body, StandardCharsets.UTF_8)).replace(apiKey, "").getBytes(StandardCharsets.UTF_8);
+                if (!type.contains("json")) {
+                    type = "application/json; charset=utf-8";
+                }
+            }
+            return new AssetFile(response.statusCode(), type, body);
         } catch (BusinessException ex) {
             throw ex;
         } catch (Exception ex) {
             throw new BusinessException("Không tải được mảnh bản đồ Goong.");
         }
+    }
+
+    public record AssetFile(int statusCode, String contentType, byte[] body) {
+    }
+
+    static String pointAtProxy(String json, String host) {
+        return json.replace("/api/delivery/basemap/proxy", proxyRoot(host));
+    }
+
+    private static String proxyRoot(String host) {
+        if (host == null || !host.matches("[A-Za-z0-9.:_-]+")) {
+            return "/api/delivery/basemap/proxy";
+        }
+        return "//" + host + "/api/delivery/basemap/proxy";
     }
 
     static String rewriteStyle(String json) {
@@ -371,8 +395,18 @@ public class RoadDistance {
     }
 
     private static boolean allowedAsset(String path) {
-        return ASSET_PATH.matcher(path).matches()
-                && (path.startsWith("/assets/") || path.startsWith("/sources/") || path.startsWith("/maps/"));
+        if (!ASSET_PATH.matcher(path).matches()) {
+            return false;
+        }
+        return path.startsWith("/assets/")
+                || path.startsWith("/sources/")
+                || path.startsWith("/maps/")
+                || path.startsWith("/tiles/")
+                || path.startsWith("/fonts/")
+                || "/sprite.json".equals(path)
+                || "/sprite.png".equals(path)
+                || "/sprite@2x.json".equals(path)
+                || "/sprite@2x.png".equals(path);
     }
 
     private static String filterQuery(String query) {
