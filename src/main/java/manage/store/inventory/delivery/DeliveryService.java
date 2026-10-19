@@ -459,7 +459,7 @@ public class DeliveryService {
         boolean merged = trip != null && !passed(trip);
         if (!merged) {
             trip = newTrip(request.serviceDate(), request.pickupStopId(), request.dropoffStopId(), request.ownerName());
-        } else if (clean(trip.getOwnerName()) == null) {
+        } else if (clean(request.ownerName()) != null) {
             trip.setOwnerName(clean(request.ownerName()));
         }
         book.setTripId(trip.getTripId());

@@ -307,7 +307,7 @@ class DeliveryServiceTest {
     }
 
     @Test
-    void ownerStaysOnTheRouteWhenMoreGoodsAreAdded() {
+    void ownerOnTheRouteFollowsTheLatestGoods() {
         LocalDate date = LocalDate.of(2026, 10, 20);
         DeliveryStop from = stop("Kho", 21.03, 105.80, true);
         DeliveryStop to = stop("Viện", 21.00, 105.85, false);
@@ -319,7 +319,7 @@ class DeliveryServiceTest {
                 List.of(new LineRequest("Mẫu", BigDecimal.ONE, ""))), 1L);
 
         assertEquals(first.getTripId(), second.getTripId());
-        assertEquals("Thuỳ", find(DeliveryTrip.class, first.getTripId()).getOwnerName());
+        assertEquals("Người khác", find(DeliveryTrip.class, first.getTripId()).getOwnerName());
         assertEquals("gọi trước", find(DeliveryBook.class, first.getBookId()).getNote());
         assertEquals("mẫu nhỏ", find(DeliveryBook.class, second.getBookId()).getNote());
     }
