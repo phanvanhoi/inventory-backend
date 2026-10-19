@@ -306,12 +306,30 @@ class DeliveryServiceTest {
         assertTrue(onRoute(service.day(date), stayed.getTripId()));
     }
 
+    @Test
+    void ownerStaysOnTheRouteWhenMoreGoodsAreAdded() {
+        LocalDate date = LocalDate.of(2026, 10, 20);
+        DeliveryStop from = stop("Kho", 21.03, 105.80, true);
+        DeliveryStop to = stop("Viện", 21.00, 105.85, false);
+        DeliveryBook first = service.createBook(new BookRequest(
+                from.getStopId(), to.getStopId(), date, "gọi trước", "Thuỳ", null,
+                List.of(new LineRequest("Áo", BigDecimal.ONE, ""))), 1L);
+        DeliveryBook second = service.createBook(new BookRequest(
+                from.getStopId(), to.getStopId(), date, "mẫu nhỏ", "Người khác", null,
+                List.of(new LineRequest("Mẫu", BigDecimal.ONE, ""))), 1L);
+
+        assertEquals(first.getTripId(), second.getTripId());
+        assertEquals("Thuỳ", find(DeliveryTrip.class, first.getTripId()).getOwnerName());
+        assertEquals("gọi trước", find(DeliveryBook.class, first.getBookId()).getNote());
+        assertEquals("mẫu nhỏ", find(DeliveryBook.class, second.getBookId()).getNote());
+    }
+
     private void hand(DeliveryBook book, Long driverId) {
         service.assign(book.getBookId(), driverId);
     }
 
     private DeliveryBook book(DeliveryStop pickup, DeliveryStop drop, LocalDate date) {
-        return service.createBook(new BookRequest(pickup.getStopId(), drop.getStopId(), date, null, null,
+        return service.createBook(new BookRequest(pickup.getStopId(), drop.getStopId(), date, null, null, null,
                 List.of(new LineRequest("Vải", new BigDecimal("2"), "Cây"))), 1L);
     }
 

@@ -34,4 +34,7 @@ public class DeliveryTrip {
 
     @Column(name = "assigned_driver_id")
     private Long assignedDriverId;
+
+    @Column(name = "owner_name", length = 80)
+    private String ownerName;
 }

@@ -71,6 +71,17 @@ public class DeliveryService {
         return em.createQuery("select s from DeliveryStop s order by s.shop desc, s.stopName", DeliveryStop.class).getResultList();
     }
 
+    @Transactional(readOnly = true)
+    public List<String> ownerNames() {
+        return em.createQuery(
+                        "select distinct t.ownerName from DeliveryTrip t where t.ownerName is not null order by t.ownerName",
+                        String.class)
+                .getResultList()
+                .stream()
+                .filter(name -> name != null && !name.isBlank())
+                .toList();
+    }
+
     @Transactional
     public DeliveryStop saveStop(DeliveryStop input) {
         if (input.isShop()) {
@@ -438,7 +449,7 @@ public class DeliveryService {
         book.setPickupStopId(request.pickupStopId());
         book.setDropoffStopId(request.dropoffStopId());
         book.setServiceDate(request.serviceDate());
-        book.setNote(request.note());
+        book.setNote(clean(request.note()));
         book.setRequestSetId(request.requestSetId());
         book.setCreatedBy(userId);
         book.setCreatedAt(LocalDateTime.now());
@@ -447,7 +458,9 @@ public class DeliveryService {
         DeliveryTrip trip = openTrip(request.serviceDate(), request.pickupStopId(), request.dropoffStopId());
         boolean merged = trip != null && !passed(trip);
         if (!merged) {
-            trip = newTrip(request.serviceDate(), request.pickupStopId(), request.dropoffStopId());
+            trip = newTrip(request.serviceDate(), request.pickupStopId(), request.dropoffStopId(), request.ownerName());
+        } else if (clean(trip.getOwnerName()) == null) {
+            trip.setOwnerName(clean(request.ownerName()));
         }
         book.setTripId(trip.getTripId());
         boolean live = merged && ASSIGNED.equals(trip.getStatus());
@@ -471,14 +484,27 @@ public class DeliveryService {
     }
 
     private DeliveryTrip newTrip(LocalDate date, Long pickup, Long dropoff) {
+        return newTrip(date, pickup, dropoff, null);
+    }
+
+    private DeliveryTrip newTrip(LocalDate date, Long pickup, Long dropoff, String ownerName) {
         DeliveryTrip trip = new DeliveryTrip();
         trip.setServiceDate(date);
         trip.setPickupStopId(pickup);
         trip.setDropoffStopId(dropoff);
         trip.setStatus(OPEN);
+        trip.setOwnerName(clean(ownerName));
         em.persist(trip);
         em.flush();
         return trip;
+    }
+
+    private static String clean(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private CancelPreview previewCancel(Long bookId) {
@@ -605,7 +631,7 @@ public class DeliveryService {
         LocalDate next = book.getServiceDate().plusDays(1);
         DeliveryTrip trip = book.getTripId() == null ? null : em.find(DeliveryTrip.class, book.getTripId());
         if (preview.planId() != null && !preview.strip()) {
-            DeliveryTrip fresh = newTrip(next, book.getPickupStopId(), book.getDropoffStopId());
+            DeliveryTrip fresh = newTrip(next, book.getPickupStopId(), book.getDropoffStopId(), trip == null ? null : trip.getOwnerName());
             book.setTripId(fresh.getTripId());
         } else if (trip != null) {
             trip.setServiceDate(next);
@@ -632,7 +658,7 @@ public class DeliveryService {
             return new AcceptPrep(bookId, book.getServiceDate(), "Chuyến đã nằm trong lịch.");
         }
         if (ASSIGNED.equals(trip.getStatus()) || CLOSED.equals(trip.getStatus())) {
-            DeliveryTrip fresh = newTrip(book.getServiceDate(), book.getPickupStopId(), book.getDropoffStopId());
+            DeliveryTrip fresh = newTrip(book.getServiceDate(), book.getPickupStopId(), book.getDropoffStopId(), trip.getOwnerName());
             book.setTripId(fresh.getTripId());
             book.setStatus(WAITING);
             closeTripIfEmpty(trip.getTripId());
@@ -959,7 +985,9 @@ public class DeliveryService {
                 continue;
             }
             Long previous = book.getTripId();
-            DeliveryTrip fresh = newTrip(plan.getServiceDate().plusDays(1), book.getPickupStopId(), book.getDropoffStopId());
+            DeliveryTrip previousTrip = previous == null ? null : em.find(DeliveryTrip.class, previous);
+            DeliveryTrip fresh = newTrip(plan.getServiceDate().plusDays(1), book.getPickupStopId(), book.getDropoffStopId(),
+                    previousTrip == null ? null : previousTrip.getOwnerName());
             book.setTripId(fresh.getTripId());
             book.setServiceDate(fresh.getServiceDate());
             book.setStatus(WAITING);
@@ -1008,6 +1036,7 @@ public class DeliveryService {
             }
         }
         view.put("assignedDriverId", assigned);
+        view.put("ownerName", trip == null ? null : trip.getOwnerName());
         return view;
     }
 
@@ -1572,7 +1601,7 @@ public class DeliveryService {
 
     public record LineRequest(String description, BigDecimal quantity, String unitLabel) {}
 
-    public record BookRequest(Long pickupStopId, Long dropoffStopId, LocalDate serviceDate, String note, Long requestSetId, List<LineRequest> lines) {
+    public record BookRequest(Long pickupStopId, Long dropoffStopId, LocalDate serviceDate, String note, String ownerName, Long requestSetId, List<LineRequest> lines) {
         public BookRequest {
             Objects.requireNonNull(pickupStopId);
             Objects.requireNonNull(dropoffStopId);

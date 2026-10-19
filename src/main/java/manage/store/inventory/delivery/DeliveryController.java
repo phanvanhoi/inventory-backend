@@ -43,6 +43,11 @@ public class DeliveryController {
         return deliveryService.stops();
     }
 
+    @GetMapping("/owners")
+    public List<String> owners() {
+        return deliveryService.ownerNames();
+    }
+
     @GetMapping("/geocode")
     public List<Map<String, Object>> geocode(@RequestParam(defaultValue = "") String q,
             @RequestParam(required = false) String focus) {
