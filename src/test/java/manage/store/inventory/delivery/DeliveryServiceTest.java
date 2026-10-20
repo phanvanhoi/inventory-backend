@@ -307,7 +307,7 @@ class DeliveryServiceTest {
     }
 
     @Test
-    void ownerOnTheRouteFollowsTheLatestGoods() {
+    void eachBookKeepsItsOwnSender() {
         LocalDate date = LocalDate.of(2026, 10, 20);
         DeliveryStop from = stop("Kho", 21.03, 105.80, true);
         DeliveryStop to = stop("Viện", 21.00, 105.85, false);
@@ -315,11 +315,13 @@ class DeliveryServiceTest {
                 from.getStopId(), to.getStopId(), date, "gọi trước", "Thuỳ", null,
                 List.of(new LineRequest("Áo", BigDecimal.ONE, ""))), 1L);
         DeliveryBook second = service.createBook(new BookRequest(
-                from.getStopId(), to.getStopId(), date, "mẫu nhỏ", "Người khác", null,
+                from.getStopId(), to.getStopId(), date, "mẫu nhỏ", "Hội", null,
                 List.of(new LineRequest("Mẫu", BigDecimal.ONE, ""))), 1L);
 
         assertEquals(first.getTripId(), second.getTripId());
-        assertEquals("Người khác", find(DeliveryTrip.class, first.getTripId()).getOwnerName());
+        assertEquals("Thuỳ", find(DeliveryTrip.class, first.getTripId()).getOwnerName());
+        assertEquals("Thuỳ", find(DeliveryBook.class, first.getBookId()).getOwnerName());
+        assertEquals("Hội", find(DeliveryBook.class, second.getBookId()).getOwnerName());
         assertEquals("gọi trước", find(DeliveryBook.class, first.getBookId()).getNote());
         assertEquals("mẫu nhỏ", find(DeliveryBook.class, second.getBookId()).getNote());
     }

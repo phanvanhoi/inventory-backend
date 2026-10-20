@@ -32,6 +32,9 @@ public class DeliveryBook {
 
     private String note;
 
+    @Column(name = "owner_name", length = 80)
+    private String ownerName;
+
     @Column(name = "request_set_id")
     private Long requestSetId;
 

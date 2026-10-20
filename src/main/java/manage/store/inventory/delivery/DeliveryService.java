@@ -74,7 +74,7 @@ public class DeliveryService {
     @Transactional(readOnly = true)
     public List<String> ownerNames() {
         return em.createQuery(
-                        "select distinct t.ownerName from DeliveryTrip t where t.ownerName is not null order by t.ownerName",
+                        "select distinct b.ownerName from DeliveryBook b where b.ownerName is not null order by b.ownerName",
                         String.class)
                 .getResultList()
                 .stream()
@@ -450,6 +450,7 @@ public class DeliveryService {
         book.setDropoffStopId(request.dropoffStopId());
         book.setServiceDate(request.serviceDate());
         book.setNote(clean(request.note()));
+        book.setOwnerName(clean(request.ownerName()));
         book.setRequestSetId(request.requestSetId());
         book.setCreatedBy(userId);
         book.setCreatedAt(LocalDateTime.now());
@@ -459,7 +460,7 @@ public class DeliveryService {
         boolean merged = trip != null && !passed(trip);
         if (!merged) {
             trip = newTrip(request.serviceDate(), request.pickupStopId(), request.dropoffStopId(), request.ownerName());
-        } else if (clean(request.ownerName()) != null) {
+        } else if (trip.getOwnerName() == null && clean(request.ownerName()) != null) {
             trip.setOwnerName(clean(request.ownerName()));
         }
         book.setTripId(trip.getTripId());
@@ -1036,7 +1037,11 @@ public class DeliveryService {
             }
         }
         view.put("assignedDriverId", assigned);
-        view.put("ownerName", trip == null ? null : trip.getOwnerName());
+        String owner = book.getOwnerName();
+        if (owner == null && trip != null) {
+            owner = trip.getOwnerName();
+        }
+        view.put("ownerName", owner);
         return view;
     }
 
