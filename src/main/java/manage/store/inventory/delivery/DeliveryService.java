@@ -235,7 +235,11 @@ public class DeliveryService {
     }
 
     public Map<String, Object> plan(LocalDate date) {
-        PlanInput input = tx.execute(status -> readPlan(date));
+        return plan(date, null);
+    }
+
+    public Map<String, Object> plan(LocalDate date, Long startStopId) {
+        PlanInput input = tx.execute(status -> readPlan(date, startStopId));
         MatrixDistance matrix = input.batches().isEmpty() ? null : matrixOf(input.stops(), input.apiKey(), input.root());
         tx.executeWithoutResult(status -> writePlan(date, input, matrix));
         return day(date);
@@ -835,7 +839,7 @@ public class DeliveryService {
         return text.toString();
     }
 
-    private PlanInput readPlan(LocalDate date) {
+    private PlanInput readPlan(LocalDate date, Long startStopId) {
         List<DriverDayPlan> existing = plans(date);
         if (existing.stream().anyMatch(plan -> !DRAFT.equals(plan.getStatus()))) {
             throw new BusinessException("Ngày này đã chốt lịch. Không xếp lại.");
@@ -844,6 +848,7 @@ public class DeliveryService {
             throw new BusinessException("Chưa có tài xế.");
         }
         DeliveryStop shop = shop();
+        DeliveryStop start = startStopId == null ? shop : stop(startStopId);
         List<DeliveryTrip> active = trips(date).stream().filter(this::hasActiveBook).toList();
         if (active.isEmpty()) {
             return PlanInput.empty();
@@ -861,7 +866,7 @@ public class DeliveryService {
         for (Map.Entry<Long, List<Trip>> entry : grouped.entrySet()) {
             batches.add(new AssignedBatch(entry.getKey(), List.copyOf(entry.getValue())));
         }
-        return new PlanInput(batches, snaps(stopsFor(assigned, shop)), vietmapKey(), matrixRoot());
+        return new PlanInput(batches, snaps(stopsFor(assigned, shop, start)), vietmapKey(), matrixRoot(), start.getStopId());
     }
 
     private void writePlan(LocalDate date, PlanInput input, MatrixDistance matrix) {
@@ -893,8 +898,9 @@ public class DeliveryService {
             throw new BusinessException("Chuyến trong ngày vừa đổi, xếp lại.");
         }
         DeliveryStop shop = shop();
+        long startId = input.startId() != null ? input.startId() : shop.getStopId();
         for (AssignedBatch batch : input.batches()) {
-            Route route = routePlanner.plan(batch.trips(), shop.getStopId(), matrix, 1, true).get(0);
+            Route route = routePlanner.plan(batch.trips(), startId, matrix, 1, shop.getStopId()).get(0);
             if (route.visits().isEmpty()) {
                 continue;
             }
@@ -903,7 +909,7 @@ public class DeliveryService {
             plan.setServiceDate(date);
             plan.setStatus(DRAFT);
             plan.setReturnToShop(true);
-            plan.setStartStopId(shop.getStopId());
+            plan.setStartStopId(startId);
             plan.setTotalMeters(route.meters());
             plan.setExplanation(explain(route.reasons(), matrix.straight()));
             em.persist(plan);
@@ -1446,9 +1452,10 @@ public class DeliveryService {
         return booksOfTrip(trip.getTripId()).stream().anyMatch(book -> !CANCELLED.equals(book.getStatus()));
     }
 
-    private List<DeliveryStop> stopsFor(List<DeliveryTrip> trips, DeliveryStop shop) {
+    private List<DeliveryStop> stopsFor(List<DeliveryTrip> trips, DeliveryStop shop, DeliveryStop start) {
         Map<Long, DeliveryStop> map = new LinkedHashMap<>();
         map.put(shop.getStopId(), shop);
+        map.put(start.getStopId(), start);
         for (DeliveryTrip trip : trips) {
             map.put(trip.getPickupStopId(), stop(trip.getPickupStopId()));
             map.put(trip.getDropoffStopId(), stop(trip.getDropoffStopId()));
@@ -1620,9 +1627,9 @@ public class DeliveryService {
 
     private record AssignedBatch(Long driverId, List<Trip> trips) {}
 
-    private record PlanInput(List<AssignedBatch> batches, List<DeliveryStop> stops, String apiKey, String root) {
+    private record PlanInput(List<AssignedBatch> batches, List<DeliveryStop> stops, String apiKey, String root, Long startId) {
         static PlanInput empty() {
-            return new PlanInput(List.of(), List.of(), "", "");
+            return new PlanInput(List.of(), List.of(), "", "", null);
         }
     }
 

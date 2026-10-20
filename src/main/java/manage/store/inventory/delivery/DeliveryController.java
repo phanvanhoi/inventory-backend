@@ -199,8 +199,8 @@ public class DeliveryController {
 
     @PostMapping("/days/{date}/plan")
     @PreAuthorize(DISPATCH)
-    public Map<String, Object> plan(@PathVariable LocalDate date) {
-        return deliveryService.plan(date);
+    public Map<String, Object> plan(@PathVariable LocalDate date, @RequestParam(required = false) Long startStopId) {
+        return deliveryService.plan(date, startStopId);
     }
 
     @PostMapping("/days/{date}/publish")
