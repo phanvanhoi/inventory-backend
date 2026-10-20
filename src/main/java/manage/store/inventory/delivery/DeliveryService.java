@@ -10,7 +10,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -235,11 +237,15 @@ public class DeliveryService {
     }
 
     public Map<String, Object> plan(LocalDate date) {
-        return plan(date, null);
+        return plan(date, null, null);
     }
 
     public Map<String, Object> plan(LocalDate date, Long startStopId) {
-        PlanInput input = tx.execute(status -> readPlan(date, startStopId));
+        return plan(date, startStopId, null);
+    }
+
+    public Map<String, Object> plan(LocalDate date, Long startStopId, Long driverId) {
+        PlanInput input = tx.execute(status -> readPlan(date, startStopId, driverId));
         MatrixDistance matrix = input.batches().isEmpty() ? null : matrixOf(input.stops(), input.apiKey(), input.root());
         tx.executeWithoutResult(status -> writePlan(date, input, matrix));
         return day(date);
@@ -316,18 +322,18 @@ public class DeliveryService {
         List<LockResult> results = new ArrayList<>();
         for (LockJob job : read.jobs()) {
             if (job.own().isEmpty()) {
-                results.add(new LockResult(job.planId(), null, null, 0));
+                results.add(new LockResult(job.planId(), null, null, 0, job.startId()));
                 continue;
             }
             MatrixDistance matrix = matrixOf(job.stops(), read.apiKey(), read.root());
             Long returnTo = job.returnToShop() ? read.shopId() : null;
-            Route route = routePlanner.plan(job.own(), read.startId(), matrix, 1, returnTo).get(0);
+            Route route = routePlanner.plan(job.own(), job.startId(), matrix, 1, returnTo).get(0);
             if (!route.visits().isEmpty() && route.visits().get(0).pickups().isEmpty()) {
                 throw new BusinessException("Điểm đầu phải là điểm lấy vì xe đang trống.");
             }
-            results.add(new LockResult(job.planId(), route.visits(), explain(route.reasons(), matrix.straight()), route.meters()));
+            results.add(new LockResult(job.planId(), route.visits(), explain(route.reasons(), matrix.straight()), route.meters(), job.startId()));
         }
-        tx.executeWithoutResult(status -> applyLock(read.startId(), results));
+        tx.executeWithoutResult(status -> applyLock(results));
         return day(date);
     }
 
@@ -839,13 +845,20 @@ public class DeliveryService {
         return text.toString();
     }
 
-    private PlanInput readPlan(LocalDate date, Long startStopId) {
+    private PlanInput readPlan(LocalDate date, Long startStopId, Long driverId) {
         List<DriverDayPlan> existing = plans(date);
-        if (existing.stream().anyMatch(plan -> !DRAFT.equals(plan.getStatus()))) {
-            throw new BusinessException("Ngày này đã chốt lịch. Không xếp lại.");
+        if (existing.stream()
+                .filter(plan -> driverId == null || plan.getDriverId().equals(driverId))
+                .anyMatch(plan -> !DRAFT.equals(plan.getStatus()))) {
+            throw new BusinessException(driverId == null
+                    ? "Ngày này đã chốt lịch. Không xếp lại."
+                    : "Lịch bác này đã chốt. Không xếp lại.");
         }
         if (drivers().stream().noneMatch(DeliveryDriver::isActive)) {
             throw new BusinessException("Chưa có tài xế.");
+        }
+        if (driverId != null && !driver(driverId).isActive()) {
+            throw new BusinessException("Tài xế đang nghỉ.");
         }
         DeliveryStop shop = shop();
         DeliveryStop start = startStopId == null ? shop : stop(startStopId);
@@ -853,9 +866,14 @@ public class DeliveryService {
         if (active.isEmpty()) {
             return PlanInput.empty();
         }
-        List<DeliveryTrip> assigned = active.stream().filter(trip -> trip.getAssignedDriverId() != null).toList();
+        List<DeliveryTrip> assigned = active.stream()
+                .filter(trip -> trip.getAssignedDriverId() != null)
+                .filter(trip -> driverId == null || trip.getAssignedDriverId().equals(driverId))
+                .toList();
         if (assigned.isEmpty()) {
-            throw new BusinessException("Hãy giao việc cho bác tài trước khi xếp lộ trình.");
+            throw new BusinessException(driverId == null
+                    ? "Hãy giao việc cho bác tài trước khi xếp lộ trình."
+                    : "Bác tài chưa có việc để xếp lộ trình.");
         }
         Map<Long, List<Trip>> grouped = new LinkedHashMap<>();
         for (DeliveryTrip trip : assigned) {
@@ -870,12 +888,17 @@ public class DeliveryService {
     }
 
     private void writePlan(LocalDate date, PlanInput input, MatrixDistance matrix) {
+        Set<Long> targets = input.batches().stream().map(AssignedBatch::driverId).collect(Collectors.toCollection(LinkedHashSet::new));
         List<DriverDayPlan> existing = plans(date);
-        if (existing.stream().anyMatch(plan -> !DRAFT.equals(plan.getStatus()))) {
-            throw new BusinessException("Ngày này đã chốt lịch. Không xếp lại.");
+        if (existing.stream()
+                .filter(plan -> targets.isEmpty() || targets.contains(plan.getDriverId()))
+                .anyMatch(plan -> !DRAFT.equals(plan.getStatus()))) {
+            throw new BusinessException("Lịch đã chốt. Không xếp lại.");
         }
         for (DriverDayPlan plan : existing) {
-            deletePlan(plan);
+            if (DRAFT.equals(plan.getStatus()) && (targets.isEmpty() || targets.contains(plan.getDriverId()))) {
+                deletePlan(plan);
+            }
         }
         em.flush();
         if (input.batches().isEmpty()) {
@@ -884,6 +907,7 @@ public class DeliveryService {
         List<Long> live = trips(date).stream()
                 .filter(this::hasActiveBook)
                 .filter(trip -> trip.getAssignedDriverId() != null)
+                .filter(trip -> targets.contains(trip.getAssignedDriverId()))
                 .map(DeliveryTrip::getTripId)
                 .sorted()
                 .toList();
@@ -930,13 +954,15 @@ public class DeliveryService {
     private LockRead readLock(LocalDate date, Long startStopId) {
         List<DriverDayPlan> list = requirePlans(date, PUBLISHED);
         DeliveryStop shop = shop();
-        DeliveryStop start = startStopId == null ? shop : stop(startStopId);
         List<LockJob> jobs = new ArrayList<>();
         for (DriverDayPlan plan : list) {
+            long startId = startStopId != null
+                    ? startStopId
+                    : (plan.getStartStopId() != null ? plan.getStartStopId() : shop.getStopId());
             List<Visit> current = toVisits(plan.getPlanId());
             List<Trip> own = RoutePlanner.tripsOf(current);
             LinkedHashSet<Long> ids = new LinkedHashSet<>();
-            ids.add(start.getStopId());
+            ids.add(startId);
             if (plan.isReturnToShop()) {
                 ids.add(shop.getStopId());
             }
@@ -947,18 +973,18 @@ public class DeliveryService {
                 ids.add(trip.pickup());
                 ids.add(trip.dropoff());
             }
-            jobs.add(new LockJob(plan.getPlanId(), own, plan.isReturnToShop(), snaps(ids)));
+            jobs.add(new LockJob(plan.getPlanId(), own, plan.isReturnToShop(), snaps(ids), startId));
         }
-        return new LockRead(start.getStopId(), shop.getStopId(), jobs, vietmapKey(), matrixRoot());
+        return new LockRead(shop.getStopId(), jobs, vietmapKey(), matrixRoot());
     }
 
-    private void applyLock(long startId, List<LockResult> results) {
+    private void applyLock(List<LockResult> results) {
         for (LockResult result : results) {
             DriverDayPlan plan = plan(result.planId());
             if (!PUBLISHED.equals(plan.getStatus())) {
                 throw new BusinessException("Lịch vừa đổi, khóa lại.");
             }
-            plan.setStartStopId(startId);
+            plan.setStartStopId(result.startId());
             if (result.visits() == null) {
                 plan.setStatus(LOCKED);
                 continue;
@@ -1633,11 +1659,11 @@ public class DeliveryService {
         }
     }
 
-    private record LockJob(Long planId, List<Trip> own, boolean returnToShop, List<DeliveryStop> stops) {}
+    private record LockJob(Long planId, List<Trip> own, boolean returnToShop, List<DeliveryStop> stops, long startId) {}
 
-    private record LockRead(long startId, long shopId, List<LockJob> jobs, String apiKey, String root) {}
+    private record LockRead(long shopId, List<LockJob> jobs, String apiKey, String root) {}
 
-    private record LockResult(Long planId, List<Visit> visits, String explanation, int meters) {}
+    private record LockResult(Long planId, List<Visit> visits, String explanation, int meters, long startId) {}
 
     private record DropRead(long originId, List<Visit> visits, List<DeliveryStop> stops, String apiKey, String root) {}
 
