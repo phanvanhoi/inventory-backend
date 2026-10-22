@@ -253,12 +253,31 @@ public class DeliveryService {
 
     @Transactional
     public void assign(Long bookId, Long driverId) {
+        if (driverId != null && !driver(driverId).isActive()) {
+            throw new BusinessException("Tài xế đang nghỉ.");
+        }
+        DeliveryTrip trip = releaseTrip(bookId);
+        trip.setAssignedDriverId(driverId);
+        trip.setExternalShip(false);
+        trip.setShipFee(null);
+    }
+
+    @Transactional
+    public void shipOutside(Long bookId, Long fee) {
+        if (fee == null || fee < 0) {
+            throw new BusinessException("Nhập giá ship ngoài.");
+        }
+        DeliveryTrip trip = releaseTrip(bookId);
+        trip.setAssignedDriverId(null);
+        trip.setExternalShip(true);
+        trip.setShipFee(fee);
+    }
+
+    /** Take the book's trip off any draft route so it can be handed to someone else. */
+    private DeliveryTrip releaseTrip(Long bookId) {
         DeliveryBook book = book(bookId);
         if (book.getSenderConfirmedAt() != null || CANCELLED.equals(book.getStatus()) || DELIVERED.equals(book.getStatus())) {
             throw new BusinessException("Việc này không còn giao được cho bác tài.");
-        }
-        if (driverId != null && !driver(driverId).isActive()) {
-            throw new BusinessException("Tài xế đang nghỉ.");
         }
         DeliveryTrip trip = book.getTripId() == null ? null : em.find(DeliveryTrip.class, book.getTripId());
         if (trip == null) {
@@ -273,13 +292,13 @@ public class DeliveryService {
                 deletePlan(plan);
             }
         }
-        trip.setAssignedDriverId(driverId);
         trip.setStatus(OPEN);
         if (PLANNED.equals(book.getStatus())) {
             book.setStatus(WAITING);
         }
         book.setSudden(false);
         book.setSuddenConfirmed(false);
+        return trip;
     }
 
     @Transactional
@@ -712,7 +731,7 @@ public class DeliveryService {
             return SuddenView.skip();
         }
         DeliveryTrip trip = em.find(DeliveryTrip.class, book.getTripId());
-        if (trip == null) {
+        if (trip == null || trip.isExternalShip()) {
             return SuddenView.skip();
         }
         List<DriverDayPlan> dayPlans = plans(book.getServiceDate()).stream()
@@ -1069,6 +1088,9 @@ public class DeliveryService {
             }
         }
         view.put("assignedDriverId", assigned);
+        boolean outside = trip != null && trip.isExternalShip() && assigned == null;
+        view.put("externalShip", outside);
+        view.put("shipFee", outside ? trip.getShipFee() : null);
         String owner = book.getOwnerName();
         if (owner == null && trip != null) {
             owner = trip.getOwnerName();

@@ -1,0 +1,3 @@
+ALTER TABLE delivery_trips
+    ADD COLUMN external_ship BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN ship_fee BIGINT NULL;

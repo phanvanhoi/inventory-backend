@@ -37,4 +37,11 @@ public class DeliveryTrip {
 
     @Column(name = "owner_name", length = 80)
     private String ownerName;
+
+    @Column(name = "external_ship", nullable = false)
+    private boolean externalShip;
+
+    /** VND paid to the outside shipper for this trip. */
+    @Column(name = "ship_fee")
+    private Long shipFee;
 }

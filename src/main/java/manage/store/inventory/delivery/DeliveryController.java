@@ -180,6 +180,12 @@ public class DeliveryController {
         deliveryService.assign(id, driverId);
     }
 
+    @PostMapping("/books/{id}/ship-outside")
+    @PreAuthorize(DISPATCH)
+    public void shipOutside(@PathVariable Long id, @RequestParam Long fee) {
+        deliveryService.shipOutside(id, fee);
+    }
+
     @PostMapping("/books/{id}/confirm-sudden")
     @PreAuthorize(DISPATCH)
     public void confirmSudden(@PathVariable Long id) {

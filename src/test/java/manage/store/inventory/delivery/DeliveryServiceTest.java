@@ -326,6 +326,44 @@ class DeliveryServiceTest {
         assertEquals("mẫu nhỏ", find(DeliveryBook.class, second.getBookId()).getNote());
     }
 
+    @Test
+    void shipOutsideKeepsTripOffDriverRoute() {
+        LocalDate date = LocalDate.of(2026, 10, 23);
+        stop("Cửa hàng", 10, 106, true);
+        DeliveryStop pickup = stop("Lấy", 10.01, 106.01, false);
+        DeliveryStop near = stop("Gần", 10.02, 106.02, false);
+        DeliveryStop far = stop("Xa", 10.5, 106.5, false);
+        Long driverId = driver();
+        DeliveryBook mine = book(pickup, near, date);
+        DeliveryBook outside = book(pickup, far, date);
+        hand(mine, driverId);
+        service.shipOutside(outside.getBookId(), 35000L);
+
+        DeliveryTrip trip = find(DeliveryTrip.class, outside.getTripId());
+        assertTrue(trip.isExternalShip());
+        assertEquals(35000L, trip.getShipFee());
+        assertNull(trip.getAssignedDriverId());
+
+        Map<String, Object> day = service.plan(date);
+        assertTrue(onRoute(day, mine.getTripId()));
+        assertFalse(onRoute(day, outside.getTripId()));
+
+        hand(outside, driverId);
+        DeliveryTrip back = find(DeliveryTrip.class, outside.getTripId());
+        assertFalse(back.isExternalShip());
+        assertNull(back.getShipFee());
+        assertEquals(driverId, back.getAssignedDriverId());
+    }
+
+    @Test
+    void shipOutsideNeedsAFee() {
+        LocalDate date = LocalDate.of(2026, 10, 23);
+        stop("Cửa hàng", 10, 106, true);
+        DeliveryBook outside = book(stop("Lấy", 10.01, 106.01, false), stop("Giao", 10.02, 106.02, false), date);
+        assertThrows(BusinessException.class, () -> service.shipOutside(outside.getBookId(), null));
+        assertThrows(BusinessException.class, () -> service.shipOutside(outside.getBookId(), -1L));
+    }
+
     private void hand(DeliveryBook book, Long driverId) {
         service.assign(book.getBookId(), driverId);
     }
